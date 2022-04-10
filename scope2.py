@@ -4,7 +4,7 @@ import collections
 # Read raw data
 times = []
 analogue = []
-for line in open("signal.csv", "rt"):
+for line in open("left24khz.csv", "rt"):
     fields = line.rstrip().split(",")
     try:
         t = float(fields[0])
@@ -21,10 +21,8 @@ print("period", period, "seconds")
 print("frequency", freq, "Hz")
 
 # Digitise
-average = (sum(analogue) / len(analogue)) 
-threshold1 = average * 1.1
-threshold0 = average / 1.1
-print("average", average)
+threshold1 = 20
+threshold0 = 10
 
 digital = []
 state = False
@@ -37,47 +35,77 @@ for i in range(len(analogue)):
     digital.append(state)
 
 # Get pulse width
-pulse = -len(digital)
-pulse_histogram = collections.defaultdict(lambda: 0)
+hold_time = -len(digital)
+hold_time_histogram = collections.defaultdict(lambda: 0)
+max_hold_time = 0
 for i in range(1, len(digital)):
     if digital[i] == digital[i - 1]:
-        pulse += 1
+        hold_time += 1
     else:
-        pulse_histogram[pulse] += 1
-        pulse = 1
+        hold_time_histogram[hold_time] += 1
+        max_hold_time = max(hold_time, max_hold_time)
+        hold_time = 1
 
-width = 0
-for (pulse, count) in sorted(pulse_histogram.items()):
-    if pulse > 0:
-        print("pulse width {} has count {}".format(pulse, count))
-        if width == 0:
-            width = pulse
+for (hold_time, count) in sorted(hold_time_histogram.items()):
+    if hold_time > 0:
+        print("hold_time width {} has count {}".format(hold_time, count))
 
-print("base", width)
-width1 = ((width * 2) - 1)
-width2 = ((width * 3) - 1)
+best_score = -1
+best_hold_time = 1
+for hold_time in range(1, max_hold_time):
+    peak0 = (hold_time_histogram.get(hold_time - 1, 0)
+            + hold_time_histogram.get(hold_time, 0))
+    peak1 = (hold_time_histogram.get(hold_time * 2 , 0)
+            + hold_time_histogram.get(hold_time * 2 + 1, 0))
+
+    score = peak0 + peak1
+    print("hold time {} has score {}".format(hold_time, score))
+    if score > best_score:
+        best_score = score
+        best_hold_time = hold_time
+
+width1 = ((best_hold_time * 2) - 1)
+width2 = ((best_hold_time * 3) - 1)
 print("width1", width1)
 print("width2", width2)
 
 # Get binary data
 pulse = -len(digital)
 packets = [[]]
+skip = False
 for i in range(1, len(digital)):
     if digital[i] == digital[i - 1]:
         pulse += 1
     else:
         if pulse >= width2:
             packets.append([])
+            skip = False
         elif pulse >= width1:
             packets[-1].append(False)
+            skip = False
         else:
-            packets[-1].append(True)
+            if not skip:
+                packets[-1].append(True)
+                skip = True
+            else:
+                skip = False
         pulse = 1
 
 
 with open("packet.txt", "wt") as fd:
+    j = 0
     for packet in packets:
+        fd.write("({:1.3f} -> {:-3d}) ".format(j * period * 1e6, len(packet)))
+        audio = 0
+        if len(packet) > 28:
+            for data in packet[0:24]:
+                audio = audio << 1
+                if data:
+                    audio |= 1
+
+        fd.write("{:06x} ".format(audio))
         for data in packet:
+            j += 1
             if data:
                 fd.write("1")
             else:
