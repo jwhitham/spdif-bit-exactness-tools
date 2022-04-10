@@ -6,7 +6,7 @@ import enum
 # Read raw data
 times = []
 analogue = []
-for line in open("signal4.csv", "rt"):
+for line in open("signal5.csv", "rt"):
     fields = line.rstrip().split(",")
     try:
         t = float(fields[0])
@@ -49,9 +49,9 @@ for i in range(1, len(digital)):
         max_hold_time = max(hold_time, max_hold_time)
         hold_time = 1
 
-#for (hold_time, count) in sorted(hold_time_histogram.items()):
-#    if hold_time > 0:
-#        print("hold_time width {} has count {}".format(hold_time, count))
+for (hold_time, count) in sorted(hold_time_histogram.items()):
+    if hold_time > 0:
+        print("hold_time width {} has count {}".format(hold_time, count))
 
 best_score = -1
 best_hold_time = 1
@@ -73,8 +73,8 @@ spdif_freq = 1.0 / spdif_period
 print("S/PDIF clock frequency {:1.3f} MHz".format(spdif_freq / 1e6))
 
 # Thresholds for longer pulses
-width1 = ((best_hold_time * 2) - 1)
-width2 = ((best_hold_time * 3) - 1)
+width1 = ((best_hold_time * 2) - 0)
+width2 = ((best_hold_time * 3) - 0)
 print("width0", best_hold_time)
 print("width1", width1)
 print("width2", width2)
@@ -183,7 +183,6 @@ channel = 0
 with open("packet.txt", "wt") as fd:
     j = 0
     for packet in packets:
-        audio = 0
         if len(packet) < 32:
             fd.write("malformed\n")
             continue
@@ -203,9 +202,10 @@ with open("packet.txt", "wt") as fd:
         fd.write("ch{} ".format(channel))
 
         # Audio data here (24 bits)
-        for data in reversed(packet[4:28]):
+        audio = 0
+        for i in range(27, 3, -1):
             audio = audio << 1
-            if data:
+            if packet[i]:
                 audio |= 1
 
         fd.write("{:06x} ".format(audio))
