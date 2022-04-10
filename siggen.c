@@ -36,6 +36,7 @@ int main(int argc, char ** argv)
     const uint32_t  num_blocks = (sample_rate * 2 * 60) / block_size;
     const uint32_t  num_samples = num_blocks * block_size;
     const uint32_t  mask24 = 0xffffff00U;
+    const uint32_t  mask16 = 0xffff0000U;
     uint32_t        i;
 
     fd_out = fopen("signal.wav", "wb");
@@ -61,8 +62,8 @@ int main(int argc, char ** argv)
 
     memset(&samples, 0, sizeof(samples));
     for (i = 0; i < 32; i++) {
-        samples[i].left = (int32_t) ((1U << i) & mask24);
-        samples[31 - i].right = (int32_t) (((1U << i) - 1) & mask24);
+        samples[i].left = (int32_t) ((1U << i) & mask16);
+        samples[31 - i].right = (int32_t) (((1U << i) - 1) & mask16);
     }
     for (i = 0; i < 32; i++) {
         printf("%02d M ch0 %06x\n", i, ((uint32_t) samples[i].left) >> 8U);
