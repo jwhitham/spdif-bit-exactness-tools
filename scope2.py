@@ -4,7 +4,7 @@ import collections
 # Read raw data
 times = []
 analogue = []
-for line in open("signal.csv", "rt"):
+for line in open("signal3.csv", "rt"):
     fields = line.rstrip().split(",")
     try:
         t = float(fields[0])
@@ -106,8 +106,8 @@ with open("packet.txt", "wt") as fd:
     for packet in packets:
         fd.write("({:1.3f} -> {:-3d}) ".format(j * osc_period * 1e6, len(packet)))
         audio = 0
-        if len(packet) > 28:
-            for data in reversed(packet[11:28]):
+        if len(packet) >= 28:
+            for data in reversed(packet[9:28]):
                 audio = audio << 1
                 if data:
                     audio |= 1
