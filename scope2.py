@@ -6,7 +6,7 @@ import enum
 # Read raw data
 times = []
 analogue = []
-for line in open("signal6.csv", "rt"):
+for line in open("signal7.csv", "rt"):
     fields = line.rstrip().split(",")
     try:
         t = float(fields[0])
