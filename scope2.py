@@ -4,7 +4,7 @@ import collections
 # Read raw data
 times = []
 analogue = []
-for line in open("signal3.csv", "rt"):
+for line in open("signal4.csv", "rt"):
     fields = line.rstrip().split(",")
     try:
         t = float(fields[0])
