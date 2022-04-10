@@ -4,7 +4,7 @@ import collections
 # Read raw data
 times = []
 analogue = []
-for line in open("20220409-0002.csv", "rt"):
+for line in open("signal.csv", "rt"):
     fields = line.rstrip().split(",")
     try:
         t = float(fields[0])
@@ -27,6 +27,7 @@ threshold0 = average / 1.1
 print("average", average)
 
 digital = []
+state = False
 for i in range(len(analogue)):
     if analogue[i] > threshold1:
         state = True
@@ -53,8 +54,8 @@ for (pulse, count) in sorted(pulse_histogram.items()):
             width = pulse
 
 print("base", width)
-width1 = (width * 3) // 2
-width2 = (width * 5) // 2
+width1 = ((width * 2) - 1)
+width2 = ((width * 3) - 1)
 print("width1", width1)
 print("width2", width2)
 
