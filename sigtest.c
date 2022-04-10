@@ -35,7 +35,7 @@ int main(int argc, char ** argv)
     uint8_t         test_data[data_size];
     t_stereo        samples[(data_size / 6) + 1];
     const uint32_t  block_size = sizeof(samples) / sizeof(t_stereo);
-    const uint32_t  sample_rate = 48000;
+    const uint32_t  sample_rate = 44100;
     const uint32_t  num_blocks = (sample_rate * 2 * 60) / block_size;
     const uint32_t  num_samples = num_blocks * block_size;
     uint32_t        i;
