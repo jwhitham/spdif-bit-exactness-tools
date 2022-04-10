@@ -21,8 +21,8 @@ typedef struct t_header {
 } t_header;
 
 typedef struct t_stereo {
-    int16_t     left;
-    int16_t     right;
+    int32_t     left;
+    int32_t     right;
 } t_stereo;
 
 
@@ -48,7 +48,7 @@ int main(int argc, char ** argv)
     memcpy(header.fixed_fmt, "fmt ", 4);
     header.length_of_format_data = 16;
     header.type_of_format = 1; // WAVE_FORMAT_PCM
-    header.number_of_channels = sizeof(t_stereo) / 2;
+    header.number_of_channels = 2;
     header.sample_rate = sample_rate;
     header.bytes_per_second = header.sample_rate * sizeof(t_stereo);
     header.bytes_per_sample = sizeof(t_stereo) / 2;
@@ -59,9 +59,9 @@ int main(int argc, char ** argv)
     fwrite(&header, 1, sizeof(header), fd_out);
 
     memset(&samples, 0, sizeof(samples));
-    for (i = 0; i < 15; i++) {
-        samples[i].left = (int16_t) (1U << i);
-        samples[i + 8].right = (int16_t) ((1U << i) - 1);
+    for (i = 0; i < 30; i++) {
+        samples[i].left = (int32_t) (1U << i);
+        samples[31 - i].right = (int32_t) ((1U << i) - 1);
     }
 
     for (i = 0; i < num_blocks; i++) {
