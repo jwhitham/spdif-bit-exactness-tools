@@ -1,5 +1,7 @@
 
 import collections
+import enum
+
 
 # Read raw data
 times = []
@@ -77,48 +79,165 @@ print("width0", best_hold_time)
 print("width1", width1)
 print("width2", width2)
 
+class SyncState(enum.Enum):
+    NONE = enum.auto()
+    START = enum.auto()
+    B_HEADER = enum.auto()
+    M_HEADER = enum.auto()
+    W_HEADER = enum.auto()
+    B_FOOTER = enum.auto()
+    M_FOOTER = enum.auto()
+    W_FOOTER = enum.auto()
+    DESYNC = enum.auto()
+
+B_PACKET = [True, False, False, False]
+M_PACKET = [False, False, True, False]
+W_PACKET = [False, True, False, False]
+
 # Get binary data
 pulse = -len(digital)
 packets = [[]]
 skip = False
+inhibit = False
+sync_state = SyncState.DESYNC
+
 for i in range(1, len(digital)):
     if digital[i] == digital[i - 1]:
         pulse += 1
     else:
-        if pulse >= width2:
-            packets.append([])
-            skip = False
-        elif pulse >= width1:
-            packets[-1].append(False)
-            skip = False
-        else:
-            if not skip:
-                packets[-1].append(True)
-                skip = True
-            else:
+        if sync_state == SyncState.NONE:
+            if pulse >= width2:
+                # Synchronisation mark
+                sync_state = SyncState.START
+            elif pulse >= width1:
+                # Ordinary data (0)
+                packets[-1].append(False)
                 skip = False
+            else:
+                # Ordinary data (1)
+                if not skip:
+                    packets[-1].append(True)
+                    skip = True
+                else:
+                    skip = False
+
+        elif sync_state == SyncState.START:
+            if pulse >= width2:
+                sync_state = SyncState.M_HEADER # 111000 received, 10 remaining
+            elif pulse >= width1:
+                sync_state = SyncState.W_HEADER # 11100 received, 100 remaining
+            else:
+                sync_state = SyncState.B_HEADER # 1110 received, 1000 remaining
+
+        elif sync_state == SyncState.M_HEADER:
+            if pulse >= width1:
+                sync_state = SyncState.DESYNC   # expected 10
+            else:
+                sync_state = SyncState.M_FOOTER # 0 remaining
+
+        elif sync_state == SyncState.W_HEADER:
+            if pulse >= width1:
+                sync_state = SyncState.DESYNC   # expected 100
+            else:
+                sync_state = SyncState.W_FOOTER # 00 remaining
+            
+        elif sync_state == SyncState.B_HEADER:
+            if pulse >= width1:
+                sync_state = SyncState.DESYNC   # expected 1000
+            else:
+                sync_state = SyncState.B_FOOTER # 000 remaining
+
+        elif sync_state == SyncState.M_FOOTER:
+            if pulse >= width1:
+                sync_state = SyncState.DESYNC   # expected 0
+            else:
+                sync_state = SyncState.NONE
+                packets.append(M_PACKET[:])
+
+        elif sync_state == SyncState.W_FOOTER:
+            if (pulse < width1) or (pulse >= width2):
+                sync_state = SyncState.DESYNC   # expected 00
+            else:
+                sync_state = SyncState.NONE
+                packets.append(W_PACKET[:])
+            
+        elif sync_state == SyncState.B_FOOTER:
+            if pulse < width2:
+                sync_state = SyncState.DESYNC   # expected 000
+            else:
+                sync_state = SyncState.NONE
+                packets.append(B_PACKET[:])
+
+        elif sync_state == SyncState.DESYNC:
+            if pulse >= width2:
+                # Synchronisation mark
+                sync_state = SyncState.START
+                print("resync at", times[i])
+
         pulse = 1
 
 print("Packets", len(packets))
 
+channel = 0
+
 with open("packet.txt", "wt") as fd:
     j = 0
     for packet in packets:
-        fd.write("({:1.3f} -> {:-3d}) ".format(j * osc_period * 1e6, len(packet)))
         audio = 0
-        if len(packet) >= 28:
-            for data in reversed(packet[9:28]):
-                audio = audio << 1
-                if data:
-                    audio |= 1
+        if len(packet) < 32:
+            fd.write("malformed\n")
+            continue
+
+        if packet[:4] == B_PACKET:
+            fd.write("B ")
+            channel = 0
+        elif packet[:4] == M_PACKET:
+            fd.write("M ")
+            channel = 0
+        elif packet[:4] == W_PACKET:
+            fd.write("W ")
+            channel += 1
+        else:
+            fd.write("? ")
+
+        fd.write("ch{} ".format(channel))
+
+        # Audio data here (24 bits)
+        for data in reversed(packet[4:28]):
+            audio = audio << 1
+            if data:
+                audio |= 1
 
         fd.write("{:06x} ".format(audio))
-        for data in packet:
-            j += 1
-            if data:
-                fd.write("1")
-            else:
-                fd.write("0")
-        fd.write("\n")
+
+        # Validity
+        if packet[28]:
+            fd.write("?")
+        else:
+            fd.write(" ")
+
+        # Subcode packet
+        if packet[29]:
+            fd.write("S")
+        else:
+            fd.write(" ")
+
+        # Status
+        if packet[30]:
+            fd.write("C")
+        else:
+            fd.write(" ")
+
+        # Parity
+        count = 0
+        for p in packet[4:32]:
+            if p:
+                count += 1
+
+        if (count % 2) == 0:
+            fd.write(" OK\n")
+        else:
+            fd.write(" ERR\n")
+
 
 
