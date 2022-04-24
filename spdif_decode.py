@@ -6,9 +6,13 @@ import typing
 
 RawDigitalSignal = typing.List[bool]
 RawSPDIFPackets = typing.List[typing.List[bool]] 
-AudioChannel = typing.List[int]
-AudioChannels = typing.List[AudioChannel]
 RawSubcodeData = typing.List[bool]
+
+class Sample:
+    left = 0
+    right = 0
+
+AudioData = typing.List[Sample]
 
 class SyncState(enum.Enum):
     NONE = enum.auto()
@@ -154,9 +158,10 @@ def biphase_mark_decode(digital: RawDigitalSignal, osc_period: float) -> RawSPDI
     print("Packets", len(packets))
     return packets
 
-def spdif_decode(packets: RawSPDIFPackets) -> typing.Tuple[AudioChannels, RawSubcodeData]:
-    output: AudioChannels = []
-    subcode: SubcodeData = []
+def spdif_decode(packets: RawSPDIFPackets) -> typing.Tuple[AudioData, RawSubcodeData]:
+    output: AudioData = []
+    subcode: RawSubcodeData = []
+    channel = 0
     for packet in packets:
         if len(packet) < 32:
             print("Malformed packet - wrong size (skip)")
@@ -164,13 +169,16 @@ def spdif_decode(packets: RawSPDIFPackets) -> typing.Tuple[AudioChannels, RawSub
 
         if packet[:4] == B_PACKET:
             subcode.clear()
-            output.append([])
+            output.append(Sample())
+            channel = 0
         elif packet[:4] == M_PACKET:
-            output.append([])
+            output.append(Sample())
+            channel = 0
         elif packet[:4] == W_PACKET:
             if len(output) == 0:
                 print("Await B/M packet (skip)")
                 continue
+            channel += 1
         else:
             print("Malformed packet - wrong sync bits (skip)")
             continue
@@ -182,14 +190,18 @@ def spdif_decode(packets: RawSPDIFPackets) -> typing.Tuple[AudioChannels, RawSub
             if packet[i]:
                 audio |= 1
 
-        output[-1].append(audio)
+        if channel == 0:
+            output[-1].left = audio
+        elif channel == 1:
+            output[-1].right = audio
 
         # Validity
         if packet[28]:
             print("invalid bit is set")
 
         # Subcode bit
-        subcode.append(packet[29])
+        if channel == 0:
+            subcode.append(packet[29])
 
         # Status
         if packet[30]:

@@ -7,18 +7,26 @@ def picoscope_decode(csv_file_name: str) -> typing.Tuple[RawDigitalSignal, float
     # Read raw data
     times = []
     analogue = []
+    time_scale = 1e-6
     for line in open(csv_file_name, "rt"):
         fields = line.rstrip().split(",")
         try:
             t = float(fields[0])
             v = float(fields[1])
         except Exception:
+            if line.startswith("(ms)"):
+                time_scale = 1e-3
+            elif line.startswith("(us)"):
+                time_scale = 1e-6
+            elif line.startswith("(ns)"):
+                time_scale = 1e-9
+
             continue
 
         times.append(t)
         analogue.append(v)
 
-    osc_period = 1e-6 * ((times[-1] - times[0]) / (len(times) - 1))
+    osc_period = time_scale * ((times[-1] - times[0]) / (len(times) - 1))
     osc_freq = 1.0 / osc_period
     print("Oscilloscope clock period {:1.3f} microseconds".format(osc_period * 1e6))
     print("Oscilloscope clock frequency {:1.3f} MHz".format(osc_freq / 1e6))
