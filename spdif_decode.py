@@ -199,13 +199,12 @@ def spdif_decode(packets: RawSPDIFPackets) -> typing.Tuple[AudioData, RawSubcode
         if packet[28]:
             print("invalid bit is set")
 
-        # Subcode bit
-        if channel == 0:
-            subcode.append(packet[29])
+        # Subcode/status bit
+        if packet[29]:
+            print("bit 29 is set")
 
-        # Status
-        if packet[30]:
-            print("status bit is set")
+        if channel == 0:
+            subcode.append(packet[30])
 
         # Parity
         count = 0
