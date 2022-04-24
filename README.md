@@ -1,6 +1,6 @@
 
-S/PDIF bit exactness tools
-==========================
+S/PDIF bit exactness testing tools
+==================================
 
 These programs can be used to check an S/PDIF output for bit-exactness.
 
@@ -24,17 +24,19 @@ subdirectory.
 Play a test pattern WAV file using your music-playing program (use the "repeat track" mode).
 
 Capture the electrical signals on the S/PDIF output using a storage oscilloscope
-such as [https://www.picotech.com/products/oscilloscope](Picoscope).
+such as [Picoscope](https://www.picotech.com/products/oscilloscope).
 You will need to record for at least 1ms in order to capture
 more than 40 audio samples. The oscilloscope sample rate should be as high as possible
 while still capturing samples for 1ms. I got good results with a sample rate of 12.5MHz
 (a sample interval of 80ns).
 
+![Picoscope screenshot](/examples/osc.png)
+
 Export the oscilloscope recording as a CSV file.
 
 Run the [sigtest.py](sigtest.py) program on the CSV file, e.g.
 
-   > python sigtest.py c:\temp\20220410-0001.csv
+    python sigtest.py c:\temp\20220410-0001.csv
 
 Sample outputs
 --------------
