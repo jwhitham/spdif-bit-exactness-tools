@@ -109,7 +109,8 @@ playing. In some cases you can also see a hint about the problem, like this:
 This is typical of the output seen when playing the WAV file on Windows via the
 "shared mode" audio pathway, which is the default. This is often called
 "Primary Sound Driver" and/or "Windows DirectSound". It occurs even if volume controls
-are turned to maximum. 
+are turned to maximum. [One of the example files](examples/test_44100_ds.csv) was captured
+in this way.
 
 If you do not see this second message, Windows might be resampling the audio data to
 a higher sample rate. Try the 48kHz test pattern, as the default Windows configuration
@@ -121,7 +122,8 @@ music playing software cannot do that, you'd need to switch to something else
 which does, in order to achieve bit-exact output. My recommendation is
 [Foobar2000](https://www.foobar2000.org/) with the
 [WASAPI output plugin](https://www.foobar2000.org/components/view/foo_out_wasapi).
-Disable the "dither" feature for bit-exact operation.
+Disable the "dither" feature for bit-exact operation. Most of the
+[example files](examples) were captured in this way.
 
 If your S/PDIF hardware does not allow bit-exact output (for example, if it is restricted
 to 48kHz, forcing resampling) then you might consider adding a USB S/PDIF device to your PC.
