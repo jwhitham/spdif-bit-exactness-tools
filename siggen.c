@@ -48,13 +48,13 @@ static const uint8_t payload[] = {
 static void generate(const uint32_t sample_rate, FILE* fd_out)
 {
     t_header        header;
-    const uint32_t  repeat_size = 48;   // samples
+    const uint32_t  repeat_size = 40;   // samples
     const uint32_t  wav_length = 15;    // seconds
     t_stereo        samples[repeat_size];
     const uint32_t  block_size = sizeof(samples) / sizeof(t_stereo);
     const uint32_t  num_blocks = (sample_rate * 2 * wav_length) / block_size;
     const uint32_t  num_samples = num_blocks * block_size;
-    const uint32_t  mask20 = 0xfffff000U;
+    const uint32_t  mask24 = 0xffffff00U;
     uint32_t        i = 0;
     uint32_t        j = 0;
 
@@ -86,8 +86,8 @@ static void generate(const uint32_t sample_rate, FILE* fd_out)
 
     // First part of the repeating block: walking 1s (24 samples)
     for (i = 0; i < 24; i++) {
-        samples[i].left = (int32_t) (8U << i);
-        samples[i].right = (int32_t) (8U << i);
+        samples[i].left = (int32_t) (256U << i);
+        samples[i].right = (int32_t) ((256U << i) ^ mask24);
     }
     // Second part of the repeating block: identifier (1 sample)
     samples[i].left = (sample_rate / 100) << 16;
@@ -100,18 +100,6 @@ static void generate(const uint32_t sample_rate, FILE* fd_out)
         samples[i].right |= ((uint32_t) payload[j + 2]) << 24U;
         samples[i].right |= ((uint32_t) payload[j + 3]) << 16U;
         j += 4;
-    }
-    // Fourth part of the repeating block: 20 bit data (8 samples)
-    for (; i < 40; i++) {
-        samples[i].left  |= ((uint32_t) payload[j + 0]) << 24U;
-        samples[i].left  |= ((uint32_t) payload[j + 1]) << 16U;
-        samples[i].left  |= ((uint32_t) payload[j + 2]) << 8U;
-        samples[i].left  &= mask20;
-        samples[i].right |= ((uint32_t) payload[j + 3]) << 24U;
-        samples[i].right |= ((uint32_t) payload[j + 4]) << 16U;
-        samples[i].right |= ((uint32_t) payload[j + 5]) << 8U;
-        samples[i].right &= mask20;
-        j += 6;
     }
     // Final part of the repeating block: 24 bit data (8 samples)
     for (; i < repeat_size; i++) {
