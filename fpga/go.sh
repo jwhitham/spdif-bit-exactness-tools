@@ -4,12 +4,15 @@ set -ex
 
 export PATH=/j/GHDL/0.37-mingw32-mcode/bin:$PATH
 
-for F in test_signal_generator.vhdl \
-            input_decoder.vhdl \
-            test_top_level.vhdl
+python make_test_bench.py
+rm -f work-obj93.cf
+
+for F in test_signal_generator \
+            input_decoder \
+            test_top_level
 do
-    ghdl -a $F
-    ghdl -e $F
+    ghdl -a $F.vhdl && echo ok
+    ghdl -e $F && echo ok
 done
 ghdl -r test_top_level
 

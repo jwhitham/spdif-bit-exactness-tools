@@ -22,6 +22,8 @@ def main(csv_file_name: str, testbench_name: str,
 
         times.append(t)
         analogue.append(v)
+        if len(times) > 30:
+            break
 
 
     # Digitise
@@ -51,6 +53,7 @@ use ieee.std_logic_1164.all;
 
 entity {testbench_name} is
     port (
+        clock       : out std_logic;
         data        : out std_logic
     );
 end {testbench_name};
@@ -63,15 +66,18 @@ begin
         fd.write("data <= '{:d}';\n".format(digital[0]))
         for i in range(1, len(times)):
             td = max(1, 1e9 * time_scale * (times[i] - times[i - 1]))
-            fd.write("wait for {:1.0f} ns;\n".format(td))
+            fd.write("clock <= '1';\n")
+            fd.write("wait for {:1.0f} ns;\n".format(td / 2))
+            fd.write("clock <= '0';\n")
+            fd.write("wait for {:1.0f} ns;\n".format(td / 2))
             fd.write("data <= '{:d}';\n".format(digital[i]))
 
         fd.write("""
         wait;
-    end;
+    end process;
 end structural;
 """)
 
 if __name__ == "__main__":
-    main("c:/users/jackd/Downloads/test_44100.csv", "test_signal_generator", "test_signal_generator.vhdl")
+    main("../examples/test_44100.csv", "test_signal_generator", "test_signal_generator.vhdl")
 
