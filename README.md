@@ -151,6 +151,14 @@ The 26th to 40th samples contain randomly-generated payload data.
 The test pattern does not survive any sort of resampling, scaling, dithering
 or signal processing, except for truncation from 24 bits to 16 bits.
 
+Here is the test pattern shown in Audacity.
+
+![Picoscope screenshot](/examples/wav.png)
+
+Note that Audacity does not have
+bit-exact output even when WASAPI is selected. I do not know why this is. Perhaps, internally,
+it always uses some other format, e.g. single-precision floating point.
+
 
 More information about S/PDIF
 -----------------------------
