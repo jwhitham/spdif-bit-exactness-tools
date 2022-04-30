@@ -17,7 +17,7 @@ architecture structural of test_top_level is
     signal done            : std_logic := '0';
     signal data            : std_logic := '0';
     signal valid_out       : std_logic := '0';
-    signal packet          : std_logic_vector (47 downto 0) := (others => '0');
+    signal packet          : std_logic_vector (31 downto 0) := (others => '0');
 
     component test_signal_generator is
         port (
@@ -42,7 +42,7 @@ architecture structural of test_top_level is
             single_pulse    : in std_logic;
             double_pulse    : in std_logic;
             triple_pulse    : in std_logic;
-            data_out        : out std_logic_vector (47 downto 0);
+            data_out        : out std_logic_vector (31 downto 0);
             valid_out       : out std_logic;
             clock           : in std_logic
         );
@@ -80,17 +80,11 @@ begin
     begin
         while done = '0' loop
             wait until clock'event;
-            if clock = '1' then
-                if triple_pulse = '1' then
-                    write (l, String'("triple"));
-                    writeline (output, l);
-                elsif double_pulse = '1' then
-                    write (l, String'("double"));
-                    writeline (output, l);
-                elsif single_pulse = '1' then
-                    write (l, String'("single"));
-                    writeline (output, l);
-                end if;
+            if clock = '1' and valid_out = '1' then
+                for i in packet'Left downto 0 loop
+                    write (l, conv (packet (i)));
+                end loop;
+                writeline (output, l);
             end if;
         end loop;
         wait;

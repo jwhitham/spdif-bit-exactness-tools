@@ -8,7 +8,7 @@ entity packet_decoder is
         single_pulse    : in std_logic;
         double_pulse    : in std_logic;
         triple_pulse    : in std_logic;
-        data_out        : out std_logic_vector (47 downto 0);
+        data_out        : out std_logic_vector (31 downto 0);
         valid_out       : out std_logic;
         clock           : in std_logic
     );
