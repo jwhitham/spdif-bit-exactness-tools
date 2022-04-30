@@ -9,6 +9,7 @@ rm -f work-obj93.cf
 
 for F in test_signal_generator \
             input_decoder \
+            packet_decoder \
             test_top_level
 do
     ghdl -a $F.vhdl
