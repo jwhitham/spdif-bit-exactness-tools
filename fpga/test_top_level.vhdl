@@ -2,6 +2,8 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
+use std.textio.all;
+
 entity test_top_level is
 end test_top_level;
 
@@ -43,8 +45,31 @@ begin
                   triple_pulse => triple_pulse);
 
     printer : process
+        variable l : line;
+
+        function conv (x : std_logic) return Integer is
+        begin
+            if x = '1' then
+                return 1;
+            else
+                return 0;
+            end if;
+        end conv;
+
     begin
-        wait until done = '1';
+        while done = '0' loop
+            wait until clock'event;
+            if clock = '1' then
+                write (l, conv (data));
+                write (l, string'(" --> "));
+                write (l, conv (single_pulse));
+                write (l, string'(" "));
+                write (l, conv (double_pulse));
+                write (l, string'(" "));
+                write (l, conv (triple_pulse));
+                writeline (output, l);
+            end if;
+        end loop;
         wait;
     end process printer;
 
