@@ -22,8 +22,6 @@ def main(csv_file_name: str, testbench_name: str,
 
         times.append(t)
         analogue.append(v)
-        if len(times) > 30:
-            break
 
 
     # Digitise
@@ -54,6 +52,7 @@ use ieee.std_logic_1164.all;
 entity {testbench_name} is
     port (
         clock       : out std_logic;
+        done        : out std_logic;
         data        : out std_logic
     );
 end {testbench_name};
@@ -64,6 +63,7 @@ begin
     begin
 """)
         fd.write("data <= '{:d}';\n".format(digital[0]))
+        fd.write("done <= '0';\n")
         for i in range(1, len(times)):
             td = max(1, 1e9 * time_scale * (times[i] - times[i - 1]))
             fd.write("clock <= '1';\n")
@@ -73,6 +73,7 @@ begin
             fd.write("data <= '{:d}';\n".format(digital[i]))
 
         fd.write("""
+        done <= '1';
         wait;
     end process;
 end structural;

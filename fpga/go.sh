@@ -11,8 +11,8 @@ for F in test_signal_generator \
             input_decoder \
             test_top_level
 do
-    ghdl -a $F.vhdl && echo ok
-    ghdl -e $F && echo ok
+    ghdl -a $F.vhdl
+    ghdl -e $F
 done
 ghdl -r test_top_level
 
