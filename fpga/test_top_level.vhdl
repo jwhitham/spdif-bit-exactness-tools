@@ -38,11 +38,11 @@ begin
     test_signal_gen : test_signal_generator
         port map (data => data, clock => clock);
 
---  input_dec : input_decoder
---      port map (clock => clock, data_in => data,
---                single_pulse => single_pulse,
---                double_pulse => double_pulse,
---                triple_pulse => triple_pulse);
+    input_dec : input_decoder
+        port map (clock => clock, data_in => data,
+                  single_pulse => single_pulse,
+                  double_pulse => double_pulse,
+                  triple_pulse => triple_pulse);
 
     printer : process
         variable l : line;
