@@ -80,17 +80,17 @@ begin
     begin
         while done = '0' loop
             wait until clock'event;
-            if clock = '1' and valid_out = '1' then
-                write (l, conv (data));
-                write (l, string'(" --> "));
-                write (l, conv (single_pulse));
-                write (l, conv (double_pulse));
-                write (l, conv (triple_pulse));
-                write (l, string'(" --> "));
-                for i in packet'Left downto 0 loop
-                    write (l, conv (packet (i)));
-                end loop;
-                writeline (output, l);
+            if clock = '1' then
+                if triple_pulse = '1' then
+                    write (l, String'("triple"));
+                    writeline (output, l);
+                elsif double_pulse = '1' then
+                    write (l, String'("double"));
+                    writeline (output, l);
+                elsif single_pulse = '1' then
+                    write (l, String'("single"));
+                    writeline (output, l);
+                end if;
             end if;
         end loop;
         wait;

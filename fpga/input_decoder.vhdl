@@ -15,7 +15,7 @@ end input_decoder;
 
 architecture structural of input_decoder is
 
-    subtype t_sync_counter is unsigned (0 to 2);
+    subtype t_sync_counter is unsigned (0 to 1);
     subtype t_data_counter is unsigned (0 to 3);
 
     constant zero_data_counter  : t_data_counter := (others => '0');
