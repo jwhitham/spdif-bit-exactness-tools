@@ -19,7 +19,7 @@ architecture structural of packet_decoder is
     type t_pulse_length is (ZERO, ONE, TWO, THREE);
     signal pulse_length     : t_pulse_length := ZERO;
 
-    type t_sync_state is (NONE, SKIP, START, DESYNC,
+    type t_sync_state is (NORMAL, SKIP, START, DESYNC,
                 B_HEADER, B_FOOTER, M_HEADER, M_FOOTER, W_HEADER, W_FOOTER);
     signal sync_state       : t_sync_state := DESYNC;
 
@@ -51,7 +51,7 @@ begin
 
             valid_out <= '0';
             case sync_state is
-                when NONE =>
+                when NORMAL =>
                     case pulse_length is
                         when THREE =>
                             sync_state <= START;
@@ -78,10 +78,10 @@ begin
                             -- Ordinary data (0)
                             data (data'Left downto 1) <= data (data'Left - 1 downto 0);
                             data (0) <= '0';
-                            sync_state <= NONE;
+                            sync_state <= NORMAL;
                         when ONE =>
                             -- Ordinary data (1) skipped
-                            sync_state <= NONE;
+                            sync_state <= NORMAL;
                         when ZERO =>
                             null;
                     end case;
@@ -134,7 +134,7 @@ begin
                         when TWO | THREE =>
                             sync_state <= DESYNC; -- expected 0
                         when ONE =>
-                            sync_state <= NONE; -- begin M packet
+                            sync_state <= NORMAL; -- begin M packet
                             data (3 downto 0) <= "0010";
                         when ZERO =>
                             null;
@@ -145,7 +145,7 @@ begin
                         when ONE | THREE =>
                             sync_state <= DESYNC; -- expected 00
                         when TWO =>
-                            sync_state <= NONE; -- begin W packet
+                            sync_state <= NORMAL; -- begin W packet
                             data (3 downto 0) <= "0100";
                         when ZERO =>
                             null;
@@ -156,7 +156,7 @@ begin
                         when ONE | TWO =>
                             sync_state <= DESYNC; -- expected 000
                         when THREE =>
-                            sync_state <= NONE; -- begin B packet
+                            sync_state <= NORMAL; -- begin B packet
                             data (3 downto 0) <= "1000";
                         when ZERO =>
                             null;

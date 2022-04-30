@@ -67,9 +67,9 @@ begin
         for i in range(1, len(times)):
             td = max(1, 1e9 * time_scale * (times[i] - times[i - 1]))
 
-            for clock in range(4):
+            for clock in range(2):
                 fd.write("clock <= '{}';\n".format(clock % 2))
-                fd.write("wait for {:1.0f} ns;\n".format(td / 4))
+                fd.write("wait for {:1.0f} ns;\n".format(td / 2))
 
             fd.write("data <= '{:d}';\n".format(digital[i]))
 

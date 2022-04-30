@@ -133,7 +133,7 @@ def main(csv_file_name: str) -> None:
                 print("double")
             else:
                 print("single")
-            pulse = 0
+            pulse = 1
 
 if __name__ == "__main__":
     main("../examples/test_44100.csv")
