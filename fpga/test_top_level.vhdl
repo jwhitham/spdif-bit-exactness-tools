@@ -89,8 +89,9 @@ begin
         wait until clock'event and clock = '1';
         while done = '0' loop
             if packet_reset = '1' then
-                if (packet (35 downto 32) = "0010" or packet (35 downto 32) = "1000")
-                        and packet (3 downto 0) = "0100" then
+                if (packet (35 downto 32) = "0010"              -- right channel W
+                    and (packet (3 downto 0) = "0001"           -- left channel B
+                        or packet (3 downto 0) = "0100")) then  -- left channel M
 
                     -- left channel (B/M packet)
                     j := 28;

@@ -81,5 +81,5 @@ end structural;
 """)
 
 if __name__ == "__main__":
-    main("../examples/test_44100.csv", "test_signal_generator", "test_signal_generator.vhdl")
+    main("../examples/test_48000.csv", "test_signal_generator", "test_signal_generator.vhdl")
 
