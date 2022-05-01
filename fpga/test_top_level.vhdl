@@ -17,7 +17,7 @@ architecture structural of test_top_level is
     signal clock           : std_logic := '0';
     signal raw_data        : std_logic := '0';
     signal done            : std_logic := '0';
-    signal packet          : std_logic_vector (31 downto 0) := (others => '0');
+    signal packet          : std_logic_vector (63 downto 0) := (others => '0');
 
     component test_signal_generator is
         port (
@@ -62,6 +62,7 @@ begin
 
     printer : process
         variable l : line;
+        variable j : Integer;
 
         function conv (x : std_logic) return Integer is
         begin
@@ -71,18 +72,44 @@ begin
                 return 0;
             end if;
         end conv;
+
+        procedure write_hex (x : std_logic_vector (3 downto 0)) is
+        begin
+            case to_integer (unsigned (x)) is
+                when 10 => write (l, String'("a"));
+                when 11 => write (l, String'("b"));
+                when 12 => write (l, String'("c"));
+                when 13 => write (l, String'("d"));
+                when 14 => write (l, String'("e"));
+                when 15 => write (l, String'("f"));
+                when others => write (l, to_integer (unsigned (x)));
+            end case;
+        end write_hex;
     begin
         wait until clock'event and clock = '1';
         while done = '0' loop
             if packet_reset = '1' then
-                for i in packet'Left downto 0 loop
-                    write (l, conv (packet (i)));
-                end loop;
-                writeline (output, l);
-                packet <= (others => '0');
+                if (packet (35 downto 32) = "0010" or packet (35 downto 32) = "1000")
+                        and packet (3 downto 0) = "0100" then
+
+                    -- left channel (B/M packet)
+                    j := 28;
+                    for i in 1 to 6 loop
+                        j := j - 4;
+                        write_hex (packet (j + 3 downto j));
+                    end loop;
+                    write (l, String'(" "));
+                    -- right channel (W packet)
+                    j := 60;
+                    for i in 1 to 6 loop
+                        j := j - 4;
+                        write_hex (packet (j + 3 downto j));
+                    end loop;
+                    writeline (output, l);
+                end if;
             elsif packet_shift = '1' then
-                packet (packet'Left downto 1) <= packet (packet'Left - 1 downto 0);
-                packet (0) <= packet_data;
+                packet (packet'Left - 1 downto 0) <= packet (packet'Left downto 1);
+                packet (packet'Left) <= packet_data;
             end if;
             wait until clock'event and clock = '1';
         end loop;
