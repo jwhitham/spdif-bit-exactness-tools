@@ -6,11 +6,9 @@ use std.textio.all;
 
 entity input_decoder is
     port (
-        data_in         : in std_logic;
-        single_pulse    : out std_logic;
-        double_pulse    : out std_logic;
-        triple_pulse    : out std_logic;
-        clock           : in std_logic
+        data_in          : in std_logic;
+        pulse_length_out : out std_logic_vector (1 downto 0);
+        clock            : in std_logic
     );
 end input_decoder;
 
@@ -63,9 +61,7 @@ begin
     process (clock)
     begin
         if clock'event and clock = '1' then
-            single_pulse <= '0';
-            double_pulse <= '0';
-            triple_pulse <= '0';
+            pulse_length_out <= "00";
 
             if transition_time = zero_transition_time then
                 -- No transition, do nothing
@@ -79,11 +75,11 @@ begin
                 if sync_counter = max_sync_counter then
                     -- Synced: generate pulse
                     if transition_time >= triple_time then
-                        triple_pulse <= '1';
+                        pulse_length_out <= "11";
                     elsif transition_time >= double_time then
-                        double_pulse <= '1';
+                        pulse_length_out <= "10";
                     else
-                        single_pulse <= '1';
+                        pulse_length_out <= "01";
                     end if;
                 else
                     -- Not synced: capture shortest pulse
