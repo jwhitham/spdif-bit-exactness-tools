@@ -74,9 +74,9 @@ begin
 
     next_timer <= timer + 1;
     next_sync_counter <= sync_counter + 1;
-    double_time <= single_time + single_time;
+    double_time <= single_time sll 1;
     triple_time <= double_time + single_time;
-    quad_time <= double_time + double_time;
+    quad_time <= single_time sll 2;
     double_time_out <= std_logic_vector (double_time);
     sync_out <= '1' when sync_counter = max_sync_counter else '0';
 
