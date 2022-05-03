@@ -6,7 +6,9 @@ use ieee.numeric_std.all;
 entity input_decoder is
     port (
         data_in          : in std_logic;
-        pulse_length_out : out std_logic_vector (1 downto 0);
+        pulse_length_out : out std_logic_vector (1 downto 0) := "00";
+        double_time_out  : out std_logic_vector (7 downto 0) := (others => '0');
+        sync_out         : out std_logic := '0';
         clock            : in std_logic
     );
 end input_decoder;
@@ -14,7 +16,7 @@ end input_decoder;
 architecture structural of input_decoder is
 
     subtype t_sync_counter is unsigned (0 to 2);
-    subtype t_transition_time is unsigned (0 to 3);
+    subtype t_transition_time is unsigned (0 to 7);
 
     constant zero_transition_time   : t_transition_time := (others => '0');
     constant max_transition_time    : t_transition_time := (others => '1');
@@ -73,6 +75,8 @@ begin
     double_time <= single_time + single_time;
     triple_time <= double_time + single_time;
     quad_time <= double_time + double_time;
+    double_time_out <= std_logic_vector (double_time);
+    sync_out <= '1' when sync_counter = max_sync_counter else '0';
 
     -- Determine the time for a single transition ("synchronise").
     -- Once synchronised, classify transitions as single, double or triple.
