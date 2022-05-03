@@ -28,10 +28,11 @@ architecture structural of input_decoder is
 
     signal delay0               : std_logic := '0';
     signal sync_counter         : t_sync_counter := zero_sync_counter;
+    signal next_sync_counter    : t_sync_counter := zero_sync_counter;
     signal transition_time      : t_transition_time := zero_transition_time;
     signal transition_class     : t_transition_class := NONE;
-    signal timer                : t_transition_time := zero_transition_time;
-    signal next_timer           : t_transition_time := zero_transition_time;
+    signal timer                : t_transition_time := zero_transition_time + 1;
+    signal next_timer           : t_transition_time := zero_transition_time + 2;
     signal threshold            : t_transition_class := NONE;
     signal single_time          : t_transition_time := max_single_time;
     signal double_time          : t_transition_time := max_transition_time;
@@ -72,6 +73,7 @@ begin
     end process;
 
     next_timer <= timer + 1;
+    next_sync_counter <= sync_counter + 1;
     double_time <= single_time + single_time;
     triple_time <= double_time + single_time;
     quad_time <= double_time + double_time;
@@ -85,34 +87,39 @@ begin
         if clock'event and clock = '1' then
             pulse_length_out <= "00";
 
-            if transition_class = NONE then
-                -- No transition, do nothing
-                null;
-            elsif transition_class = LONG then
-                -- Invalid transition - start syncing again
-                sync_counter <= zero_sync_counter;
-                single_time <= max_single_time;
-            else
-                -- Normal transition
-                if sync_counter = max_sync_counter then
-                    -- Synced: generate pulse
-                    case transition_class is
-                        when ONE | SHORT =>
-                            pulse_length_out <= "01";
-                        when TWO =>
-                            pulse_length_out <= "10";
-                        when THREE | LONG | NONE =>
-                            pulse_length_out <= "11";
-                    end case;
-                else
-                    -- Not synced: capture shortest pulse
-                    if transition_class = SHORT then
-                        -- Newly measured pulse is shorter than single_time
-                        single_time <= transition_time;
+            case transition_class is
+                when NONE =>
+                    -- No transition, do nothing
+                    null;
+                when LONG =>
+                    -- Invalid transition - start syncing again
+                    sync_counter <= zero_sync_counter;
+                    single_time <= max_single_time;
+                when SHORT =>
+                    -- Shorter pulse seen - adjust single_time
+                    single_time <= transition_time;
+                    if sync_counter = max_sync_counter then
+                        pulse_length_out <= "01";
                     end if;
-                    sync_counter <= sync_counter + 1;
-                end if;
-            end if;
+                when ONE =>
+                    if sync_counter = max_sync_counter then
+                        pulse_length_out <= "01";
+                    else
+                        sync_counter <= next_sync_counter;
+                    end if;
+                when TWO =>
+                    if sync_counter = max_sync_counter then
+                        pulse_length_out <= "10";
+                    else
+                        sync_counter <= next_sync_counter;
+                    end if;
+                when THREE =>
+                    if sync_counter = max_sync_counter then
+                        pulse_length_out <= "11";
+                    else
+                        sync_counter <= next_sync_counter;
+                    end if;
+            end case;
         end if;
     end process;
 
