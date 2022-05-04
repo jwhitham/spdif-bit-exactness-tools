@@ -58,11 +58,11 @@ begin
 
         procedure dump is
         begin
-            for i in 7 downto 0 loop
+            for i in 0 to 7 loop
                 if lrows (i) = '1' then
-                    write (l, String'(" *"));
+                    write (l, String'("#"));
                 else
-                    write (l, String'(" ."));
+                    write (l, String'("."));
                 end if;
             end loop;
             writeline (output, l);
@@ -72,13 +72,13 @@ begin
         while done /= '1' loop
             case lcols is
                 when "1110" =>
-                    write (l, String'("left:  "));
+                    write (l, String'("left:   "));
                     dump;
                 when "1101" =>
-                    write (l, String'("right: "));
+                    write (l, String'("right:  "));
                     dump;
                 when "1011" =>
-                    write (l, String'("double time: "));
+                    write (l, String'("dtime:  "));
                     dump;
                 when "0111" =>
                     write (l, String'("status: "));

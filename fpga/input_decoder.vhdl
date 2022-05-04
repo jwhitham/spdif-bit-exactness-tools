@@ -26,7 +26,7 @@ architecture structural of input_decoder is
 
     type t_transition_class is (NONE, SHORT, ONE, TWO, THREE, LONG);
 
-    signal delay0               : std_logic := '0';
+    signal delay0, delay1       : std_logic := '0';
     signal sync_counter         : t_sync_counter := zero_sync_counter;
     signal next_sync_counter    : t_sync_counter := zero_sync_counter;
     signal transition_time      : t_transition_time := zero_transition_time;
@@ -45,10 +45,11 @@ begin
     begin
         if clock'event and clock = '1' then
             delay0 <= data_in;
+            delay1 <= delay0;
             transition_time <= zero_transition_time;
             transition_class <= NONE;
 
-            if delay0 = data_in then
+            if delay0 = delay1 then
                 if timer = max_transition_time then
                     threshold <= LONG;
                 else

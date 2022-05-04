@@ -8,6 +8,7 @@ python make_test_bench.py
 rm -f work-obj93.cf
 
 for F in test_signal_generator \
+            vu_meter \
             input_decoder \
             packet_decoder \
             channel_decoder \

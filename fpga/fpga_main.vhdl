@@ -86,6 +86,13 @@ architecture structural of fpga_main is
             clock           : in std_logic);
     end component led_scan;
 
+    component vu_meter
+        port (
+            data_in         : in std_logic_vector (8 downto 0);
+            meter_out       : out std_logic_vector (7 downto 0) := "00000000";
+            clock           : in std_logic);
+    end component vu_meter;
+
 begin
     dec1 : input_decoder
         port map (clock => clock_in, data_in => raw_data_in,
@@ -120,6 +127,16 @@ begin
                   lrows_out => lrows_out,
                   lcols_out => lcols_out);
 
+    left : vu_meter 
+        port map (clock => clock_in,
+                  meter_out => left_meter,
+                  data_in => left_data (27 downto 19));
+
+    right : vu_meter 
+        port map (clock => clock_in,
+                  meter_out => right_meter,
+                  data_in => right_data (27 downto 19));
+
     sync1_out <= sync1;
     sync2_out <= sync2;
     sync3_out <= sync3;
@@ -132,11 +149,6 @@ begin
     leds4 (5) <= '0';
     leds4 (6) <= pulse_length (0);
     leds4 (7) <= pulse_length (1);
-
-    left_meter <= left_data (26 downto 19)
-                    when left_data (27) = '0' else (not left_data (26 downto 19));
-    right_meter <= right_data (26 downto 19)
-                    when right_data (27) = '0' else (not right_data (26 downto 19));
 
 end structural;
 
