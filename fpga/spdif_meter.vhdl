@@ -8,7 +8,7 @@ entity spdif_meter is
         raw_data_in     : in std_logic;
         sync1_out       : out std_logic := '0';
         sync2_out       : out std_logic := '0';
-        sync3_out       : out std_logic := '0'
+        sync3_out       : out std_logic := '0';
         lcol1           : out std_logic := '0';
         lcol2           : out std_logic := '0';
         lcol3           : out std_logic := '0';
@@ -29,6 +29,7 @@ architecture structural of spdif_meter is
     signal lcols       : std_logic_vector (3 downto 0) := "0000";
     signal lrows       : std_logic_vector (7 downto 0) := "00000000";
     signal clock       : std_logic := '0';
+    signal zero        : std_logic := '0';
 
     component fpga_main is
         port (
@@ -40,9 +41,24 @@ architecture structural of spdif_meter is
             sync2_out       : out std_logic := '0';
             sync3_out       : out std_logic := '0'
         );
-    end fpga_main;
+    end component fpga_main;
+
+    component spdif_meter_pll is
+        port(
+              REFERENCECLK: in std_logic;
+              RESET: in std_logic;
+              PLLOUTCORE: out std_logic;
+              PLLOUTGLOBAL: out std_logic
+            );
+    end component spdif_meter_pll;
 
 begin
+    pll : spdif_meter_pll
+        port map (
+              REFERENCECLK => clk12MHz,
+              RESET => zero,
+              PLLOUTCORE => open,
+              PLLOUTGLOBAL => clock);
     fp : fpga_main
         port map (
             clock_in => clock,
