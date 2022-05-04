@@ -16,7 +16,6 @@ architecture structural of test_top_level is
     signal packet_start    : std_logic := '0';
     signal packet_channel  : std_logic_vector (1 downto 0) := "00";
     signal clock           : std_logic := '0';
-    signal reset           : std_logic := '0';
     signal raw_data        : std_logic := '0';
     signal done            : std_logic := '0';
     signal sync1           : std_logic := '0';
@@ -189,7 +188,6 @@ begin
     begin
         wait until clock'event and clock = '1';
         assert raw_data = '0' or raw_data = '1';
-        assert reset = '0' or reset = '1';
         assert done = '0' or done = '1';
         assert pulse_length (0) = '0' or pulse_length (0) = '1';
         assert pulse_length (1) = '0' or pulse_length (1) = '1';
