@@ -16,7 +16,7 @@ begin
         if clock'event and clock = '1' then
             meter_out <= (others => '1');
             for i in 7 downto 0 loop
-                if data_in (8) = data_in (i) then
+                if data_in (8) /= data_in (i) then
                     -- sign bit matches bit i - stop
                     exit;
                 else

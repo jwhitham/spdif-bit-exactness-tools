@@ -29,7 +29,6 @@ architecture structural of spdif_meter is
     signal lcols       : std_logic_vector (3 downto 0) := "0000";
     signal lrows       : std_logic_vector (7 downto 0) := "00000000";
     signal clock       : std_logic := '0';
-    signal zero        : std_logic := '0';
 
     component fpga_main is
         port (
@@ -56,7 +55,7 @@ begin
     pll : spdif_meter_pll
         port map (
               REFERENCECLK => clk12MHz,
-              RESET => zero,
+              RESET => '1',
               PLLOUTCORE => open,
               PLLOUTGLOBAL => clock);
     fp : fpga_main
