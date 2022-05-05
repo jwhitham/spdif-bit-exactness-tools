@@ -24,16 +24,16 @@ begin
             -- multiplex rows
             case counter (counter'Left to counter'Left + 1) is
                 when "00" =>
-                    lrows_out <= leds1_in;
+                    lrows_out <= not leds1_in;
                     lcols_out <= "1110";
                 when "01" =>
-                    lrows_out <= leds2_in;
+                    lrows_out <= not leds2_in;
                     lcols_out <= "1101";
                 when "10" =>
-                    lrows_out <= leds3_in;
+                    lrows_out <= not leds3_in;
                     lcols_out <= "1011";
                 when others =>
-                    lrows_out <= leds4_in;
+                    lrows_out <= not leds4_in;
                     lcols_out <= "0111";
             end case;
 
