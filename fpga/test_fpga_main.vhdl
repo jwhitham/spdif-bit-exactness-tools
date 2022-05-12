@@ -23,6 +23,7 @@ architecture structural of test_fpga_main is
         port (
             clock_in        : in std_logic;
             raw_data_in     : in std_logic;
+            raw_data_out    : out std_logic;
             lcols_out       : out std_logic_vector (3 downto 0) := "0000";
             lrows_out       : out std_logic_vector (7 downto 0) := "00000000";
             sync1_out       : out std_logic := '0';
@@ -47,6 +48,7 @@ begin
         port map (
             clock_in => clock,
             raw_data_in => raw_data,
+            raw_data_out => open,
             lcols_out => lcols,
             lrows_out => lrows,
             sync1_out => sync1,

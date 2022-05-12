@@ -154,21 +154,21 @@ begin
         if clock_in = '1' and clock_in'event then
             leds4 <= (others => '0');
             if sync1 = '0' then
-                sync1_counter <= 0;
+                sync1_counter <= (others => '0');
             elsif sync1_counter /= max_counter then
                 sync1_counter <= sync1_counter + 1;
             else
                 leds4 (1) <= '1';
             end if;
             if sync2 = '0' then
-                sync2_counter <= 0;
+                sync2_counter <= (others => '0');
             elsif sync2_counter /= max_counter then
                 sync2_counter <= sync2_counter + 1;
             else
                 leds4 (2) <= '1';
             end if;
             if sync3 = '0' then
-                sync3_counter <= 0;
+                sync3_counter <= (others => '0');
             elsif sync3_counter /= max_counter then
                 sync3_counter <= sync3_counter + 1;
             else
@@ -177,7 +177,7 @@ begin
             if test_counter /= max_counter then
                 test_counter <= test_counter + 1;
             else
-                test_counter <= 0;
+                test_counter <= (others => '0');
                 test_flip <= not test_flip;
             end if;
             leds4 (4) <= test_flip;
