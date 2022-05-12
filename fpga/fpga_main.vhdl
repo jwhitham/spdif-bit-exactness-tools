@@ -1,11 +1,13 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 
 entity fpga_main is
     port (
         clock_in        : in std_logic;
         raw_data_in     : in std_logic;
+        raw_data_out    : out std_logic;
         lcols_out       : out std_logic_vector (3 downto 0) := "0000";
         lrows_out       : out std_logic_vector (7 downto 0) := "00000000";
         sync1_out       : out std_logic := '0';
@@ -31,6 +33,12 @@ architecture structural of fpga_main is
     signal leds4           : std_logic_vector (7 downto 0) := (others => '0');
     signal left_meter      : std_logic_vector (7 downto 0) := (others => '0');
     signal right_meter     : std_logic_vector (7 downto 0) := (others => '0');
+    signal sync1_counter   : unsigned (0 to 23) := (others => '0');
+    signal sync2_counter   : unsigned (0 to 23) := (others => '0');
+    signal sync3_counter   : unsigned (0 to 23) := (others => '0');
+    signal test_counter    : unsigned (0 to 23) := (others => '0');
+    constant max_counter   : unsigned (0 to 23) := (others => '1');
+    signal test_flip       : std_logic := '0';
 
     component test_signal_generator is
         port (
@@ -141,14 +149,42 @@ begin
     sync2_out <= sync2;
     sync3_out <= sync3;
 
-    leds4 (0) <= sync1;
-    leds4 (1) <= sync2;
-    leds4 (2) <= sync3;
-    leds4 (3) <= left_strobe;
-    leds4 (4) <= right_strobe;
-    leds4 (5) <= '0';
-    leds4 (6) <= pulse_length (0);
-    leds4 (7) <= pulse_length (1);
+    process (clock_in)
+    begin
+        if clock_in = '1' and clock_in'event then
+            leds4 <= (others => '0');
+            if sync1 = '0' then
+                sync1_counter <= 0;
+            elsif sync1_counter /= max_counter then
+                sync1_counter <= sync1_counter + 1;
+            else
+                leds4 (1) <= '1';
+            end if;
+            if sync2 = '0' then
+                sync2_counter <= 0;
+            elsif sync2_counter /= max_counter then
+                sync2_counter <= sync2_counter + 1;
+            else
+                leds4 (2) <= '1';
+            end if;
+            if sync3 = '0' then
+                sync3_counter <= 0;
+            elsif sync3_counter /= max_counter then
+                sync3_counter <= sync3_counter + 1;
+            else
+                leds4 (3) <= '1';
+            end if;
+            if test_counter /= max_counter then
+                test_counter <= test_counter + 1;
+            else
+                test_counter <= 0;
+                test_flip <= not test_flip;
+            end if;
+            leds4 (4) <= test_flip;
+            leds4 (0) <= test_flip;
+            raw_data_out <= raw_data_in;
+        end if;
+    end process;
 
 end structural;
 

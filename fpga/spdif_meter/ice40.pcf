@@ -13,7 +13,8 @@ set_io lcol2 D10
 set_io lcol3 A6
 set_io lcol4 C5
 set_io clk12MHz P7
-set_io raw_data_in J1
+set_io raw_data_in B14
+set_io raw_data_out H1
 set_io sync1_out E1
 set_io sync2_out D1
 set_io sync3_out C1

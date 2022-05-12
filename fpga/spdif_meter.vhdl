@@ -6,6 +6,7 @@ entity spdif_meter is
     port (
         clk12MHz        : in std_logic;
         raw_data_in     : in std_logic;
+        raw_data_out    : out std_logic;
         sync1_out       : out std_logic := '0';
         sync2_out       : out std_logic := '0';
         sync3_out       : out std_logic := '0';
@@ -34,6 +35,7 @@ architecture structural of spdif_meter is
         port (
             clock_in        : in std_logic;
             raw_data_in     : in std_logic;
+            raw_data_out    : out std_logic;
             lcols_out       : out std_logic_vector (3 downto 0) := "0000";
             lrows_out       : out std_logic_vector (7 downto 0) := "00000000";
             sync1_out       : out std_logic := '0';
@@ -62,6 +64,7 @@ begin
         port map (
             clock_in => clock,
             raw_data_in => raw_data_in,
+            raw_data_out => raw_data_out,
             lcols_out => lcols,
             lrows_out => lrows,
             sync1_out => sync1_out,
