@@ -1,36 +1,31 @@
 channel decoder desynchronised
 packet decoder desynchronised
-input decoder double time = 255
-input decoder double time = 126
-input decoder double time = 102
-input decoder double time = 94
-input decoder double time = 46
+input decoder single time = 63
+input decoder single time = 51
+input decoder single time = 47
+input decoder single time = 23
 input decoder synchronised
-input decoder double time = 44
+input decoder single time = 22
 packet decoder synchronised
 channel decoder synchronised
 d09600 8de400
 8fb400 cfb500
-input decoder double time = 28
+input decoder single time = 14
 channel decoder desynchronised
 channel decoder synchronised
 000000 000000
 000000 000000
 000000 000000
-input decoder desynchronised
-input decoder double time = 126
-input decoder double time = 62
-input decoder synchronised
-input decoder double time = 30
 channel decoder desynchronised
+packet decoder desynchronised
 channel decoder synchronised
 000000 000000
 000000 000000
-input decoder double time = 28
 000000 000000
 000000 000000
-input decoder double time = 2
-input decoder double time = 4
+packet decoder synchronised
+input decoder single time = 1
+input decoder single time = 2
 channel decoder desynchronised
 channel decoder synchronised
 000400 fffbff
@@ -80,16 +75,11 @@ ea6d66 3e4874
 004000 ffbfff
 008000 ff7fff
 010000 feffff
-input decoder double time = 2
-input decoder desynchronised
-input decoder double time = 126
-input decoder double time = 8
-input decoder double time = 6
-input decoder double time = 4
-input decoder synchronised
+input decoder single time = 1
+input decoder single time = 2
 channel decoder desynchronised
 channel decoder synchronised
-020000 7d5600
+257600 7d5600
 f66900 51f300
 b61800 1d7600
 4dc100 db5e00

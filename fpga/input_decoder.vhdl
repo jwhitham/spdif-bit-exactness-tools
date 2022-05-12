@@ -7,7 +7,7 @@ entity input_decoder is
     port (
         data_in          : in std_logic;
         pulse_length_out : out std_logic_vector (1 downto 0) := "00";
-        double_time_out  : out std_logic_vector (7 downto 0) := (others => '0');
+        single_time_out  : out std_logic_vector (7 downto 0) := (others => '0');
         sync_out         : out std_logic := '0';
         clock            : in std_logic
     );
@@ -75,10 +75,7 @@ begin
 
     next_timer <= timer + 1;
     next_sync_counter <= sync_counter + 1;
-    double_time <= single_time sll 1;
-    triple_time <= double_time + single_time;
-    quad_time <= single_time sll 2;
-    double_time_out <= std_logic_vector (double_time);
+    single_time_out <= std_logic_vector (single_time);
     sync_out <= '1' when sync_counter = max_sync_counter else '0';
 
     -- Determine the time for a single transition ("synchronise").
@@ -87,6 +84,11 @@ begin
     begin
         if clock'event and clock = '1' then
             pulse_length_out <= "00";
+
+            double_time <= (single_time sll 1) - (single_time srl 2);  -- multiply by 1.75
+            triple_time <= (single_time sll 1) + single_time
+                                                - (single_time srl 2); -- multiply by 2.75
+            quad_time <= (single_time sll 2) + single_time;            -- multiply by 5
 
             case transition_class is
                 when NONE =>

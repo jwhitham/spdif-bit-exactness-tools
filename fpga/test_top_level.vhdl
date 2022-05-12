@@ -21,7 +21,7 @@ architecture structural of test_top_level is
     signal sync1           : std_logic := '0';
     signal sync2           : std_logic := '0';
     signal sync3           : std_logic := '0';
-    signal double_time     : std_logic_vector (7 downto 0) := (others => '0');
+    signal single_time     : std_logic_vector (7 downto 0) := (others => '0');
     signal left_data       : std_logic_vector (31 downto 0) := (others => '0');
     signal left_strobe     : std_logic := '0';
     signal right_data      : std_logic_vector (31 downto 0) := (others => '0');
@@ -39,7 +39,7 @@ architecture structural of test_top_level is
         port (
             data_in          : in std_logic;
             pulse_length_out : out std_logic_vector (1 downto 0);
-            double_time_out  : out std_logic_vector (7 downto 0);
+            single_time_out  : out std_logic_vector (7 downto 0);
             sync_out         : out std_logic;
             clock            : in std_logic
         );
@@ -76,7 +76,7 @@ begin
 
     dec1 : input_decoder
         port map (clock => clock, data_in => raw_data,
-                  sync_out => sync1, double_time_out => double_time,
+                  sync_out => sync1, single_time_out => single_time,
                   pulse_length_out => pulse_length);
 
     dec2 : packet_decoder
@@ -102,9 +102,9 @@ begin
         variable l : line;
     begin
         while done /= '1' loop
-            wait until double_time'event;
-            write (l, String'("input decoder double time = "));
-            write (l, to_integer (unsigned (double_time)));
+            wait until single_time'event;
+            write (l, String'("input decoder single time = "));
+            write (l, to_integer (unsigned (single_time)));
             writeline (output, l);
         end loop;
     end process t1p;

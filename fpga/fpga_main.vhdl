@@ -25,7 +25,7 @@ architecture structural of fpga_main is
     signal sync1           : std_logic := '0';
     signal sync2           : std_logic := '0';
     signal sync3           : std_logic := '0';
-    signal double_time     : std_logic_vector (7 downto 0) := (others => '0');
+    signal single_time     : std_logic_vector (7 downto 0) := (others => '0');
     signal left_data       : std_logic_vector (31 downto 0) := (others => '0');
     signal left_strobe     : std_logic := '0';
     signal right_data      : std_logic_vector (31 downto 0) := (others => '0');
@@ -52,7 +52,7 @@ architecture structural of fpga_main is
         port (
             data_in          : in std_logic;
             pulse_length_out : out std_logic_vector (1 downto 0);
-            double_time_out  : out std_logic_vector (7 downto 0);
+            single_time_out  : out std_logic_vector (7 downto 0);
             sync_out         : out std_logic;
             clock            : in std_logic
         );
@@ -104,7 +104,7 @@ architecture structural of fpga_main is
 begin
     dec1 : input_decoder
         port map (clock => clock_in, data_in => raw_data_in,
-                  sync_out => sync1, double_time_out => double_time,
+                  sync_out => sync1, single_time_out => single_time,
                   pulse_length_out => pulse_length);
 
     dec2 : packet_decoder
@@ -130,7 +130,7 @@ begin
         port map (clock => clock_in,
                   leds1_in => left_meter,
                   leds2_in => right_meter,
-                  leds3_in => double_time,
+                  leds3_in => single_time,
                   leds4_in => leds4,
                   lrows_out => lrows_out,
                   lcols_out => lcols_out);
@@ -181,7 +181,7 @@ begin
                 test_flip <= not test_flip;
             end if;
             leds4 (4) <= test_flip;
-            leds4 (0) <= test_flip;
+            leds4 (0) <= not test_flip;
             raw_data_out <= raw_data_in;
         end if;
     end process;
