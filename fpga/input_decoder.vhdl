@@ -17,18 +17,22 @@ architecture structural of input_decoder is
 
     subtype t_sync_counter is unsigned (0 to 2);
     subtype t_transition_time is unsigned (0 to 7);
+    subtype t_watchdog_counter is unsigned (0 to 2);
 
     constant zero_transition_time   : t_transition_time := (others => '0');
     constant max_transition_time    : t_transition_time := (others => '1');
     constant max_single_time        : t_transition_time := max_transition_time srl 2;
     constant zero_sync_counter      : t_sync_counter := (others => '0');
     constant max_sync_counter       : t_sync_counter := (others => '1');
+    constant zero_watchdog_counter  : t_watchdog_counter := (others => '0');
+    constant max_watchdog_counter   : t_watchdog_counter := (others => '1');
 
     type t_transition_class is (NONE, SHORT, ONE, TWO, THREE, LONG);
 
     signal delay0, delay1       : std_logic := '0';
     signal sync_counter         : t_sync_counter := zero_sync_counter;
     signal next_sync_counter    : t_sync_counter := zero_sync_counter;
+    signal watchdog_counter     : t_watchdog_counter := zero_watchdog_counter;
     signal transition_time      : t_transition_time := zero_transition_time;
     signal transition_class     : t_transition_class := NONE;
     signal timer                : t_transition_time := zero_transition_time + 1;
@@ -88,7 +92,7 @@ begin
             double_time <= (single_time sll 1) - (single_time srl 2);  -- multiply by 1.75
             triple_time <= (single_time sll 1) + single_time
                                                 - (single_time srl 2); -- multiply by 2.75
-            quad_time <= (single_time sll 2) + single_time;            -- multiply by 5
+            quad_time <= single_time sll 2;                            -- multiply by 4
 
             case transition_class is
                 when NONE =>
@@ -98,29 +102,44 @@ begin
                     -- Invalid transition - start syncing again
                     sync_counter <= zero_sync_counter;
                     single_time <= max_single_time;
+                    watchdog_counter <= zero_watchdog_counter;
                 when SHORT =>
                     -- Shorter pulse seen - adjust single_time
                     single_time <= transition_time;
                     if sync_counter = max_sync_counter then
                         pulse_length_out <= "01";
                     end if;
+                    watchdog_counter <= zero_watchdog_counter;
                 when ONE =>
+                    -- Normal pulse of length 1
                     if sync_counter = max_sync_counter then
                         pulse_length_out <= "01";
                     else
                         sync_counter <= next_sync_counter;
                     end if;
+                    watchdog_counter <= zero_watchdog_counter;
                 when TWO =>
+                    -- Normal pulse of length 2
                     if sync_counter = max_sync_counter then
                         pulse_length_out <= "10";
                     else
                         sync_counter <= next_sync_counter;
                     end if;
                 when THREE =>
-                    if sync_counter = max_sync_counter then
-                        pulse_length_out <= "11";
+                    -- Normal pulse of length 3
+                    if watchdog_counter = max_watchdog_counter then
+                        -- Received only length 2 or 3 pulses for some time.
+                        -- Perhaps the data rate has changed slightly. Force resync.
+                        sync_counter <= zero_sync_counter;
+                        single_time <= max_single_time;
+                        watchdog_counter <= zero_watchdog_counter;
                     else
-                        sync_counter <= next_sync_counter;
+                        watchdog_counter <= watchdog_counter + 1;
+                        if sync_counter = max_sync_counter then
+                            pulse_length_out <= "11";
+                        else
+                            sync_counter <= next_sync_counter;
+                        end if;
                     end if;
             end case;
         end if;

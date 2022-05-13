@@ -16,14 +16,18 @@ channel decoder synchronised
 000000 000000
 000000 000000
 000000 000000
+input decoder desynchronised
+input decoder single time = 63
+input decoder single time = 31
+input decoder synchronised
+input decoder single time = 15
 channel decoder desynchronised
-packet decoder desynchronised
 channel decoder synchronised
 000000 000000
 000000 000000
+input decoder single time = 14
 000000 000000
 000000 000000
-packet decoder synchronised
 input decoder single time = 1
 input decoder single time = 2
 channel decoder desynchronised
