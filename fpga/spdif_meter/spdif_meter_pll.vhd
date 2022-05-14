@@ -55,11 +55,11 @@ component SB_PLL40_CORE
 end component;
 begin
 spdif_meter_pll_inst: SB_PLL40_CORE
--- Fin=12, Fout=48
+-- Fin=12, Fout=96
 generic map(
              DIVR => "0000",
              DIVF => "0111111",
-             DIVQ => "100",
+             DIVQ => "011",
              FILTER_RANGE => "001",
              FEEDBACK_PATH => "SIMPLE",
              DELAY_ADJUSTMENT_MODE_FEEDBACK => "FIXED",
@@ -93,7 +93,7 @@ end BEHAVIOR;
 --PllInstanceName: spdif_meter_pll_inst
 --DIVR: 0000
 --DIVF: 0111111
---DIVQ: 100
+--DIVQ: 011
 --FILTER_RANGE: 001
 --FEEDBACK_PATH: SIMPLE
 --EXTERNAL_DIVIDE_FACTOR: 1
@@ -114,4 +114,4 @@ end BEHAVIOR;
 --LATCHINPUTVALUE: false
 --LOCK: false
 --InputFrequency: 12
---OutputFrequency: 48
+--OutputFrequency: 96
