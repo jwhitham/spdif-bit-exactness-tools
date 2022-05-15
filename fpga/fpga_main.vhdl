@@ -207,7 +207,7 @@ begin
             else
                 leds4 (4) <= sync4 (0);
                 leds4 (5) <= sync4 (1);
-                leds3 <= sample_rate;
+                leds3 <= sample_rate (7 downto 0);
             end if;
             raw_data_out <= raw_data_in;
         end if;
