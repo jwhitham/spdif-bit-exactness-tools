@@ -17,24 +17,21 @@ end entity matcher;
 
 architecture structural of matcher is
 
-    subtype t_address is unsigned (5 downto 0);
+    subtype t_address is unsigned (6 downto 0);
     subtype t_sample is std_logic_vector (23 downto 0);
 
     constant zero_address : t_address := (others => '0');
-    constant max_address  : t_address := to_unsigned (39, 6);
+    constant max_address  : t_address := to_unsigned (79, 7);
 
     signal address      : t_address := (others => '0');
-    signal left_match   : t_sample := (others => '0');
-    signal right_match  : t_sample := (others => '0');
+    signal data_match   : t_sample := (others => '0');
     signal left_in      : t_sample := (others => '0');
     signal right_in     : t_sample := (others => '0');
-    signal left_match_flag   : std_logic := '0';
 
     component match_rom is
         port (
-            address_in       : in std_logic_vector (5 downto 0) := (others => '0');
-            left_out         : out std_logic_vector (23 downto 0) := (others => '0');
-            right_out        : out std_logic_vector (23 downto 0) := (others => '0');
+            address_in       : in std_logic_vector (6 downto 0) := (others => '0');
+            data_out         : out std_logic_vector (23 downto 0) := (others => '0');
             clock            : in std_logic);
     end component match_rom;
 
@@ -51,8 +48,7 @@ begin
     mr : match_rom
         port map (
             address_in => std_logic_vector (address),
-            left_out => left_match,
-            right_out => right_match,
+            data_out => data_match,
             clock => clock);
 
     left_in <= left_data_in (27 downto 4);
@@ -62,30 +58,38 @@ begin
     begin
         if clock = '1' and clock'event then
             if left_strobe_in = '1' then
-                if address = zero_address then
-                    left_match_flag <= '1';
+                if address (address'Right) = '1' then
+                    -- Two left samples in a row - desync
+                    sync_out <= '0';
+                    address <= zero_address;
+                elsif address = zero_address then
+                    -- First left sample shows the sample rate
                     sample_rate_out <= left_in (23 downto 8);
-                elsif left_match = left_in then
-                    left_match_flag <= '1';
+                    address <= address + 1;
+                elsif data_match = left_in then
+                    -- Matching left sample
+                    address <= address + 1;
                 else
-                    left_match_flag <= '0';
+                    -- Non-matching left sample
+                    sync_out <= '0';
                 end if;
-            end if;
-        end if;
-    end process;
 
-    process (clock)
-    begin
-        if clock = '1' and clock'event then
-            if right_strobe_in = '1' then
-                if right_match = right_in and left_match_flag = '1' then
+            elsif right_strobe_in = '1' then
+                if address (address'Right) = '0' then
+                    -- Two right samples in a row - desync
+                    sync_out <= '0';
+                    address <= zero_address;
+                elsif data_match = right_in then
+                    -- Matching right sample
                     if address = max_address then
+                        -- All samples matched, repeat
                         address <= zero_address;
                         sync_out <= '1';
                     else
                         address <= address + 1;
                     end if;
                 else
+                    -- Non-matching right sample
                     sync_out <= '0';
                     address <= zero_address;
                 end if;

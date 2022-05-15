@@ -54,9 +54,8 @@ use ieee.numeric_std.all;
 
 entity match_rom is
     port (
-        address_in       : in std_logic_vector (5 downto 0) := (others => '0');
-        left_out         : out std_logic_vector (23 downto 0) := (others => '0');
-        right_out        : out std_logic_vector (23 downto 0) := (others => '0');
+        address_in       : in std_logic_vector (6 downto 0) := (others => '0');
+        data_out         : out std_logic_vector (23 downto 0) := (others => '0');
         clock            : in std_logic
     );
 end match_rom;
@@ -70,9 +69,9 @@ begin
 """)
         for i in range(REPEAT_SIZE):
             (left, right) = generate((i + TRUE_MARKER_POSITION) % REPEAT_SIZE)
-            fd.write('when "{:06b}" => left_out <= "{:024b}"; right_out <= "{:024b}";\n'.format(
-                i, left, right))
-        fd.write('when others =>   left_out <= "{:024b}"; right_out <= "{:024b}";\n'.format(0, 0))
+            fd.write('when "{:07b}" => data_out <= "{:024b}";\n'.format(i << 1, left))
+            fd.write('when "{:07b}" => data_out <= "{:024b}";\n'.format((i << 1) | 1, right))
+        fd.write('when others =>   data_out <= "{:024b}";\n'.format(0))
         fd.write("""
             end case;
         end if;
