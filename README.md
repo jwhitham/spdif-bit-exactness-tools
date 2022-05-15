@@ -2,7 +2,22 @@
 S/PDIF bit exactness testing tools
 ==================================
 
-These programs can be used to check an S/PDIF output for bit-exactness.
+These tools can be used to check an S/PDIF output for bit-exactness.
+
+Although music files may be lossless (e.g. FLAC), the pathway from a lossless file
+to the digital output is not necessarily lossless. Loss may occur in:
+
+- the music player software itself due to filtering or equalisation,
+- the OS, e.g. due to the software mixers that allow multiple applications to play
+  sound at the same time, which involves both mixing and sample rate conversion,
+- the device drivers, e.g. due to poor design,
+- the S/PDIF output hardware, again due to poor design.
+
+These losses are unlikely to be audible, but they are nevertheless detectable
+with appropriate tools.
+
+Tools
+=====
 
 [siggen.c](siggen.c) generates a WAV file containing a repeated test
 pattern. The test pattern consists of 40 samples with values chosen
@@ -15,13 +30,51 @@ or otherwise processed in some way.
 the expected test pattern. The program reports the results of the comparison,
 indicating whether your S/PDIF output is bit-exact and whether it is 16-bit or 24-bit.
 
+The [fpga](fpga) subdirectory contains an FPGA design for the Lattice
+iCE40HX8K FPGA which will decode S/PDIF data in real time and compare it to the
+expected test pattern. LEDs are used to report the result of the comparison,
+and indicate whether the S/PDIF output is bit-exact and whether it is 16-bit or 24-bit.
+
+
 Instructions
 ------------
 
 Pre-made WAV files for 44.1kHz and 48kHz can be found in the [examples](examples)
-subdirectory.
+subdirectory. These files contain 16-bit or 24-bit audio data. You should
+choose the appopriate one to match the capabilities of your S/PDIF output.
 
 Play a test pattern WAV file using your music-playing program (use the "repeat track" mode).
+
+Then, use one of the following methods to test the accuracy of your S/PDIF output.
+Each one requires at least some special hardware.
+
+Recording method
+----------------
+
+If you also have an S/PDIF input, loop the output to the input, and record from the
+input. Then compare the recording with the test pattern WAV file using suitable
+software.
+
+For example, you could record the signal using Audacity, then import the test pattern
+WAV file, then zoom in so that the individual samples can be seen. Align the recording
+with the test pattern by deleting samples. Then use "Effects -> Invert" to negate the
+test pattern. Then mix the test pattern and the signal together. The result should be
+absolute silence (zero).
+
+This method assumes that your S/PDIF input is bit-exact and that recording from the
+output of the computer is permitted by your OS and device drivers. Therefore, this
+method can tell you that your input and output are both bit-exact, but if they are
+not, it does not determine which one is the problem.
+
+
+FPGA method
+-----------
+
+See the [fpga](fpga) subdirectory for more information.
+
+
+Oscilloscope method
+-------------------
 
 Capture the electrical signals on the S/PDIF output using a storage oscilloscope
 such as [Picoscope](https://www.picotech.com/products/oscilloscope).
@@ -38,14 +91,11 @@ Run the [sigtest.py](sigtest.py) program on the CSV file, e.g.
 
     python sigtest.py c:\temp\20220410-0001.csv
 
-Sample outputs
---------------
-
 If your S/PDIF output is 24-bit and you have configured your device drivers and
-audio player software so that audio data is passed through exactly,
+music player software so that audio data is passed through exactly,
 then you will see something like this:
 
-    > python sigtest.py examples\test_44100.csv
+    > python sigtest.py examples\test_44100_24_bit.csv
     Oscilloscope clock period 0.080 microseconds
     Oscilloscope clock frequency 12.500 MHz
     Signal peak-to-peak: -8.493 to 66.012
@@ -78,7 +128,7 @@ then you will see something like this:
 If your S/PDIF output is limited to 16 bits by hardware, but all other configuration
 is correct, then messages similar to the following will be shown:
 
-    > python sigtest.py examples\test_44100_16.csv
+    > python sigtest.py examples\test_44100_16_bit.csv
     ...
     Sample rate of test data: 44100 Hz
     Walking ones are correct for 16-bit with at most +/- 1 bit error
@@ -93,10 +143,12 @@ If you are not using Picoscope, you may need to replace the
 [picoscope\_decode.py](picoscope_decode.py) method with something
 appropriate for your oscilloscope's output format.
 
+
 If your configuration is incorrect, then the output may be processed in various ways
-by your audio player software, the Windows audio API or device driver. In this case you
+by your music player software, the OS, or device drivers. In this case you
 will see some audio data, but it won't be a bit-exact copy of the test pattern.
-You will see a message such as:
+
+The sigtest.py program will print messages such as:
 
     Unable to find the 654321 marker within the audio data
 
@@ -116,6 +168,9 @@ If you do not see this second message, Windows might be resampling the audio dat
 a higher sample rate. Try the 48kHz test pattern, as the default Windows configuration
 resamples all sounds to 16-bit 48kHz.
 
+Achieving bit-exact outputs
+===========================
+
 To get bit-exact output on Windows, consider using "Windows Audio Session API" (WASAPI). If your music
 playing software does not support this, you may need to install an output plugin, and if your
 music playing software cannot do that, you'd need to switch to something else
@@ -125,12 +180,20 @@ which does, in order to achieve bit-exact output. My recommendation is
 Disable the "dither" feature for bit-exact operation. Most of the
 [example files](examples) were captured in this way.
 
+Foobar2000's support for bit-exact operation is excellent, once the appropriate output plugin is installed.
+I have tested it extensively using different S/PDIF interfaces (USB and on-board),
+different sample rates and different bit depths. The output becomes inexact if:
+
+- the "DirectSound" output or "Primary Sound Driver" is selected;
+- the volume control is not at maximum;
+- some DSP plugin is enabled.
+
 If your S/PDIF hardware does not allow bit-exact output (for example, if it is restricted
 to 48kHz, forcing resampling) then you might consider adding a USB S/PDIF device to your PC.
 
 
 Format of the test pattern
---------------------------
+==========================
 
 The first 24 samples consist of a pattern generated by shifting a single bit leftwards (i.e.
 multiplying by 2). The left channel contains one high bit, while the right channel contains
@@ -163,8 +226,8 @@ it always uses some other format, e.g. single-precision floating point.
 More information about S/PDIF
 -----------------------------
 
-* [Audio data format](http://www.hardwarebook.info/S/PDIF) (better than Wikipedia)
-* [Subcode description](https://www.minidisc.org/spdif_c_channel.html)
-* [Crystal Semiconductor Application Note 22](https://www.minidisc.org/manuals/an22.pdf) (for the
+- [Audio data format](http://www.hardwarebook.info/S/PDIF) (better than Wikipedia)
+- [Subcode description](https://www.minidisc.org/spdif_c_channel.html)
+- [Crystal Semiconductor Application Note 22](https://www.minidisc.org/manuals/an22.pdf) (for the
   real details)
 

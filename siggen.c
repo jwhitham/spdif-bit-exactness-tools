@@ -22,10 +22,15 @@ typedef struct t_header {
     uint32_t    data_size;              // 28
 } t_header;
 
-typedef struct t_stereo {
+typedef struct t_stereo32 {
     int32_t     left;
     int32_t     right;
-} t_stereo;
+} t_stereo32;
+
+typedef struct t_stereo16 {
+    int16_t     left;
+    int16_t     right;
+} t_stereo16;
 
 static const uint32_t allowed_sample_rate[] = {
     32000, 44100, 48000, 88200, 96000, 0};
@@ -45,15 +50,15 @@ static const uint8_t payload[] = {
 };
 
 
-static void generate(const uint32_t sample_rate, FILE* fd_out)
+static void generate(const uint32_t sample_rate, uint32_t bits, FILE* fd_out)
 {
     t_header        header;
     const uint32_t  repeat_size = 40;   // samples
     const uint32_t  wav_length = 15;    // seconds
-    t_stereo        samples[repeat_size];
-    const uint32_t  block_size = sizeof(samples) / sizeof(t_stereo);
-    const uint32_t  num_blocks = (sample_rate * 2 * wav_length) / block_size;
-    const uint32_t  num_samples = num_blocks * block_size;
+    const uint32_t  bytes_per_sample = (bits == 16) ? 2 : 4;
+    t_stereo32      samples[repeat_size];
+    const uint32_t  num_blocks = (sample_rate * 2 * wav_length) / repeat_size;
+    const uint32_t  num_samples = num_blocks * repeat_size;
     const uint32_t  mask24 = 0xffffff00U;
     uint32_t        i = 0;
     uint32_t        j = 0;
@@ -67,11 +72,11 @@ static void generate(const uint32_t sample_rate, FILE* fd_out)
     header.type_of_format = 1; // WAVE_FORMAT_PCM
     header.number_of_channels = 2;
     header.sample_rate = sample_rate;
-    header.bytes_per_second = header.sample_rate * sizeof(t_stereo);
-    header.bytes_per_sample = sizeof(t_stereo) / 2;
-    header.bits_per_sample = header.bytes_per_sample * 8;
+    header.bytes_per_second = header.sample_rate * bytes_per_sample * 2;
+    header.bytes_per_sample = bytes_per_sample;
+    header.bits_per_sample = bytes_per_sample * 8;
     memcpy(header.fixed_data, "data", 4);
-    header.data_size = num_samples * sizeof(t_stereo);
+    header.data_size = num_samples * bytes_per_sample * 2;
     header.file_size = header.data_size + sizeof(t_header);
     fwrite(&header, 1, sizeof(header), fd_out);
 
@@ -116,9 +121,23 @@ static void generate(const uint32_t sample_rate, FILE* fd_out)
         exit(1);
     }
 
-    // write data
-    for (i = 0; i < num_blocks; i++) {
-        fwrite(&samples, 1, sizeof(samples), fd_out);
+    if (bits == 16) {
+        // Convert 32-bit to 16-bit
+        t_stereo16      samples16[repeat_size];
+
+        for (i = 0; i < repeat_size; i++) {
+            samples16[i].left = (uint32_t) samples[i].left >> 16U;
+            samples16[i].right = (uint32_t) samples[i].right >> 16U;
+        }
+        // write 16-bit data
+        for (i = 0; i < num_blocks; i++) {
+            fwrite(&samples16, 1, sizeof(samples16), fd_out);
+        }
+    } else {
+        // write 32-bit data
+        for (i = 0; i < num_blocks; i++) {
+            fwrite(&samples, 1, sizeof(samples), fd_out);
+        }
     }
 }
 
@@ -126,15 +145,15 @@ int main(int argc, char ** argv)
 {
     FILE *          fd_out;
     uint32_t        sample_rate;
-    uint32_t        i;
+    uint32_t        i, bits;
 
-    if (argc != 3) {
-        fprintf(stderr, "Usage: siggen <sample rate> <output.wav>\n"
+    if (argc != 4) {
+        fprintf(stderr, "Usage: siggen <sample rate> <bits> <output.wav>\n"
                         "<sample rate> may be");
         for (i = 0; allowed_sample_rate[i] != 0; i++) {
             fprintf(stderr, " %u", (unsigned) allowed_sample_rate[i]);
         }
-        fprintf(stderr, "\n");
+        fprintf(stderr, "\n<bits> may be 16 or 24.\n");
         return 1;
     }
 
@@ -142,18 +161,24 @@ int main(int argc, char ** argv)
     i = 0;
     while (allowed_sample_rate[i] != sample_rate) {
         if (allowed_sample_rate[i] == 0) {
-            fprintf(stderr, "this sample rate is not allowed\n");
+            fprintf(stderr, "that sample rate is not allowed\n");
             return 1;
         }
         i++;
     }
 
-    fd_out = fopen(argv[2], "wb");
+    bits = (uint32_t) atoi(argv[2]);
+    if ((bits != 16) && (bits != 24)) {
+        fprintf(stderr, "that number of bits is not allowed\n");
+        return 1;
+    }
+
+    fd_out = fopen(argv[3], "wb");
     if (!fd_out) {
         perror("open (write)");
         return 1;
     }
-    generate(sample_rate, fd_out);
+    generate(sample_rate, bits, fd_out);
     fclose(fd_out);
     return 0;
 }

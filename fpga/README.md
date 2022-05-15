@@ -2,13 +2,15 @@
 S/PDIF decoder FPGA experiments
 ===============================
 
-These design files are made for the GHDL logic simulator and the Lattice
-iCE40HX8K FPGA, which is available in the
+These design files are made for the Lattice
+iCE40HX8K FPGA, particularly within the
 [iceFUN module](https://www.robot-electronics.co.uk/icefun.html) from
-Devantech along with various other breadboard-compatible modules.
+Devantech. This FPGA is available in other breadboard-compatible modules,
+and other FPGAs could be used instead, with a little porting work.
 
-I tested the files in GHDL using recorded S/PDIF outputs from Picoscope
-as a test input. It is easier to debug most problems with a logic simulator,
+I tested the files in GHDL using simulated S/PDIF signals
+and recorded S/PDIF data captured using a Picoscope.
+It is easier to debug most problems with a logic simulator,
 and by using GHDL I was able to get the design "mostly right" before
 loading it onto the FPGA. My prior FPGA experience was almost entirely
 with Xilinx tools but I found that 
@@ -18,6 +20,39 @@ the same main features.
 
 The design is able to correctly decode stereo S/PDIF at up to 96kHz
 (I have no way to produce signals at a higher rate).
+
+Outputs
+-------
+
+Audio levels are reported using
+a "[VU meter](https://en.wikipedia.org/wiki/VU_meter)" using LEDs
+in columns 1 and 2 on the iceFUN module. Column 1 is left, column 2 is right.
+
+The audio signal is compared to the [test pattern](../README.md) in the
+[test WAV files](../examples). The quality of the match is shown on the LEDs
+in column 4:
+
+- LED 0 (near pin K14) = receiving correct "biphase mark code" signals
+- LED 1 = receiving correct packet start codes
+- LED 2 = receiving data with correct parity
+- LED 3 and 4:
+   - both off = test pattern not received
+   - LED 3 only = test pattern received: 16-bit data with a +1/-1 rounding error
+   - LED 4 only = test pattern received: bit-exact 16-bit data
+   - both on = test pattern received: bit-exact 24-bit data
+
+Column 3 shows the number of clock cycles in a single-width pulse,
+unless a test pattern is received, in which case it indicates the sample
+rate:
+
+- LEDs 6 and 7 on = sample rate is 96kHz
+- LEDs 5, 6 and 7 on = sample rate is 48kHz
+- LEDs 0, 3, 4, 5, and 7 on = sample rate is 44.1kHz
+- LEDs 6 on = sample rate is 32kHz
+
+The LEDs in column 4 are not activated until the appropriate signal
+has been received continuously for about 170 milliseconds (assuming
+a 96MHz clock).
 
 Components
 ----------
@@ -35,11 +70,16 @@ at the beginning of the packet and a data signal for each bit.
 The [channel decoder](channel_decoder.vhdl) component gathers the
 data for each audio channel into a shift register and checks the parity.
 
-All three components have their own notion of what it means to be
+The [matcher](matcher.vhdl) component compares the audio data to
+the expected test pattern.
+
+All four components have their own notion of what it means to be
 "synchronised". The input decoder requires pulses of valid width - the
 longest pulse cannot be more than 3 times the length of the shortest pulse
 (though some margin of measurement error is tolerated). The packet decoder
-requires valid start codes, and the channel decoder requires correct parity.
+requires valid start codes, the channel decoder requires correct parity, and
+the matcher requires the test pattern.
+
 
 
 Input decoder
@@ -110,5 +150,6 @@ to be useful. I had better results using FETs, especially with this elegant
 which was fast enough to operate with the 48kHz sample rate.
 Eventually I replaced all of these with an optical receiver that
 can operate at 3.3V, eliminating the need for extra interface circuitry.
+This worked reliably at 96kHz.
 
 
