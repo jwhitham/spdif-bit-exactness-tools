@@ -1,6 +1,8 @@
 
 import typing
 
+GAP = 1e5
+
 def read_csv_file(csv_file_name: str, state_change_time: typing.List[float]) -> None:
 
     # Read raw data
@@ -31,7 +33,7 @@ def read_csv_file(csv_file_name: str, state_change_time: typing.List[float]) -> 
     average = sum(analogue) / len(analogue)
     threshold1 = average * 1.1
     threshold0 = average / 1.1
-    t0 = (times[0] * time_scale) - 1000.0
+    t0 = (times[0] * time_scale) - GAP
     state = state0 = False
     for i in range(len(analogue)):
         if analogue[i] > threshold1:
@@ -46,23 +48,26 @@ def read_csv_file(csv_file_name: str, state_change_time: typing.List[float]) -> 
             t0 = t
             state0 = state
 
-def main() -> None:
-    # read input files
-    state_change_time: typing.List[float] = []
-    read_csv_file("20220502-32k.csv", state_change_time)
-    read_csv_file("20220502-44k.csv", state_change_time)
-    read_csv_file("20220502-48k.csv", state_change_time)
-    read_csv_file("../examples/test_48000.csv", state_change_time)
-    read_csv_file("../examples/test_44100.csv", state_change_time)
-    state_change_time.append(1000)
-    state_change_time.append(1000)
-    state_change_time.append(1000)
+def csv_to_test_data(fd: typing.IO, csv_file_name: str) -> None:
+    fd.write("""write (l, String'("Start of {}")); writeline (output, l);\n""".format(csv_file_name))
 
+    state_change_time: typing.List[float] = []
+    read_csv_file(csv_file_name, state_change_time)
+    state_change_time.append(GAP)
+    data = 0
+    for td in state_change_time:
+        fd.write("wait for {:1.0f} ns; ".format(td))
+        fd.write("r <= '{:d}';\n".format(data))
+        data = 1 - data
+
+def main() -> None:
     # generate test bench
     with open("test_signal_generator.vhdl", "wt") as fd:
         fd.write(f"""
 library ieee;
 use ieee.std_logic_1164.all;
+
+use std.textio.all;
 
 entity test_signal_generator is
     port (
@@ -93,15 +98,17 @@ begin
     end process;
 
     process
+        variable l : line;
     begin
         r <= '0';
         done <= '0';
 """)
-        data = 0
-        for td in state_change_time:
-            fd.write("wait for {:1.0f} ns; ".format(td))
-            fd.write("r <= '{:d}';\n".format(data))
-            data = 1 - data
+        # read input files
+        csv_to_test_data(fd, "20220502-32k.csv")
+        csv_to_test_data(fd, "20220502-44k.csv")
+        csv_to_test_data(fd, "20220502-48k.csv")
+        csv_to_test_data(fd, "../examples/test_48000.csv")
+        csv_to_test_data(fd, "../examples/test_44100.csv")
 
         fd.write("""
         done <= '1';
