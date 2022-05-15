@@ -177,7 +177,7 @@ begin
                         when ONE | TWO =>
                             sync_state <= DESYNC; -- expected 000
                         when THREE =>
-                            sync_state <= NORMAL; -- begin B packet, shift 00
+                            sync_state <= NORMAL; -- begin B packet, shift 0
                             shift <= '1';
                         when others =>
                             null;

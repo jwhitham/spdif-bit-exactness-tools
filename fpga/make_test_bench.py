@@ -1,7 +1,13 @@
 
-import typing
+import typing, enum, struct
 
-GAP = 1e5
+GAP = 1e5                       # nanoseconds - gap between test files
+SINGLE = 1e9 / (44100 * 128)    # nanoseconds - length of single pulse
+
+class HeaderType(enum.Enum):
+    B = enum.auto()
+    W = enum.auto()
+    M = enum.auto()
 
 def read_csv_file(csv_file_name: str, state_change_time: typing.List[float]) -> None:
 
@@ -48,17 +54,74 @@ def read_csv_file(csv_file_name: str, state_change_time: typing.List[float]) -> 
             t0 = t
             state0 = state
 
-def csv_to_test_data(fd: typing.IO, csv_file_name: str) -> None:
-    fd.write("""write (l, String'("Start of {}")); writeline (output, l);\n""".format(csv_file_name))
+def bmc_packetise(audio: int, header: HeaderType, state_change_time: typing.List[float]) -> None:
+    bits = 0
+    data = (audio >> 8)
 
+    # determine parity
+    copy = data
+    for i in range(28):
+        if copy & 1:
+            data ^= 1 << 27
+        copy = copy >> 1
+
+    # encoded signal
+    state_change_time.append(SINGLE * 3)
+    if header == HeaderType.B:
+        state_change_time.append(SINGLE * 1)
+        state_change_time.append(SINGLE)
+        state_change_time.append(SINGLE * 3)
+    elif header == HeaderType.W:
+        state_change_time.append(SINGLE * 2)
+        state_change_time.append(SINGLE)
+        state_change_time.append(SINGLE * 2)
+    elif header == HeaderType.M:
+        state_change_time.append(SINGLE * 3)
+        state_change_time.append(SINGLE)
+        state_change_time.append(SINGLE * 1)
+
+    for i in range(28):
+        if data & 1:
+            state_change_time.append(SINGLE)
+            state_change_time.append(SINGLE)
+        else:
+            state_change_time.append(SINGLE * 2)
+        data = data >> 1
+
+def print_banner(fd: typing.IO, banner: str) -> None:
+    fd.write("""write (l, String'("{}")); writeline (output, l);\n""".format(banner))
+
+def print_data(fd: typing.IO, state_change_time: typing.List[float]) -> None:
+    for td in state_change_time:
+        fd.write("wait for {:1.0f} ns; ".format(td))
+        fd.write("r <= not r;\n")
+
+def wav_to_test_data(fd: typing.IO, wav_file_name: str) -> None:
+    state_change_time: typing.List[float] = []
+    with open(wav_file_name, "rb") as fd2:
+        fd2.seek(0x2c, 0) # skip to start of data
+        for i in range(200):
+            # Read two 32-bit samples
+            (left, right) = struct.unpack("<II", fd2.read(8))
+            if (i % 100) == 0:
+                # Use a B header for the left channel, W for right
+                bmc_packetise(left, HeaderType.B, state_change_time)
+                bmc_packetise(right, HeaderType.W, state_change_time)
+            else:
+                # Use a M header for the left channel, W for right
+                bmc_packetise(left, HeaderType.M, state_change_time)
+                bmc_packetise(right, HeaderType.W, state_change_time)
+
+    state_change_time.append(GAP)
+    print_banner(fd, "Start of " + wav_file_name)
+    print_data(fd, state_change_time)
+
+def csv_to_test_data(fd: typing.IO, csv_file_name: str) -> None:
     state_change_time: typing.List[float] = []
     read_csv_file(csv_file_name, state_change_time)
     state_change_time.append(GAP)
-    data = 0
-    for td in state_change_time:
-        fd.write("wait for {:1.0f} ns; ".format(td))
-        fd.write("r <= '{:d}';\n".format(data))
-        data = 1 - data
+    print_banner(fd, "Start of " + csv_file_name)
+    print_data(fd, state_change_time)
 
 def main() -> None:
     # generate test bench
@@ -109,6 +172,7 @@ begin
         csv_to_test_data(fd, "20220502-48k.csv")
         csv_to_test_data(fd, "../examples/test_48000.csv")
         csv_to_test_data(fd, "../examples/test_44100.csv")
+        wav_to_test_data(fd, "../test_44100.wav")
 
         fd.write("""
         done <= '1';
