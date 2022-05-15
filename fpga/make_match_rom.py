@@ -37,7 +37,9 @@ def generate(index: int) -> typing.Tuple[int, int]:
         left =  (PAYLOAD[j + 0] << 16) | (PAYLOAD[j + 1] << 8)
         right = (PAYLOAD[j + 2] << 16) | (PAYLOAD[j + 3] << 8)
     else:
-        j = (index - FINAL_PART_POSITION) * 6
+        # final part of the repeating block: 24 bit data (8 samples)
+        j = (((FINAL_PART_POSITION - TRUE_MARKER_POSITION - 1) * 4) 
+                + ((index - FINAL_PART_POSITION) * 6))
         left =  (PAYLOAD[j + 0] << 16) | (PAYLOAD[j + 1] << 8) | (PAYLOAD[j + 2] << 0)
         right = (PAYLOAD[j + 3] << 16) | (PAYLOAD[j + 4] << 8) | (PAYLOAD[j + 5] << 0)
 

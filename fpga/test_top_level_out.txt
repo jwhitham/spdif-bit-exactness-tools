@@ -2,6 +2,7 @@ Start of 20220502-32k.csv
 channel decoder desynchronised
 packet decoder desynchronised
 input decoder single time = 63
+input decoder single time = 26
 input decoder single time = 23
 input decoder single time = 11
 input decoder synchronised
@@ -12,19 +13,25 @@ d09600 8de400
 Start of 20220502-44k.csv
 input decoder desynchronised
 input decoder single time = 63
-input decoder single time = 17
+input decoder single time = 7
 input decoder synchronised
-input decoder single time = 8
 channel decoder desynchronised
 channel decoder synchronised
+input decoder desynchronised
+input decoder single time = 63
+input decoder single time = 8
+input decoder synchronised
 000000 000000
-000000 000000
+packet decoder desynchronised
+channel decoder desynchronised
+channel decoder synchronised
 000000 000000
 Start of 20220502-48k.csv
 input decoder desynchronised
 input decoder single time = 63
 input decoder single time = 15
 input decoder synchronised
+packet decoder synchronised
 input decoder single time = 7
 channel decoder desynchronised
 channel decoder synchronised
@@ -35,11 +42,18 @@ channel decoder synchronised
 Start of ../examples/test_48000.csv
 input decoder desynchronised
 input decoder single time = 63
+input decoder single time = 4
+input decoder synchronised
+packet decoder desynchronised
+input decoder desynchronised
+input decoder single time = 63
+input decoder single time = 16
 input decoder single time = 8
 input decoder synchronised
 channel decoder desynchronised
+packet decoder synchronised
 channel decoder synchronised
-000400 fffbff
+000000 fffbff
 000800 fff7ff
 001000 ffefff
 002000 ffdfff
@@ -89,11 +103,13 @@ ea6d66 3e4874
 Start of ../examples/test_44100.csv
 input decoder desynchronised
 input decoder single time = 63
+input decoder single time = 4
+input decoder single time = 63
+input decoder single time = 16
+input decoder single time = 12
 input decoder single time = 8
 input decoder synchronised
 channel decoder desynchronised
-packet decoder desynchronised
-packet decoder synchronised
 channel decoder synchronised
 020000 7d5600
 f66900 51f300
@@ -138,3 +154,214 @@ c64e00 655e00
 257600 7d5600
 f66900 51f300
 b61800 1d7600
+Start of ../test_44100.wav
+input decoder desynchronised
+input decoder single time = 63
+input decoder single time = 27
+input decoder single time = 9
+input decoder synchronised
+4dc100 db5e00
+packet decoder desynchronised
+channel decoder desynchronised
+packet decoder synchronised
+input decoder single time = 8
+channel decoder synchronised
+000002 fffffd
+000004 fffffb
+000008 fffff7
+000010 ffffef
+000020 ffffdf
+000040 ffffbf
+000080 ffff7f
+000100 fffeff
+000200 fffdff
+000400 fffbff
+000800 fff7ff
+001000 ffefff
+002000 ffdfff
+004000 ffbfff
+008000 ff7fff
+010000 feffff
+020000 fdffff
+040000 fbffff
+080000 f7ffff
+100000 efffff
+200000 dfffff
+400000 bfffff
+800000 7fffff
+01b900 654321
+c64e00 655e00
+257600 7d5600
+f66900 51f300
+b61800 1d7600
+4dc100 db5e00
+40d900 9e0d00
+508a00 48dd00
+e3b30d 0c8faf
+afe65e 4195b3
+667001 40817f
+24daf1 ebf8c9
+5a20c9 75c3ea
+d0961c 8de3b3
+8fb408 cfb555
+ea6d66 3e4874
+000001 fffffe
+000002 fffffd
+000004 fffffb
+000008 fffff7
+000010 ffffef
+000020 ffffdf
+000040 ffffbf
+000080 ffff7f
+000100 fffeff
+000200 fffdff
+000400 fffbff
+000800 fff7ff
+001000 ffefff
+002000 ffdfff
+004000 ffbfff
+008000 ff7fff
+010000 feffff
+020000 fdffff
+040000 fbffff
+080000 f7ffff
+100000 efffff
+200000 dfffff
+400000 bfffff
+800000 7fffff
+matcher synchronised: sample rate = 44100
+01b900 654321
+c64e00 655e00
+257600 7d5600
+f66900 51f300
+b61800 1d7600
+4dc100 db5e00
+40d900 9e0d00
+508a00 48dd00
+e3b30d 0c8faf
+afe65e 4195b3
+667001 40817f
+24daf1 ebf8c9
+5a20c9 75c3ea
+d0961c 8de3b3
+8fb408 cfb555
+ea6d66 3e4874
+000001 fffffe
+000002 fffffd
+000004 fffffb
+000008 fffff7
+000010 ffffef
+000020 ffffdf
+000040 ffffbf
+000080 ffff7f
+000100 fffeff
+000200 fffdff
+000400 fffbff
+000800 fff7ff
+001000 ffefff
+002000 ffdfff
+004000 ffbfff
+008000 ff7fff
+010000 feffff
+020000 fdffff
+040000 fbffff
+080000 f7ffff
+100000 efffff
+200000 dfffff
+400000 bfffff
+800000 7fffff
+01b900 654321
+c64e00 655e00
+257600 7d5600
+f66900 51f300
+b61800 1d7600
+4dc100 db5e00
+40d900 9e0d00
+508a00 48dd00
+e3b30d 0c8faf
+afe65e 4195b3
+667001 40817f
+24daf1 ebf8c9
+5a20c9 75c3ea
+d0961c 8de3b3
+8fb408 cfb555
+ea6d66 3e4874
+000001 fffffe
+000002 fffffd
+000004 fffffb
+000008 fffff7
+000010 ffffef
+000020 ffffdf
+000040 ffffbf
+000080 ffff7f
+000100 fffeff
+000200 fffdff
+000400 fffbff
+000800 fff7ff
+001000 ffefff
+002000 ffdfff
+004000 ffbfff
+008000 ff7fff
+010000 feffff
+020000 fdffff
+040000 fbffff
+080000 f7ffff
+100000 efffff
+200000 dfffff
+400000 bfffff
+800000 7fffff
+01b900 654321
+c64e00 655e00
+257600 7d5600
+f66900 51f300
+b61800 1d7600
+4dc100 db5e00
+40d900 9e0d00
+508a00 48dd00
+e3b30d 0c8faf
+afe65e 4195b3
+667001 40817f
+24daf1 ebf8c9
+5a20c9 75c3ea
+d0961c 8de3b3
+8fb408 cfb555
+ea6d66 3e4874
+000001 fffffe
+000002 fffffd
+000004 fffffb
+000008 fffff7
+000010 ffffef
+000020 ffffdf
+000040 ffffbf
+000080 ffff7f
+000100 fffeff
+000200 fffdff
+000400 fffbff
+000800 fff7ff
+001000 ffefff
+002000 ffdfff
+004000 ffbfff
+008000 ff7fff
+010000 feffff
+020000 fdffff
+040000 fbffff
+080000 f7ffff
+100000 efffff
+200000 dfffff
+400000 bfffff
+800000 7fffff
+01b900 654321
+c64e00 655e00
+257600 7d5600
+f66900 51f300
+b61800 1d7600
+4dc100 db5e00
+40d900 9e0d00
+508a00 48dd00
+e3b30d 0c8faf
+afe65e 4195b3
+667001 40817f
+24daf1 ebf8c9
+5a20c9 75c3ea
+d0961c 8de3b3
+8fb408 cfb555

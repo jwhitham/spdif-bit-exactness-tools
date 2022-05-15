@@ -21,7 +21,7 @@ architecture structural of matcher is
     subtype t_sample is std_logic_vector (23 downto 0);
 
     constant zero_address : t_address := (others => '0');
-    constant max_address  : t_address := to_unsigned (40, 6);
+    constant max_address  : t_address := to_unsigned (39, 6);
 
     signal address      : t_address := (others => '0');
     signal left_match   : t_sample := (others => '0');
@@ -65,7 +65,7 @@ begin
                 if address = zero_address then
                     left_match_flag <= '1';
                     sample_rate_out <= left_in (23 downto 8);
-                elsif left_match (23 downto 8) = left_in (23 downto 8) then
+                elsif left_match = left_in then
                     left_match_flag <= '1';
                 else
                     left_match_flag <= '0';
@@ -78,7 +78,7 @@ begin
     begin
         if clock = '1' and clock'event then
             if right_strobe_in = '1' then
-                if right_match (23 downto 8) = right_in (23 downto 8) and left_match_flag = '1' then
+                if right_match = right_in and left_match_flag = '1' then
                     if address = max_address then
                         address <= zero_address;
                         sync_out <= '1';
