@@ -21,6 +21,8 @@ architecture structural of test_top_level is
     signal sync1           : std_logic := '0';
     signal sync2           : std_logic := '0';
     signal sync3           : std_logic := '0';
+    signal sync4           : std_logic := '0';
+    signal sample_rate     : std_logic_vector (15 downto 0) := (others => '0');
     signal single_time     : std_logic_vector (7 downto 0) := (others => '0');
     signal left_data       : std_logic_vector (31 downto 0) := (others => '0');
     signal left_strobe     : std_logic := '0';
@@ -70,6 +72,17 @@ architecture structural of test_top_level is
         );
     end component channel_decoder;
 
+    component matcher is
+        port (
+            left_data_in    : in std_logic_vector (31 downto 0);
+            left_strobe_in  : in std_logic;
+            right_data_in   : in std_logic_vector (31 downto 0);
+            right_strobe_in : in std_logic;
+            sync_out        : out std_logic := '0';
+            sample_rate_out : out std_logic_vector (15 downto 0) := (others => '0');
+            clock           : in std_logic
+        );
+    end component matcher;
 begin
     test_signal_gen : test_signal_generator
         port map (raw_data_out => raw_data, done_out => done, clock_out => clock);
@@ -97,6 +110,15 @@ begin
                   left_strobe_out => left_strobe,
                   right_data_out => right_data,
                   right_strobe_out => right_strobe);
+
+    m : matcher
+        port map (left_data_in => left_data,
+                  left_strobe_in => left_strobe,
+                  right_data_in => right_data,
+                  right_strobe_in => right_strobe,
+                  sync_out => sync4,
+                  sample_rate_out => sample_rate,
+                  clock => clock);
 
     t1p : process
         variable l : line;
@@ -154,11 +176,25 @@ begin
         end loop;
     end process s3p;
 
+    s4p : process
+        variable l : line;
+    begin
+        while done /= '1' loop
+            wait until sync4'event;
+            if sync4 = '1' then
+                write (l, String'("matcher synchronised: sample rate = "));
+                write (l, to_integer (unsigned (sample_rate)) * 100);
+                writeline (output, l);
+            else
+                write (l, String'("matcher desynchronised"));
+                writeline (output, l);
+            end if;
+        end loop;
+    end process s4p;
 
 
     printer : process
         variable l : line;
-        variable j : Integer;
 
         function conv (x : std_logic) return Integer is
         begin
@@ -169,7 +205,7 @@ begin
             end if;
         end conv;
 
-        procedure write_hex (x : std_logic_vector (3 downto 0)) is
+        procedure write_hex_nibble (x : std_logic_vector (3 downto 0)) is
         begin
             assert x (0) = '0' or x (0) = '1';
             assert x (1) = '0' or x (1) = '1';
@@ -184,7 +220,17 @@ begin
                 when 15 => write (l, String'("f"));
                 when others => write (l, to_integer (unsigned (x)));
             end case;
-        end write_hex;
+        end write_hex_nibble;
+
+        procedure write_hex_sample (x : std_logic_vector (23 downto 0)) is
+            variable j : Integer;
+        begin
+            j := 20;
+            for i in 1 to 6 loop
+                write_hex_nibble (x (j + 3 downto j));
+                j := j - 4;
+            end loop;
+        end write_hex_sample;
     begin
         wait until clock'event and clock = '1';
         assert raw_data = '0' or raw_data = '1';
@@ -201,17 +247,9 @@ begin
 
         while done /= '1' loop
             if right_strobe = '1' then
-                j := 28;
-                for i in 1 to 6 loop
-                    j := j - 4;
-                    write_hex (left_data (j + 3 downto j));
-                end loop;
+                write_hex_sample (left_data (27 downto 4));
                 write (l, String'(" "));
-                j := 28;
-                for i in 1 to 6 loop
-                    j := j - 4;
-                    write_hex (right_data (j + 3 downto j));
-                end loop;
+                write_hex_sample (right_data (27 downto 4));
                 writeline (output, l);
             end if;
             wait until clock'event and clock = '1';

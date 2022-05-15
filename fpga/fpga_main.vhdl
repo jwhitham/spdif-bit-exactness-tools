@@ -25,7 +25,9 @@ architecture structural of fpga_main is
     signal sync1           : std_logic := '0';
     signal sync2           : std_logic := '0';
     signal sync3           : std_logic := '0';
+    signal sync4           : std_logic := '0';
     signal single_time     : std_logic_vector (7 downto 0) := (others => '0');
+    signal sample_rate     : std_logic_vector (15 downto 0) := (others => '0');
     signal left_data       : std_logic_vector (31 downto 0) := (others => '0');
     signal left_strobe     : std_logic := '0';
     signal right_data      : std_logic_vector (31 downto 0) := (others => '0');
@@ -101,6 +103,18 @@ architecture structural of fpga_main is
             clock           : in std_logic);
     end component vu_meter;
 
+    component matcher is
+        port (
+            left_data_in    : in std_logic_vector (31 downto 0);
+            left_strobe_in  : in std_logic;
+            right_data_in   : in std_logic_vector (31 downto 0);
+            right_strobe_in : in std_logic;
+            sync_out        : out std_logic := '0';
+            sample_rate_out : out std_logic_vector (15 downto 0) := (others => '0');
+            clock           : in std_logic
+        );
+    end component matcher;
+
 begin
     dec1 : input_decoder
         port map (clock => clock_in, data_in => raw_data_in,
@@ -125,6 +139,14 @@ begin
                   left_strobe_out => left_strobe,
                   right_data_out => right_data,
                   right_strobe_out => right_strobe);
+    m : matcher
+        port map (left_data_in => left_data,
+                  left_strobe_in => left_strobe,
+                  right_data_in => right_data,
+                  right_strobe_in => right_strobe,
+                  sync_out => sync4,
+                  sample_rate_out => sample_rate,
+                  clock => clock_in);
 
     leds : led_scan
         port map (clock => clock_in,
