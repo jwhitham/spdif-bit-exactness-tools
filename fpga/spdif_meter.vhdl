@@ -10,6 +10,7 @@ entity spdif_meter is
         sync1_out       : out std_logic := '0';
         sync2_out       : out std_logic := '0';
         sync3_out       : out std_logic := '0';
+        sync4_out       : out std_logic := '0';
         lcol1           : out std_logic := '0';
         lcol2           : out std_logic := '0';
         lcol3           : out std_logic := '0';
@@ -40,7 +41,8 @@ architecture structural of spdif_meter is
             lrows_out       : out std_logic_vector (7 downto 0) := "00000000";
             sync1_out       : out std_logic := '0';
             sync2_out       : out std_logic := '0';
-            sync3_out       : out std_logic := '0'
+            sync3_out       : out std_logic := '0';
+            sync4_out       : out std_logic := '0'
         );
     end component fpga_main;
 
@@ -69,7 +71,8 @@ begin
             lrows_out => lrows,
             sync1_out => sync1_out,
             sync2_out => sync2_out,
-            sync3_out => sync3_out);
+            sync3_out => sync3_out,
+            sync4_out => sync4_out);
 
     led1 <= lrows (0);
     led2 <= lrows (1);

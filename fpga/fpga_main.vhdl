@@ -12,7 +12,8 @@ entity fpga_main is
         lrows_out       : out std_logic_vector (7 downto 0) := "00000000";
         sync1_out       : out std_logic := '0';
         sync2_out       : out std_logic := '0';
-        sync3_out       : out std_logic := '0'
+        sync3_out       : out std_logic := '0';
+        sync4_out       : out std_logic := '0'
     );
 end fpga_main;
 
@@ -25,20 +26,21 @@ architecture structural of fpga_main is
     signal sync1           : std_logic := '0';
     signal sync2           : std_logic := '0';
     signal sync3           : std_logic := '0';
-    signal sync4           : std_logic := '0';
+    signal sync4           : std_logic_vector (1 downto 0) := "00";
     signal single_time     : std_logic_vector (7 downto 0) := (others => '0');
     signal sample_rate     : std_logic_vector (15 downto 0) := (others => '0');
     signal left_data       : std_logic_vector (31 downto 0) := (others => '0');
     signal left_strobe     : std_logic := '0';
     signal right_data      : std_logic_vector (31 downto 0) := (others => '0');
     signal right_strobe    : std_logic := '0';
+    signal leds3           : std_logic_vector (7 downto 0) := (others => '0');
     signal leds4           : std_logic_vector (7 downto 0) := (others => '0');
     signal left_meter      : std_logic_vector (7 downto 0) := (others => '0');
     signal right_meter     : std_logic_vector (7 downto 0) := (others => '0');
     signal sync1_counter   : unsigned (0 to 23) := (others => '0');
     signal sync2_counter   : unsigned (0 to 23) := (others => '0');
     signal sync3_counter   : unsigned (0 to 23) := (others => '0');
-    signal test_counter    : unsigned (0 to 23) := (others => '0');
+    signal sync4_counter   : unsigned (0 to 23) := (others => '0');
     constant max_counter   : unsigned (0 to 23) := (others => '1');
     signal test_flip       : std_logic := '0';
 
@@ -109,7 +111,7 @@ architecture structural of fpga_main is
             left_strobe_in  : in std_logic;
             right_data_in   : in std_logic_vector (31 downto 0);
             right_strobe_in : in std_logic;
-            sync_out        : out std_logic := '0';
+            sync_out        : out std_logic_vector (1 downto 0) := "00";
             sample_rate_out : out std_logic_vector (15 downto 0) := (others => '0');
             clock           : in std_logic
         );
@@ -152,7 +154,7 @@ begin
         port map (clock => clock_in,
                   leds1_in => left_meter,
                   leds2_in => right_meter,
-                  leds3_in => single_time,
+                  leds3_in => leds3,
                   leds4_in => leds4,
                   lrows_out => lrows_out,
                   lcols_out => lcols_out);
@@ -170,11 +172,13 @@ begin
     sync1_out <= sync1;
     sync2_out <= sync2;
     sync3_out <= sync3;
+    sync4_out <= sync4 (1) or sync4 (0);
 
     process (clock_in)
     begin
         if clock_in = '1' and clock_in'event then
             leds4 <= (others => '0');
+            leds3 <= single_time;
             if sync1 = '0' then
                 sync1_counter <= (others => '0');
             elsif sync1_counter /= max_counter then
@@ -196,14 +200,15 @@ begin
             else
                 leds4 (3) <= '1';
             end if;
-            if test_counter /= max_counter then
-                test_counter <= test_counter + 1;
+            if sync4 = "00" then
+                sync4_counter <= (others => '0');
+            elsif sync4_counter /= max_counter then
+                sync4_counter <= sync4_counter + 1;
             else
-                test_counter <= (others => '0');
-                test_flip <= not test_flip;
+                leds4 (4) <= sync4 (0);
+                leds4 (5) <= sync4 (1);
+                leds3 <= sample_rate;
             end if;
-            leds4 (4) <= test_flip;
-            leds4 (0) <= not test_flip;
             raw_data_out <= raw_data_in;
         end if;
     end process;
