@@ -1,14 +1,12 @@
 
 import typing
 
-def read_csv_file(csv_file_name: str,
-                digital: typing.List[bool],
-                times: typing.List[float]) -> None:
+def read_csv_file(csv_file_name: str, state_change_time: typing.List[float]) -> None:
 
     # Read raw data
-    analogue = []
-    time_scale = 1e-6
-    td = t = t0 = 0.0
+    analogue: typing.List[float] = []
+    times: typing.List[float] = []
+    time_scale = 1e-6 * 1e9
     for line in open(csv_file_name, "rt"):
         fields = line.rstrip().split(",")
         try:
@@ -16,42 +14,49 @@ def read_csv_file(csv_file_name: str,
             v = float(fields[1])
         except Exception:
             if line.startswith("(ms)"):
-                time_scale = 1e-3
+                time_scale = 1e-3 * 1e9
             elif line.startswith("(us)"):
-                time_scale = 1e-6
+                time_scale = 1e-6 * 1e9
             elif line.startswith("(ns)"):
-                time_scale = 1e-9
+                time_scale = 1e-9 * 1e9
 
             continue
 
-        td = max(1.0, (t - t0) * time_scale * 1e9)
-        times.append(td)
+        times.append(t)
         analogue.append(v)
         t0 = t
 
 
-    # Digitise
+    # Digitise, convert to BMC
     average = sum(analogue) / len(analogue)
     threshold1 = average * 1.1
     threshold0 = average / 1.1
-    state = False
+    t0 = (times[0] * time_scale) - 1000.0
+    state = state0 = False
     for i in range(len(analogue)):
         if analogue[i] > threshold1:
             state = True
         elif analogue[i] < threshold0:
             state = False
 
-        digital.append(state)
+        if state != state0:
+            # Record state change time
+            t = times[i] * time_scale
+            state_change_time.append(max(1.0, t - t0))
+            t0 = t
+            state0 = state
 
 def main() -> None:
     # read input files
-    times = []
-    digital = []
-    read_csv_file("20220502-32k.csv", digital, times)
-    read_csv_file("20220502-44k.csv", digital, times)
-    read_csv_file("20220502-48k.csv", digital, times)
-    read_csv_file("../examples/test_48000.csv", digital, times)
-    read_csv_file("../examples/test_44100.csv", digital, times)
+    state_change_time: typing.List[float] = []
+    read_csv_file("20220502-32k.csv", state_change_time)
+    read_csv_file("20220502-44k.csv", state_change_time)
+    read_csv_file("20220502-48k.csv", state_change_time)
+    read_csv_file("../examples/test_48000.csv", state_change_time)
+    read_csv_file("../examples/test_44100.csv", state_change_time)
+    state_change_time.append(1000)
+    state_change_time.append(1000)
+    state_change_time.append(1000)
 
     # generate test bench
     with open("test_signal_generator.vhdl", "wt") as fd:
@@ -69,34 +74,36 @@ end test_signal_generator;
 
 architecture structural of test_signal_generator is
     signal done     : std_logic := '0';
-    signal raw_data : std_logic := '0';
+    signal r        : std_logic := '0';
     signal clock    : std_logic := '0';
 begin
     done_out <= done;
-    raw_data_out <= raw_data;
+    raw_data_out <= r;
     clock_out <= clock;
 
     process
     begin
-        raw_data <= '0';
+        while done = '0' loop
+            clock <= '1';
+            wait for 10 ns;
+            clock <= '0';
+            wait for 10 ns;
+        end loop;
+        wait;
+    end process;
+
+    process
+    begin
+        r <= '0';
         done <= '0';
-        clock <= '0';
 """)
-        for (data, td) in zip(digital, times):
-            fd.write("wait for {:1.0f} ns; ".format(td / 2))
-            fd.write("clock <= '0'; ")
-            fd.write("raw_data <= '{:d}'; ".format(data))
-            fd.write("wait for {:1.0f} ns; ".format(td / 2))
-            fd.write("clock <= '1'; \n")
+        data = 0
+        for td in state_change_time:
+            fd.write("wait for {:1.0f} ns; ".format(td))
+            fd.write("r <= '{:d}';\n".format(data))
+            data = 1 - data
 
         fd.write("""
-        wait for 1 us;
-        clock <= '0';
-        raw_data <= '1';
-        wait for 1 us;
-        clock <= '1';
-        raw_data <= '0';
-        wait for 1 us;
         done <= '1';
         wait;
     end process;
