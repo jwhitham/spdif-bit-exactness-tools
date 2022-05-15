@@ -154,7 +154,7 @@ c64e00 655e00
 257600 7d5600
 f66900 51f300
 b61800 1d7600
-Start of ../test_44100.wav with rouding = False
+Start of ../test_44100.wav with quality = Quality.EXACT_24
 input decoder desynchronised
 input decoder single time = 63
 input decoder single time = 27
@@ -229,7 +229,7 @@ ea6d66 3e4874
 200000 dfffff
 400000 bfffff
 800000 7fffff
-matcher synchronised: sample rate = 44100 quality = 24 bit
+matcher synchronised: sample rate = 44100 sync4 = 3
 01b900 654321
 c64e00 655e00
 257600 7d5600
@@ -365,7 +365,7 @@ afe65e 4195b3
 5a20c9 75c3ea
 d0961c 8de3b3
 8fb408 cfb555
-Start of ../test_44100.wav with rouding = True
+Start of ../test_44100.wav with quality = Quality.EXACT_16
 input decoder desynchronised
 input decoder single time = 63
 input decoder single time = 27
@@ -374,7 +374,217 @@ input decoder synchronised
 channel decoder desynchronised
 input decoder single time = 8
 channel decoder synchronised
-ea6d66 000000
+ea6d66 ffff00
+matcher desynchronised
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000100 fffe00
+000200 fffd00
+000400 fffb00
+000800 fff700
+001000 ffef00
+002000 ffdf00
+004000 ffbf00
+008000 ff7f00
+010000 feff00
+020000 fdff00
+040000 fbff00
+080000 f7ff00
+100000 efff00
+200000 dfff00
+400000 bfff00
+800000 7fff00
+01b900 654300
+c64e00 655e00
+257600 7d5600
+f66900 51f300
+b61800 1d7600
+4dc100 db5e00
+40d900 9e0d00
+508a00 48dd00
+e3b300 0c8f00
+afe600 419500
+667000 408100
+24da00 ebf800
+5a2000 75c300
+d09600 8de300
+8fb400 cfb500
+ea6d00 3e4800
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000100 fffe00
+000200 fffd00
+000400 fffb00
+000800 fff700
+001000 ffef00
+002000 ffdf00
+004000 ffbf00
+008000 ff7f00
+010000 feff00
+020000 fdff00
+040000 fbff00
+080000 f7ff00
+100000 efff00
+200000 dfff00
+400000 bfff00
+800000 7fff00
+matcher synchronised: sample rate = 44100 sync4 = 2
+01b900 654300
+c64e00 655e00
+257600 7d5600
+f66900 51f300
+b61800 1d7600
+4dc100 db5e00
+40d900 9e0d00
+508a00 48dd00
+e3b300 0c8f00
+afe600 419500
+667000 408100
+24da00 ebf800
+5a2000 75c300
+d09600 8de300
+8fb400 cfb500
+ea6d00 3e4800
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000100 fffe00
+000200 fffd00
+000400 fffb00
+000800 fff700
+001000 ffef00
+002000 ffdf00
+004000 ffbf00
+008000 ff7f00
+010000 feff00
+020000 fdff00
+040000 fbff00
+080000 f7ff00
+100000 efff00
+200000 dfff00
+400000 bfff00
+800000 7fff00
+01b900 654300
+c64e00 655e00
+257600 7d5600
+f66900 51f300
+b61800 1d7600
+4dc100 db5e00
+40d900 9e0d00
+508a00 48dd00
+e3b300 0c8f00
+afe600 419500
+667000 408100
+24da00 ebf800
+5a2000 75c300
+d09600 8de300
+8fb400 cfb500
+ea6d00 3e4800
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000100 fffe00
+000200 fffd00
+000400 fffb00
+000800 fff700
+001000 ffef00
+002000 ffdf00
+004000 ffbf00
+008000 ff7f00
+010000 feff00
+020000 fdff00
+040000 fbff00
+080000 f7ff00
+100000 efff00
+200000 dfff00
+400000 bfff00
+800000 7fff00
+01b900 654300
+c64e00 655e00
+257600 7d5600
+f66900 51f300
+b61800 1d7600
+4dc100 db5e00
+40d900 9e0d00
+508a00 48dd00
+e3b300 0c8f00
+afe600 419500
+667000 408100
+24da00 ebf800
+5a2000 75c300
+d09600 8de300
+8fb400 cfb500
+ea6d00 3e4800
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000100 fffe00
+000200 fffd00
+000400 fffb00
+000800 fff700
+001000 ffef00
+002000 ffdf00
+004000 ffbf00
+008000 ff7f00
+010000 feff00
+020000 fdff00
+040000 fbff00
+080000 f7ff00
+100000 efff00
+200000 dfff00
+400000 bfff00
+800000 7fff00
+01b900 654300
+c64e00 655e00
+257600 7d5600
+f66900 51f300
+b61800 1d7600
+4dc100 db5e00
+40d900 9e0d00
+508a00 48dd00
+e3b300 0c8f00
+afe600 419500
+667000 408100
+24da00 ebf800
+5a2000 75c300
+d09600 8de300
+8fb400 cfb500
+Start of ../test_44100.wav with quality = Quality.ROUND_16
+input decoder desynchronised
+input decoder single time = 63
+input decoder single time = 27
+input decoder single time = 9
+input decoder synchronised
+channel decoder desynchronised
+input decoder single time = 8
+channel decoder synchronised
+ea6d00 000000
 matcher desynchronised
 000000 000000
 000000 000000
@@ -439,7 +649,7 @@ ea6d00 3e4800
 200000 e00000
 400000 c00000
 800000 800000
-matcher synchronised: sample rate = 44100 quality = 16 bit
+matcher synchronised: sample rate = 44100 sync4 = 1
 01b900 654300
 c64e00 655e00
 257600 7d5600

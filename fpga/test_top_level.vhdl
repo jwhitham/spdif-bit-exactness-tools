@@ -21,8 +21,7 @@ architecture structural of test_top_level is
     signal sync1           : std_logic := '0';
     signal sync2           : std_logic := '0';
     signal sync3           : std_logic := '0';
-    signal sync4           : std_logic := '0';
-    signal quality         : std_logic := '0';
+    signal sync4           : std_logic_vector (1 downto 0) := "00";
     signal sample_rate     : std_logic_vector (15 downto 0) := (others => '0');
     signal single_time     : std_logic_vector (7 downto 0) := (others => '0');
     signal left_data       : std_logic_vector (31 downto 0) := (others => '0');
@@ -79,8 +78,7 @@ architecture structural of test_top_level is
             left_strobe_in  : in std_logic;
             right_data_in   : in std_logic_vector (31 downto 0);
             right_strobe_in : in std_logic;
-            sync_out        : out std_logic := '0';
-            quality_out     : out std_logic := '0';
+            sync_out        : out std_logic_vector (1 downto 0) := "00";
             sample_rate_out : out std_logic_vector (15 downto 0) := (others => '0');
             clock           : in std_logic
         );
@@ -119,7 +117,6 @@ begin
                   right_data_in => right_data,
                   right_strobe_in => right_strobe,
                   sync_out => sync4,
-                  quality_out => quality,
                   sample_rate_out => sample_rate,
                   clock => clock);
 
@@ -184,15 +181,11 @@ begin
     begin
         while done /= '1' loop
             wait until sync4'event;
-            if sync4 = '1' then
+            if sync4 /= "00" then
                 write (l, String'("matcher synchronised: sample rate = "));
                 write (l, to_integer (unsigned (sample_rate)) * 100);
-                write (l, String'(" quality = "));
-                if quality = '1' then
-                    write (l, String'("24 bit"));
-                else
-                    write (l, String'("16 bit"));
-                end if;
+                write (l, String'(" sync4 = "));
+                write (l, to_integer (unsigned (sync4)));
                 writeline (output, l);
             else
                 write (l, String'("matcher desynchronised"));

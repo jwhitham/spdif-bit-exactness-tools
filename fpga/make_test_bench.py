@@ -9,6 +9,11 @@ class HeaderType(enum.Enum):
     W = enum.auto()
     M = enum.auto()
 
+class Quality(enum.Enum):
+    ROUND_16 = enum.auto()
+    EXACT_16 = enum.auto()
+    EXACT_24 = enum.auto()
+
 def read_csv_file(csv_file_name: str, state_change_time: typing.List[float]) -> None:
 
     # Read raw data
@@ -96,17 +101,20 @@ def print_data(fd: typing.IO, state_change_time: typing.List[float]) -> None:
         fd.write("wait for {:1.0f} ns; ".format(td))
         fd.write("r <= not r;\n")
 
-def wav_to_test_data(fd: typing.IO, wav_file_name: str, rounding: bool) -> None:
+def wav_to_test_data(fd: typing.IO, wav_file_name: str, quality: Quality) -> None:
     state_change_time: typing.List[float] = []
     with open(wav_file_name, "rb") as fd2:
         fd2.seek(0x2c, 0) # skip to start of data
         for i in range(200):
             # Read two 32-bit samples
             (left, right) = struct.unpack("<II", fd2.read(8))
-            if rounding:
-                # Round to 16 bits
+
+            if quality == Quality.ROUND_16:
                 left = round(left / (1 << 16)) << 16
                 right = round(right / (1 << 16)) << 16
+            elif quality == Quality.EXACT_16:
+                left = (left >> 16) << 16
+                right = (right >> 16) << 16
 
             if (i % 100) == 0:
                 # Use a B header for the left channel, W for right
@@ -118,7 +126,7 @@ def wav_to_test_data(fd: typing.IO, wav_file_name: str, rounding: bool) -> None:
                 bmc_packetise(right, HeaderType.W, state_change_time)
 
     state_change_time.append(GAP)
-    print_banner(fd, "Start of {} with rouding = {}".format(wav_file_name, rounding))
+    print_banner(fd, "Start of {} with quality = {}".format(wav_file_name, quality))
     print_data(fd, state_change_time)
 
 def csv_to_test_data(fd: typing.IO, csv_file_name: str) -> None:
@@ -177,8 +185,9 @@ begin
         csv_to_test_data(fd, "20220502-48k.csv")
         csv_to_test_data(fd, "../examples/test_48000.csv")
         csv_to_test_data(fd, "../examples/test_44100.csv")
-        wav_to_test_data(fd, "../test_44100.wav", False)
-        wav_to_test_data(fd, "../test_44100.wav", True)
+        wav_to_test_data(fd, "../test_44100.wav", Quality.EXACT_24)
+        wav_to_test_data(fd, "../test_44100.wav", Quality.EXACT_16)
+        wav_to_test_data(fd, "../test_44100.wav", Quality.ROUND_16)
 
         fd.write("""
         done <= '1';

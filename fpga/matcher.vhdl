@@ -9,8 +9,7 @@ entity matcher is
         left_strobe_in  : in std_logic;
         right_data_in   : in std_logic_vector (31 downto 0);
         right_strobe_in : in std_logic;
-        sync_out        : out std_logic := '0';
-        quality_out     : out std_logic := '0';
+        sync_out        : out std_logic_vector (1 downto 0) := "00";
         sample_rate_out : out std_logic_vector (15 downto 0) := (others => '0');
         clock           : in std_logic
     );
@@ -36,26 +35,36 @@ architecture structural of matcher is
             clock            : in std_logic);
     end component match_rom;
 
-    type t_match is (EXACT_24, ROUND_16, RESET);
+    type t_match is (EXACT_24, EXACT_16, ROUND_16, RESET);
     signal current_match : t_match := RESET;
 
     function match_assessment (a_in, b_in  : t_sample;
                                prev_match  : t_match) return t_match is
-        variable a, b, d : signed (15 downto 0);
-    begin
-        if a_in = b_in then
-            case prev_match is
-                when RESET | EXACT_24 =>
-                    return EXACT_24;
-                when ROUND_16 =>
-                    return ROUND_16;
-            end case;
-        end if;
 
-        a := signed (a_in (23 downto 8));
-        b := signed (b_in (23 downto 8));
-        d := a - b;
-        if d = 0 or d = -1 or d = 1 then
+        subtype t_sample16 is unsigned (15 downto 0);
+        constant zero       : t_sample16 := (others => '0');
+        constant one        : t_sample16 := (0 => '1', others => '0');
+        constant minus_one  : t_sample16 := (others => '1');
+        variable d          : t_sample16 := zero;
+    begin
+        d := unsigned (a_in (23 downto 8)) - unsigned (b_in (23 downto 8));
+        if d = zero then
+            if a_in (7 downto 0) = b_in (7 downto 0) then
+                case prev_match is
+                    when RESET =>
+                        return EXACT_24;
+                    when others =>
+                        return prev_match;
+                end case;
+            else
+                case prev_match is
+                    when RESET | EXACT_24 =>
+                        return EXACT_16;
+                    when others =>
+                        return prev_match;
+                end case;
+            end if;
+        elsif d = one or d = minus_one then
             return ROUND_16;
         else
             return RESET;
@@ -125,17 +134,18 @@ begin
         if clock = '1' and clock'event then
             case current_match is
                 when RESET =>
-                    sync_out <= '0';
-                    quality_out <= '0';
+                    sync_out <= "00";
                 when ROUND_16 =>
                     if address = zero_address then
-                        sync_out <= '1';
-                        quality_out <= '0';
+                        sync_out <= "01";
+                    end if;
+                when EXACT_16 =>
+                    if address = zero_address then
+                        sync_out <= "10";
                     end if;
                 when EXACT_24 =>
                     if address = zero_address then
-                        sync_out <= '1';
-                        quality_out <= '1';
+                        sync_out <= "11";
                     end if;
             end case;
         end if;
