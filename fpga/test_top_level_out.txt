@@ -1,38 +1,54 @@
 channel decoder desynchronised
 packet decoder desynchronised
 input decoder single time = 63
-input decoder single time = 51
-input decoder single time = 47
 input decoder single time = 23
+input decoder single time = 11
 input decoder synchronised
-input decoder single time = 22
 packet decoder synchronised
 channel decoder synchronised
 d09600 8de400
 8fb400 cfb500
-input decoder single time = 14
+input decoder desynchronised
+input decoder single time = 63
+input decoder single time = 7
+input decoder synchronised
 channel decoder desynchronised
 channel decoder synchronised
+input decoder desynchronised
+input decoder single time = 63
+input decoder single time = 8
+input decoder synchronised
+000000 000000
+packet decoder desynchronised
+channel decoder desynchronised
+channel decoder synchronised
+000000 000000
+input decoder desynchronised
+input decoder single time = 63
+input decoder single time = 15
+input decoder synchronised
+packet decoder synchronised
+input decoder single time = 7
+channel decoder desynchronised
+channel decoder synchronised
+000000 000000
 000000 000000
 000000 000000
 000000 000000
 input decoder desynchronised
 input decoder single time = 63
-input decoder single time = 31
+input decoder single time = 4
 input decoder synchronised
-input decoder single time = 15
+packet decoder desynchronised
+input decoder desynchronised
+input decoder single time = 63
+input decoder single time = 16
+input decoder single time = 8
+input decoder synchronised
 channel decoder desynchronised
+packet decoder synchronised
 channel decoder synchronised
-000000 000000
-000000 000000
-input decoder single time = 14
-000000 000000
-000000 000000
-input decoder single time = 1
-input decoder single time = 2
-channel decoder desynchronised
-channel decoder synchronised
-000400 fffbff
+000000 fffbff
 000800 fff7ff
 001000 ffefff
 002000 ffdfff
@@ -79,11 +95,17 @@ ea6d66 3e4874
 004000 ffbfff
 008000 ff7fff
 010000 feffff
-input decoder single time = 1
-input decoder single time = 2
+input decoder desynchronised
+input decoder single time = 63
+input decoder single time = 4
+input decoder single time = 63
+input decoder single time = 16
+input decoder single time = 12
+input decoder single time = 8
+input decoder synchronised
 channel decoder desynchronised
 channel decoder synchronised
-257600 7d5600
+020000 7d5600
 f66900 51f300
 b61800 1d7600
 4dc100 db5e00
@@ -126,3 +148,6 @@ c64e00 655e00
 257600 7d5600
 f66900 51f300
 b61800 1d7600
+input decoder desynchronised
+input decoder single time = 63
+input decoder single time = 50
