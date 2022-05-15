@@ -229,7 +229,7 @@ ea6d66 3e4874
 200000 dfffff
 400000 bfffff
 800000 7fffff
-matcher synchronised: sample rate = 44100
+matcher synchronised: sample rate = 44100 quality = 24 bit
 01b900 654321
 c64e00 655e00
 257600 7d5600
