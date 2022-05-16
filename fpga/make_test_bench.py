@@ -180,14 +180,14 @@ begin
         done <= '0';
 """)
         # read input files
-        csv_to_test_data(fd, "20220502-32k.csv")
-        csv_to_test_data(fd, "20220502-44k.csv")
-        csv_to_test_data(fd, "20220502-48k.csv")
-        csv_to_test_data(fd, "../examples/test_48000.csv")
-        csv_to_test_data(fd, "../examples/test_44100.csv")
-        wav_to_test_data(fd, "../test_44100.wav", Quality.EXACT_24)
-        wav_to_test_data(fd, "../test_44100.wav", Quality.EXACT_16)
-        wav_to_test_data(fd, "../test_44100.wav", Quality.ROUND_16)
+        csv_to_test_data(fd, "../examples/20220502-32k.csv")
+        csv_to_test_data(fd, "../examples/20220502-44k.csv")
+        csv_to_test_data(fd, "../examples/20220502-48k.csv")
+        csv_to_test_data(fd, "../examples/test_48000_24_bit.csv")
+        csv_to_test_data(fd, "../examples/test_44100_24_bit.csv")
+        wav_to_test_data(fd, "test_44100_data", Quality.EXACT_24)
+        wav_to_test_data(fd, "test_44100_data", Quality.EXACT_16)
+        wav_to_test_data(fd, "test_44100_data", Quality.ROUND_16)
 
         fd.write("""
         done <= '1';
