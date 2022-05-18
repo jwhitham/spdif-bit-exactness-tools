@@ -24,31 +24,33 @@ The design is able to correctly decode stereo S/PDIF at up to 96kHz
 Outputs
 -------
 
+![Breadboard photo](../img/fpga.jpg)
+
 Audio levels are reported using
 a "[VU meter](https://en.wikipedia.org/wiki/VU_meter)" using LEDs
-in columns 1 and 2 on the iceFUN module. Column 1 is left, column 2 is right.
+A1 .. H1 for the left channel, and A2 .. H2 for the right.
 
 The audio signal is compared to the [test pattern](../README.md) in the
-[test WAV files](../examples). The quality of the match is shown on the LEDs
-in column 4:
+[test WAV files](../examples). The quality of the match is shown on LEDs
+A4 .. E4:
 
-- LED 0 (near pin K14) = receiving correct "biphase mark code" signals
-- LED 1 = receiving correct packet start codes
-- LED 2 = receiving data with correct parity
-- LED 3 and 4:
+- LED A4 (near pin K14) = receiving correct "biphase mark code" signals
+- LED B4 = receiving correct packet start codes
+- LED C4 = receiving data with correct parity
+- LED D4 and E4:
    - both off = test pattern not received
-   - LED 3 only = test pattern received: 16-bit data with a +1/-1 rounding error
-   - LED 4 only = test pattern received: bit-exact 16-bit data
+   - D4 only = test pattern received: 16-bit data with a +1/-1 rounding error
+   - E4 only = test pattern received: bit-exact 16-bit data (this is shown in the photo)
    - both on = test pattern received: bit-exact 24-bit data
 
-Column 3 shows the number of clock cycles in a single-width pulse,
+LEDs A3 .. H3 show the number of clock cycles in a single-width pulse (A3 = LSB),
 unless a test pattern is received, in which case it indicates the sample
 rate:
 
-- LEDs 6 and 7 on = sample rate is 96kHz
-- LEDs 5, 6 and 7 on = sample rate is 48kHz
-- LEDs 0, 3, 4, 5, and 7 on = sample rate is 44.1kHz
-- LEDs 6 on = sample rate is 32kHz
+- LEDs G3 and H3 on = sample rate is 96kHz
+- LEDs F3, G3 and H3 on = sample rate is 48kHz
+- LEDs A3, D3, E3, F3 and H3 on = sample rate is 44.1kHz (this is shown in the photo)
+- LEDs G3 on = sample rate is 32kHz
 
 The LEDs in column 4 are not activated until the appropriate signal
 has been received continuously for about 170 milliseconds (assuming
@@ -148,8 +150,11 @@ and though the TTL circuit helps with this, it is still too slow
 to be useful. I had better results using FETs, especially with this elegant
 [bidirectional level-shift circuit](http://husstechlabs.com/support/tutorials/bi-directional-level-shifter/),
 which was fast enough to operate with the 48kHz sample rate.
+
 Eventually I replaced all of these with an optical receiver that
 can operate at 3.3V, eliminating the need for extra interface circuitry.
-This worked reliably at 96kHz.
+This worked reliably at 96kHz, and can be seen in the photo, along with
+a matching optical transmitter (not connected). The FPGA acts as a passthrough,
+delaying the signal by one clock cycle.
 
 

@@ -15,7 +15,7 @@ more than 40 audio samples. The oscilloscope sample rate should be as high as po
 while still capturing samples for 1ms. I got good results with a sample rate of 12.5MHz
 (a sample interval of 80ns).
 
-![Picoscope screenshot](../examples/osc.png)
+![Picoscope screenshot](../img/osc.png)
 
 Export the oscilloscope recording as a CSV file.
 

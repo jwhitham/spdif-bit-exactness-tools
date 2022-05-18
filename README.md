@@ -92,16 +92,22 @@ which does, in order to achieve bit-exact output. My recommendation is
 Disable the "dither" feature for bit-exact operation. Most of the
 [example files](examples) were captured in this way.
 
-Foobar2000's support for bit-exact operation is excellent, once the appropriate output plugin is installed.
+![Foobar2000 WASAPI output configuration](/img/wasapi_24_bit.png)
+
+Foobar2000's support for bit-exact operation is excellent once the appropriate output plugin is
+installed and configured.
 I have tested it extensively using different S/PDIF interfaces (USB and on-board),
 different sample rates and different bit depths. The output becomes inexact if:
 
 - the "DirectSound" output or "Primary Sound Driver" is selected;
 - the volume control is not at maximum;
+- ReplayGain is enabled;
 - some DSP plugin is enabled.
 
 If your S/PDIF hardware does not allow bit-exact output (for example, if it is restricted
 to 48kHz, forcing resampling) then you might consider adding a USB S/PDIF device to your PC.
+Some USB S/PDIF devices are better than others: devices might only support 16-bit 48kHz,
+and driver support might also be bad, so order from somewhere that allows returns!
 
 On Linux, bit-exact output appears to be the default. I only needed to play the
 test pattern WAV files using "aplay" - no other adjustments were needed.
@@ -134,7 +140,7 @@ or signal processing, except for truncation from 24 bits to 16 bits.
 
 Here is the test pattern shown in Audacity.
 
-![Audacity screenshot](/examples/wav.png)
+![Audacity screenshot](/img/wav.png)
 
 Note that Audacity does not have
 bit-exact output even when WASAPI is selected. I do not know why this is. Perhaps, internally,
