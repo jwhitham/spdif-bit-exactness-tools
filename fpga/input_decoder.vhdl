@@ -9,13 +9,14 @@ entity input_decoder is
         pulse_length_out : out std_logic_vector (1 downto 0) := "00";
         single_time_out  : out std_logic_vector (7 downto 0) := (others => '0');
         sync_out         : out std_logic := '0';
-        clock            : in std_logic
+        clock_out        : out std_logic;
+        clock_in         : in std_logic
     );
 end input_decoder;
 
 architecture structural of input_decoder is
 
-    subtype t_sync_counter is unsigned (0 to 2);
+    subtype t_sync_counter is unsigned (0 to 4);
     subtype t_transition_time is unsigned (0 to 7);
     subtype t_watchdog_counter is unsigned (0 to 2);
 
@@ -42,12 +43,13 @@ architecture structural of input_decoder is
     signal double_time          : t_transition_time := max_transition_time;
     signal triple_time          : t_transition_time := max_transition_time;
     signal quad_time            : t_transition_time := max_transition_time;
+    signal clock_gen            : std_logic := '0';
 begin
 
     -- detect transitions
-    process (clock)
+    process (clock_in)
     begin
-        if clock'event and clock = '1' then
+        if clock_in'event and clock_in = '1' then
             delay0 <= data_in;
             delay1 <= delay0;
             transition_time <= zero_transition_time;
@@ -56,16 +58,19 @@ begin
             if delay0 = delay1 then
                 if timer = max_transition_time then
                     threshold <= LONG;
+                    transition_class <= LONG;
                 else
                     timer <= next_timer;
                     if next_timer = single_time then
                         threshold <= ONE;
+                        clock_gen <= not clock_gen;
                     elsif next_timer = double_time then
                         threshold <= TWO;
                     elsif next_timer = triple_time then
                         threshold <= THREE;
                     elsif next_timer = quad_time then
                         threshold <= LONG;
+                        transition_class <= LONG;
                     end if;
                 end if;
             else
@@ -81,12 +86,13 @@ begin
     next_sync_counter <= sync_counter + 1;
     single_time_out <= std_logic_vector (single_time);
     sync_out <= '1' when sync_counter = max_sync_counter else '0';
+    clock_out <= clock_gen;
 
     -- Determine the time for a single transition ("synchronise").
     -- Once synchronised, classify transitions as single, double or triple.
-    process (clock)
+    process (clock_in)
     begin
-        if clock'event and clock = '1' then
+        if clock_in'event and clock_in = '1' then
             pulse_length_out <= "00";
 
             double_time <= (single_time sll 1) - (single_time srl 2);  -- multiply by 1.75
@@ -106,9 +112,6 @@ begin
                 when SHORT =>
                     -- Shorter pulse seen - adjust single_time
                     single_time <= transition_time;
-                    if sync_counter = max_sync_counter then
-                        pulse_length_out <= "01";
-                    end if;
                     watchdog_counter <= zero_watchdog_counter;
                 when ONE =>
                     -- Normal pulse of length 1

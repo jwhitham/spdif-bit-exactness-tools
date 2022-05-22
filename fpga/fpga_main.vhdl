@@ -10,6 +10,7 @@ entity fpga_main is
         raw_data_out    : out std_logic;
         lcols_out       : out std_logic_vector (3 downto 0) := "0000";
         lrows_out       : out std_logic_vector (7 downto 0) := "00000000";
+        clock_out       : out std_logic := '0';
         sync1_out       : out std_logic := '0';
         sync2_out       : out std_logic := '0';
         sync3_out       : out std_logic := '0';
@@ -42,7 +43,6 @@ architecture structural of fpga_main is
     signal sync3_counter   : unsigned (0 to 23) := (others => '0');
     signal sync4_counter   : unsigned (0 to 23) := (others => '0');
     constant max_counter   : unsigned (0 to 23) := (others => '1');
-    signal test_flip       : std_logic := '0';
 
     component test_signal_generator is
         port (
@@ -58,7 +58,8 @@ architecture structural of fpga_main is
             pulse_length_out : out std_logic_vector (1 downto 0);
             single_time_out  : out std_logic_vector (7 downto 0);
             sync_out         : out std_logic;
-            clock            : in std_logic
+            clock_out        : out std_logic;
+            clock_in         : in std_logic
         );
     end component input_decoder;
 
@@ -119,7 +120,8 @@ architecture structural of fpga_main is
 
 begin
     dec1 : input_decoder
-        port map (clock => clock_in, data_in => raw_data_in,
+        port map (clock_in => clock_in, data_in => raw_data_in,
+                  clock_out => clock_out,
                   sync_out => sync1, single_time_out => single_time,
                   pulse_length_out => pulse_length);
 

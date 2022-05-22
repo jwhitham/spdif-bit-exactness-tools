@@ -28,6 +28,7 @@ architecture structural of test_top_level is
     signal left_strobe     : std_logic := '0';
     signal right_data      : std_logic_vector (31 downto 0) := (others => '0');
     signal right_strobe    : std_logic := '0';
+    signal pulse_clock     : std_logic := '0';
 
     component test_signal_generator is
         port (
@@ -43,7 +44,8 @@ architecture structural of test_top_level is
             pulse_length_out : out std_logic_vector (1 downto 0);
             single_time_out  : out std_logic_vector (7 downto 0);
             sync_out         : out std_logic;
-            clock            : in std_logic
+            clock_out        : out std_logic;
+            clock_in         : in std_logic
         );
     end component input_decoder;
 
@@ -88,7 +90,7 @@ begin
         port map (raw_data_out => raw_data, done_out => done, clock_out => clock);
 
     dec1 : input_decoder
-        port map (clock => clock, data_in => raw_data,
+        port map (clock_in => clock, clock_out => pulse_clock, data_in => raw_data,
                   sync_out => sync1, single_time_out => single_time,
                   pulse_length_out => pulse_length);
 
