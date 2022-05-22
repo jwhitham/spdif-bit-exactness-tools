@@ -7,6 +7,7 @@ entity channel_decoder is
         data_in         : in std_logic;
         shift_in        : in std_logic;
         start_in        : in std_logic;
+        sync_in         : in std_logic;
         left_data_out   : out std_logic_vector (31 downto 0);
         left_strobe_out : out std_logic;
         right_data_out  : out std_logic_vector (31 downto 0);
@@ -40,7 +41,7 @@ begin
             left_strobe <= '0';
             right_strobe <= '0';
 
-            if shift_in = '1' then
+            if shift_in = '1' and sync_in = '1' then
                 if start_in = '1' then
                     synced <= '0';
                     if parity = '1' then
@@ -69,6 +70,8 @@ begin
                 end if;
                 data (data'Left - 1 downto 0) <= data (data'Left downto 1);
                 data (data'Left) <= data_in;
+            elsif sync_in = '0' then
+                synced <= '0';
             end if;
         end if;
     end process;

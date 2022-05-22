@@ -66,6 +66,7 @@ architecture structural of fpga_main is
     component packet_decoder is
         port (
             pulse_length_in : in std_logic_vector (1 downto 0);
+            sync_in         : in std_logic;
             data_out        : out std_logic;
             shift_out       : out std_logic;
             start_out       : out std_logic;
@@ -79,6 +80,7 @@ architecture structural of fpga_main is
             data_in         : in std_logic;
             shift_in        : in std_logic;
             start_in        : in std_logic;
+            sync_in         : in std_logic;
             left_data_out   : out std_logic_vector (31 downto 0);
             left_strobe_out : out std_logic;
             right_data_out  : out std_logic_vector (31 downto 0);
@@ -128,6 +130,7 @@ begin
     dec2 : packet_decoder
         port map (clock => clock_in,
                   pulse_length_in => pulse_length,
+                  sync_in => sync1,
                   sync_out => sync2,
                   data_out => packet_data,
                   start_out => packet_start,
@@ -138,6 +141,7 @@ begin
                   data_in => packet_data,
                   shift_in => packet_shift,
                   start_in => packet_start,
+                  sync_in => sync2,
                   sync_out => sync3,
                   left_data_out => left_data,
                   left_strobe_out => left_strobe,

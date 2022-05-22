@@ -10,47 +10,36 @@ packet decoder synchronised
 channel decoder synchronised
 d09600 8de400
 8fb400 cfb500
-Start of ../examples/20220502-44k.csv
 input decoder desynchronised
 input decoder single time = 63
+packet decoder desynchronised
+channel decoder desynchronised
+Start of ../examples/20220502-44k.csv
 input decoder single time = 7
 input decoder synchronised
-channel decoder desynchronised
-channel decoder synchronised
 input decoder desynchronised
 input decoder single time = 63
 input decoder single time = 8
 input decoder synchronised
-000000 000000
-packet decoder desynchronised
-channel decoder desynchronised
-channel decoder synchronised
-000000 000000
-Start of ../examples/20220502-48k.csv
-input decoder desynchronised
-input decoder single time = 63
-input decoder single time = 15
-input decoder synchronised
 packet decoder synchronised
-input decoder single time = 7
-channel decoder desynchronised
 channel decoder synchronised
 000000 000000
-000000 000000
-000000 000000
-000000 000000
-Start of ../examples/test_48000_24_bit.csv
 input decoder desynchronised
 input decoder single time = 63
-input decoder single time = 4
-input decoder synchronised
 packet decoder desynchronised
+channel decoder desynchronised
+Start of ../examples/20220502-48k.csv
+input decoder single time = 15
+input decoder single time = 7
+input decoder synchronised
 input decoder desynchronised
+input decoder single time = 63
+Start of ../examples/test_48000_24_bit.csv
+input decoder single time = 4
 input decoder single time = 63
 input decoder single time = 16
 input decoder single time = 8
 input decoder synchronised
-channel decoder desynchronised
 packet decoder synchronised
 channel decoder synchronised
 000000 fffbff
@@ -100,16 +89,18 @@ ea6d66 3e4874
 004000 ffbfff
 008000 ff7fff
 010000 feffff
-Start of ../examples/test_44100_24_bit.csv
 input decoder desynchronised
 input decoder single time = 63
+packet decoder desynchronised
+channel decoder desynchronised
+Start of ../examples/test_44100_24_bit.csv
 input decoder single time = 4
 input decoder single time = 63
 input decoder single time = 16
 input decoder single time = 12
 input decoder single time = 8
 input decoder synchronised
-channel decoder desynchronised
+packet decoder synchronised
 channel decoder synchronised
 020000 7d5600
 f66900 51f300
@@ -154,18 +145,18 @@ c64e00 655e00
 257600 7d5600
 f66900 51f300
 b61800 1d7600
-Start of test_44100_data with quality = Quality.EXACT_24
 input decoder desynchronised
 input decoder single time = 63
+packet decoder desynchronised
+channel decoder desynchronised
+Start of test_44100_data with quality = Quality.EXACT_24
 input decoder single time = 27
 input decoder single time = 9
 input decoder synchronised
-4dc100 db5e00
-packet decoder desynchronised
-channel decoder desynchronised
 packet decoder synchronised
 input decoder single time = 8
 channel decoder synchronised
+4dc100 fffffe
 000002 fffffd
 000004 fffffb
 000008 fffff7
@@ -365,16 +356,17 @@ afe65e 4195b3
 5a20c9 75c3ea
 d0961c 8de3b3
 8fb408 cfb555
-Start of test_44100_data with quality = Quality.EXACT_16
 input decoder desynchronised
 input decoder single time = 63
+packet decoder desynchronised
+channel decoder desynchronised
+Start of test_44100_data with quality = Quality.EXACT_16
 input decoder single time = 27
 input decoder single time = 9
 input decoder synchronised
-channel decoder desynchronised
+packet decoder synchronised
 input decoder single time = 8
 channel decoder synchronised
-ea6d66 ffff00
 matcher desynchronised
 000000 ffff00
 000000 ffff00
@@ -575,16 +567,17 @@ afe600 419500
 5a2000 75c300
 d09600 8de300
 8fb400 cfb500
-Start of test_44100_data with quality = Quality.ROUND_16
 input decoder desynchronised
 input decoder single time = 63
+packet decoder desynchronised
+channel decoder desynchronised
+Start of test_44100_data with quality = Quality.ROUND_16
 input decoder single time = 27
 input decoder single time = 9
 input decoder synchronised
-channel decoder desynchronised
+packet decoder synchronised
 input decoder single time = 8
 channel decoder synchronised
-ea6d00 000000
 matcher desynchronised
 000000 000000
 000000 000000
@@ -785,3 +778,7 @@ afe600 419600
 5a2100 75c400
 d09600 8de400
 8fb400 cfb500
+input decoder desynchronised
+input decoder single time = 63
+packet decoder desynchronised
+channel decoder desynchronised

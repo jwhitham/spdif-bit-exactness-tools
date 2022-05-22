@@ -6,6 +6,7 @@ use ieee.numeric_std.all;
 entity packet_decoder is
     port (
         pulse_length_in : in std_logic_vector (1 downto 0);
+        sync_in         : in std_logic;
         data_out        : out std_logic;
         shift_out       : out std_logic;
         start_out       : out std_logic;
@@ -192,6 +193,14 @@ begin
                     end case;
                     synced <= '0';
             end case;
+
+            if sync_in = '0' then
+                -- held in reset
+                sync_state <= NORMAL;
+                shift <= '0';
+                data <= '0';
+                synced <= '0';
+            end if;
         end if;
     end process;
 
