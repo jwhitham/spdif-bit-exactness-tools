@@ -114,6 +114,7 @@ architecture structural of fpga_main is
             left_strobe_in  : in std_logic;
             right_data_in   : in std_logic_vector (31 downto 0);
             right_strobe_in : in std_logic;
+            sync_in         : in std_logic;
             sync_out        : out std_logic_vector (1 downto 0) := "00";
             sample_rate_out : out std_logic_vector (15 downto 0) := (others => '0');
             clock           : in std_logic
@@ -152,6 +153,7 @@ begin
                   left_strobe_in => left_strobe,
                   right_data_in => right_data,
                   right_strobe_in => right_strobe,
+                  sync_in => sync3,
                   sync_out => sync4,
                   sample_rate_out => sample_rate,
                   clock => clock_in);

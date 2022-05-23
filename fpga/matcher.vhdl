@@ -9,6 +9,7 @@ entity matcher is
         left_strobe_in  : in std_logic;
         right_data_in   : in std_logic_vector (31 downto 0);
         right_strobe_in : in std_logic;
+        sync_in         : in std_logic;
         sync_out        : out std_logic_vector (1 downto 0) := "00";
         sample_rate_out : out std_logic_vector (15 downto 0) := (others => '0');
         clock           : in std_logic
@@ -125,6 +126,11 @@ begin
                     current_match <= RESET;
                     address <= zero_address;
                 end if;
+            end if;
+
+            if sync_in = '0' then
+                current_match <= RESET;
+                address <= zero_address;
             end if;
         end if;
     end process;

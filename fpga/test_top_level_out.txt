@@ -360,6 +360,7 @@ input decoder desynchronised
 input decoder single time = 63
 packet decoder desynchronised
 channel decoder desynchronised
+matcher desynchronised
 Start of test_44100_data with quality = Quality.EXACT_16
 input decoder single time = 27
 input decoder single time = 9
@@ -367,7 +368,6 @@ input decoder synchronised
 packet decoder synchronised
 input decoder single time = 8
 channel decoder synchronised
-matcher desynchronised
 000000 ffff00
 000000 ffff00
 000000 ffff00
@@ -571,6 +571,7 @@ input decoder desynchronised
 input decoder single time = 63
 packet decoder desynchronised
 channel decoder desynchronised
+matcher desynchronised
 Start of test_44100_data with quality = Quality.ROUND_16
 input decoder single time = 27
 input decoder single time = 9
@@ -578,7 +579,6 @@ input decoder synchronised
 packet decoder synchronised
 input decoder single time = 8
 channel decoder synchronised
-matcher desynchronised
 000000 000000
 000000 000000
 000000 000000
@@ -782,3 +782,4 @@ input decoder desynchronised
 input decoder single time = 63
 packet decoder desynchronised
 channel decoder desynchronised
+matcher desynchronised
