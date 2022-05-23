@@ -16,7 +16,7 @@ end entity led_scan;
 
 architecture structural of led_scan is
 
-    signal counter : unsigned (0 to 12) := (others => '0');
+    signal counter : unsigned (0 to 16) := (others => '0');
 begin
     process (clock)
     begin

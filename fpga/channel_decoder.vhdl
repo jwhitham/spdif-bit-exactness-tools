@@ -68,10 +68,16 @@ begin
                 else
                     parity <= parity xor data_in;
                 end if;
-                data (data'Left - 1 downto 0) <= data (data'Left downto 1);
                 data (data'Left) <= data_in;
+
             elsif sync_in = '0' then
                 synced <= '0';
+                data (data'Left) <= '0';
+                parity <= '0';
+            end if;
+
+            if sync_in = '0' or (shift_in = '1' and sync_in = '1') then
+                data (data'Left - 1 downto 0) <= data (data'Left downto 1);
             end if;
         end if;
     end process;
