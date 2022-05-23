@@ -102,7 +102,7 @@ input decoder single time = 8
 input decoder synchronised
 packet decoder synchronised
 channel decoder synchronised
-020000 7d5600
+000000 7d5600
 f66900 51f300
 b61800 1d7600
 4dc100 db5e00
@@ -156,7 +156,7 @@ input decoder synchronised
 packet decoder synchronised
 input decoder single time = 8
 channel decoder synchronised
-4dc100 fffffe
+000000 fffffe
 000002 fffffd
 000004 fffffb
 000008 fffff7

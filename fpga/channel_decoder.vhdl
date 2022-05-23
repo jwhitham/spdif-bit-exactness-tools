@@ -74,6 +74,8 @@ begin
                 synced <= '0';
                 data (data'Left) <= '0';
                 parity <= '0';
+                right_data <= data;
+                left_data <= data;
             end if;
 
             if sync_in = '0' or (shift_in = '1' and sync_in = '1') then
