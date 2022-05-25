@@ -18,10 +18,7 @@ architecture structural of test_top_level is
     signal clock           : std_logic := '0';
     signal raw_data        : std_logic := '0';
     signal done            : std_logic := '0';
-    signal sync1           : std_logic := '0';
-    signal sync2           : std_logic := '0';
-    signal sync3           : std_logic := '0';
-    signal sync4           : std_logic_vector (1 downto 0) := "00";
+    signal sync            : std_logic_vector (6 downto 1) := (others => '0');
     signal sample_rate     : std_logic_vector (15 downto 0) := (others => '0');
     signal single_time     : std_logic_vector (7 downto 0) := (others => '0');
     signal left_data       : std_logic_vector (31 downto 0) := (others => '0');
@@ -29,7 +26,6 @@ architecture structural of test_top_level is
     signal right_data      : std_logic_vector (31 downto 0) := (others => '0');
     signal right_strobe    : std_logic := '0';
     signal r_clock         : std_logic := '0';
-    signal r_sync          : std_logic := '0';
 
     signal uptime          : Integer := 0;
     signal start_of_r_sync : Integer := 0;
@@ -108,14 +104,14 @@ begin
 
     dec1 : input_decoder
         port map (clock_in => clock, data_in => raw_data,
-                  sync_out => sync1, single_time_out => single_time,
+                  sync_out => sync (1), single_time_out => single_time,
                   pulse_length_out => pulse_length);
 
     dec2 : packet_decoder
         port map (clock => clock,
                   pulse_length_in => pulse_length,
-                  sync_in => sync1,
-                  sync_out => sync2,
+                  sync_in => sync (1),
+                  sync_out => sync (2),
                   data_out => packet_data,
                   start_out => packet_start,
                   shift_out => packet_shift);
@@ -125,8 +121,8 @@ begin
                   data_in => packet_data,
                   shift_in => packet_shift,
                   start_in => packet_start,
-                  sync_in => sync2,
-                  sync_out => sync3,
+                  sync_in => sync (2),
+                  sync_out => sync (3),
                   left_data_out => left_data,
                   left_strobe_out => left_strobe,
                   right_data_out => right_data,
@@ -137,16 +133,16 @@ begin
                   left_strobe_in => left_strobe,
                   right_data_in => right_data,
                   right_strobe_in => right_strobe,
-                  sync_in => sync3,
-                  sync_out => sync4,
+                  sync_in => sync (3),
+                  sync_out => sync (5 downto 4),
                   sample_rate_out => sample_rate,
                   clock => clock);
 
     rg : regenerator
         port map (clock_in => clock,
                   pulse_length_in => pulse_length,
-                  sync_in => sync3,
-                  sync_out => r_sync,
+                  sync_in => sync (3),
+                  sync_out => sync (6),
                   clock_out => r_clock);
 
     t1p : process
@@ -164,8 +160,8 @@ begin
         variable l : line;
     begin
         while done /= '1' loop
-            wait until sync1'event;
-            if sync1 = '1' then
+            wait until sync (1)'event;
+            if sync (1) = '1' then
                 write (l, String'("input decoder synchronised"));
                 writeline (output, l);
             else
@@ -179,8 +175,8 @@ begin
         variable l : line;
     begin
         while done /= '1' loop
-            wait until sync2'event;
-            if sync2 = '1' then
+            wait until sync (2)'event;
+            if sync (2) = '1' then
                 write (l, String'("packet decoder synchronised"));
                 writeline (output, l);
             else
@@ -194,8 +190,8 @@ begin
         variable l : line;
     begin
         while done /= '1' loop
-            wait until sync3'event;
-            if sync3 = '1' then
+            wait until sync (3)'event;
+            if sync (3) = '1' then
                 write (l, String'("channel decoder synchronised"));
                 writeline (output, l);
             else
@@ -209,12 +205,12 @@ begin
         variable l : line;
     begin
         while done /= '1' loop
-            wait until sync4'event;
-            if sync4 /= "00" then
+            wait until sync (5 downto 4)'event;
+            if sync (5 downto 4) /= "00" then
                 write (l, String'("matcher synchronised: sample rate = "));
                 write (l, to_integer (unsigned (sample_rate)) * 100);
                 write (l, String'(" sync4 = "));
-                write (l, to_integer (unsigned (sync4)));
+                write (l, to_integer (unsigned (sync (5 downto 4))));
                 writeline (output, l);
             else
                 write (l, String'("matcher desynchronised"));
@@ -237,9 +233,9 @@ begin
         variable delta : Integer;
     begin
         while done /= '1' loop
-            wait until r_clock'event or r_sync'event or done = '1';
-            if r_sync'event then
-                if r_sync = '0' then
+            wait until r_clock'event or sync (6)'event or done = '1';
+            if sync (6)'event then
+                if sync (6) = '0' then
                     if start_of_r_sync /= 0 then
                         delta := uptime - start_of_r_sync;
                         write (l, String'("regenerator desynchronised; "));
@@ -257,7 +253,7 @@ begin
                     start_of_r_sync <= uptime;
                     count_r_clocks <= 0;
                 end if;
-            elsif r_sync = '1' and r_clock'event and r_clock = '1' then
+            elsif sync (6) = '1' and r_clock'event and r_clock = '1' then
                 count_r_clocks <= count_r_clocks + 1;
             end if;
         end loop;
