@@ -220,7 +220,8 @@ ea6d66 3e4874
 200000 dfffff
 400000 bfffff
 800000 7fffff
-matcher synchronised: sample rate = 44100 sync4 = 3
+matcher sample rate = 44100 sync4 = 3
+matcher synchronised
 01b900 654321
 c64e00 655e00
 257600 7d5600
@@ -362,7 +363,8 @@ input decoder single time = 63
 packet decoder desynchronised
 channel decoder desynchronised
 matcher desynchronised
-regenerator desynchronised; 4512 r_clocks in 159738 clocks
+regenerator r_clocks = 4512 clocks = 159738
+regenerator desynchronised
 Start of test_44100_data with quality = Quality.EXACT_16
 input decoder single time = 27
 input decoder single time = 9
@@ -433,7 +435,8 @@ ea6d00 3e4800
 200000 dfff00
 400000 bfff00
 800000 7fff00
-matcher synchronised: sample rate = 44100 sync4 = 2
+matcher sample rate = 44100 sync4 = 2
+matcher synchronised
 01b900 654300
 c64e00 655e00
 257600 7d5600
@@ -575,7 +578,8 @@ input decoder single time = 63
 packet decoder desynchronised
 channel decoder desynchronised
 matcher desynchronised
-regenerator desynchronised; 4512 r_clocks in 159738 clocks
+regenerator r_clocks = 4512 clocks = 159738
+regenerator desynchronised
 Start of test_44100_data with quality = Quality.ROUND_16
 input decoder single time = 27
 input decoder single time = 9
@@ -646,7 +650,8 @@ ea6d00 3e4800
 200000 e00000
 400000 c00000
 800000 800000
-matcher synchronised: sample rate = 44100 sync4 = 1
+matcher sample rate = 44100 sync4 = 1
+matcher synchronised
 01b900 654300
 c64e00 655e00
 257600 7d5600
@@ -788,4 +793,5 @@ input decoder single time = 63
 packet decoder desynchronised
 channel decoder desynchronised
 matcher desynchronised
-regenerator desynchronised; 4512 r_clocks in 159738 clocks
+regenerator r_clocks = 4512 clocks = 159738
+regenerator desynchronised

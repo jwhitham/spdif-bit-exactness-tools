@@ -156,68 +156,55 @@ begin
         end loop;
     end process t1p;
 
-    s1p : process
-        variable l : line;
+    sync_events : block
+        procedure report_sync_event (index1, index2 : Integer; name: String) is
+            variable l : line;
+        begin
+            while done /= '1' loop
+                wait until sync (index1 downto index2)'event;
+                write (l, name);
+                write (l, String'(" "));
+                if to_integer (unsigned (sync (index1 downto index2))) = 0 then
+                    write (l, String'("de"));
+                end if;
+                write (l, String'("synchronised"));
+                writeline (output, l);
+            end loop;
+            wait;
+        end report_sync_event;
     begin
-        while done /= '1' loop
-            wait until sync (1)'event;
-            if sync (1) = '1' then
-                write (l, String'("input decoder synchronised"));
-                writeline (output, l);
-            else
-                write (l, String'("input decoder desynchronised"));
-                writeline (output, l);
-            end if;
-        end loop;
-    end process s1p;
+        process begin
+            report_sync_event (1, 1, "input decoder");
+        end process;
+        process begin
+            report_sync_event (2, 2, "packet decoder");
+        end process;
+        process begin
+            report_sync_event (3, 3, "channel decoder");
+        end process;
+        process begin
+            report_sync_event (5, 4, "matcher");
+        end process;
+        process begin
+            report_sync_event (6, 6, "regenerator");
+        end process;
+    end block sync_events;
 
-    s2p : process
-        variable l : line;
-    begin
-        while done /= '1' loop
-            wait until sync (2)'event;
-            if sync (2) = '1' then
-                write (l, String'("packet decoder synchronised"));
-                writeline (output, l);
-            else
-                write (l, String'("packet decoder desynchronised"));
-                writeline (output, l);
-            end if;
-        end loop;
-    end process s2p;
-
-    s3p : process
-        variable l : line;
-    begin
-        while done /= '1' loop
-            wait until sync (3)'event;
-            if sync (3) = '1' then
-                write (l, String'("channel decoder synchronised"));
-                writeline (output, l);
-            else
-                write (l, String'("channel decoder desynchronised"));
-                writeline (output, l);
-            end if;
-        end loop;
-    end process s3p;
-
-    s4p : process
+    print_sample_rate : process
         variable l : line;
     begin
         while done /= '1' loop
             wait until sync (5 downto 4)'event;
             if sync (5 downto 4) /= "00" then
-                write (l, String'("matcher synchronised: sample rate = "));
+                write (l, String'("matcher sample rate = "));
                 write (l, to_integer (unsigned (sample_rate)) * 100);
                 write (l, String'(" sync4 = "));
                 write (l, to_integer (unsigned (sync (5 downto 4))));
                 writeline (output, l);
-            else
-                write (l, String'("matcher desynchronised"));
-                writeline (output, l);
             end if;
         end loop;
-    end process s4p;
+        wait;
+    end process print_sample_rate;
 
     tick_uptime : process
     begin
@@ -238,18 +225,15 @@ begin
                 if sync (6) = '0' then
                     if start_of_r_sync /= 0 then
                         delta := uptime - start_of_r_sync;
-                        write (l, String'("regenerator desynchronised; "));
+                        write (l, String'("regenerator r_clocks = "));
                         write (l, count_r_clocks);
-                        write (l, String'(" r_clocks in "));
+                        write (l, String'(" clocks = "));
                         write (l, delta);
-                        write (l, String'(" clocks"));
                         writeline (output, l);
                     end if;
                     start_of_r_sync <= 0;
                     count_r_clocks <= 0;
                 else
-                    write (l, String'("regenerator synchronised"));
-                    writeline (output, l);
                     start_of_r_sync <= uptime;
                     count_r_clocks <= 0;
                 end if;
