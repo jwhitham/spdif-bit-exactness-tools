@@ -9,7 +9,6 @@ entity input_decoder is
         pulse_length_out : out std_logic_vector (1 downto 0) := "00";
         single_time_out  : out std_logic_vector (7 downto 0) := (others => '0');
         sync_out         : out std_logic := '0';
-        clock_out        : out std_logic;
         clock_in         : in std_logic
     );
 end input_decoder;
@@ -43,7 +42,6 @@ architecture structural of input_decoder is
     signal double_time          : t_transition_time := max_transition_time;
     signal triple_time          : t_transition_time := max_transition_time;
     signal quad_time            : t_transition_time := max_transition_time;
-    signal clock_gen            : std_logic := '0';
 begin
 
     -- detect transitions
@@ -63,7 +61,6 @@ begin
                     timer <= next_timer;
                     if next_timer = single_time then
                         threshold <= ONE;
-                        clock_gen <= not clock_gen;
                     elsif next_timer = double_time then
                         threshold <= TWO;
                     elsif next_timer = triple_time then
@@ -86,7 +83,6 @@ begin
     next_sync_counter <= sync_counter + 1;
     single_time_out <= std_logic_vector (single_time);
     sync_out <= '1' when sync_counter = max_sync_counter else '0';
-    clock_out <= clock_gen;
 
     -- Determine the time for a single transition ("synchronise").
     -- Once synchronised, classify transitions as single, double or triple.

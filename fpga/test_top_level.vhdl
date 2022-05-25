@@ -28,7 +28,12 @@ architecture structural of test_top_level is
     signal left_strobe     : std_logic := '0';
     signal right_data      : std_logic_vector (31 downto 0) := (others => '0');
     signal right_strobe    : std_logic := '0';
-    signal pulse_clock     : std_logic := '0';
+    signal r_clock         : std_logic := '0';
+    signal r_sync          : std_logic := '0';
+
+    signal uptime          : Integer := 0;
+    signal start_of_r_sync : Integer := 0;
+    signal count_r_clocks  : Integer := 0;
 
     component test_signal_generator is
         port (
@@ -44,7 +49,6 @@ architecture structural of test_top_level is
             pulse_length_out : out std_logic_vector (1 downto 0);
             single_time_out  : out std_logic_vector (7 downto 0);
             sync_out         : out std_logic;
-            clock_out        : out std_logic;
             clock_in         : in std_logic
         );
     end component input_decoder;
@@ -88,12 +92,22 @@ architecture structural of test_top_level is
             clock           : in std_logic
         );
     end component matcher;
+
+    component regenerator is
+        port (
+            pulse_length_in  : in std_logic_vector (1 downto 0) := "00";
+            sync_in          : in std_logic;
+            sync_out         : out std_logic := '0';
+            clock_in         : in std_logic;
+            clock_out        : out std_logic := '0'
+        );
+    end component regenerator;
 begin
     test_signal_gen : test_signal_generator
         port map (raw_data_out => raw_data, done_out => done, clock_out => clock);
 
     dec1 : input_decoder
-        port map (clock_in => clock, clock_out => pulse_clock, data_in => raw_data,
+        port map (clock_in => clock, data_in => raw_data,
                   sync_out => sync1, single_time_out => single_time,
                   pulse_length_out => pulse_length);
 
@@ -127,6 +141,13 @@ begin
                   sync_out => sync4,
                   sample_rate_out => sample_rate,
                   clock => clock);
+
+    rg : regenerator
+        port map (clock_in => clock,
+                  pulse_length_in => pulse_length,
+                  sync_in => sync3,
+                  sync_out => r_sync,
+                  clock_out => r_clock);
 
     t1p : process
         variable l : line;
@@ -202,6 +223,46 @@ begin
         end loop;
     end process s4p;
 
+    tick_uptime : process
+    begin
+        while done /= '1' loop
+            wait until clock'event or done = '1';
+            uptime <= uptime + 1;
+        end loop;
+        wait;
+    end process tick_uptime;
+
+    check_regenerator : process
+        variable l : line;
+        variable delta : Integer;
+    begin
+        while done /= '1' loop
+            wait until r_clock'event or r_sync'event or done = '1';
+            if r_sync'event then
+                if r_sync = '0' then
+                    if start_of_r_sync /= 0 then
+                        delta := uptime - start_of_r_sync;
+                        write (l, String'("regenerator desynchronised; "));
+                        write (l, count_r_clocks);
+                        write (l, String'(" r_clocks in "));
+                        write (l, delta);
+                        write (l, String'(" clocks"));
+                        writeline (output, l);
+                    end if;
+                    start_of_r_sync <= 0;
+                    count_r_clocks <= 0;
+                else
+                    write (l, String'("regenerator synchronised"));
+                    writeline (output, l);
+                    start_of_r_sync <= uptime;
+                    count_r_clocks <= 0;
+                end if;
+            elsif r_sync = '1' and r_clock'event and r_clock = '1' then
+                count_r_clocks <= count_r_clocks + 1;
+            end if;
+        end loop;
+        wait;
+    end process check_regenerator;
 
     printer : process
         variable l : line;
