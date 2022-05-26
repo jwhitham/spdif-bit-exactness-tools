@@ -20,3 +20,4 @@ set_io sync1_out E1
 set_io sync2_out D1
 set_io sync3_out C1
 set_io sync4_out B1
+set_io sync5_out D3

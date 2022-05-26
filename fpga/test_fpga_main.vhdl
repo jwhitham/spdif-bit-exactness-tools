@@ -13,10 +13,6 @@ architecture structural of test_fpga_main is
     signal clock           : std_logic := '0';
     signal raw_data        : std_logic := '0';
     signal done            : std_logic := '0';
-    signal sync1           : std_logic := '0';
-    signal sync2           : std_logic := '0';
-    signal sync3           : std_logic := '0';
-    signal sync4           : std_logic := '0';
     signal lcols           : std_logic_vector (3 downto 0) := (others => '0');
     signal lrows           : std_logic_vector (7 downto 0) := (others => '0');
 
@@ -28,10 +24,7 @@ architecture structural of test_fpga_main is
             raw_data_out    : out std_logic;
             lcols_out       : out std_logic_vector (3 downto 0) := "0000";
             lrows_out       : out std_logic_vector (7 downto 0) := "00000000";
-            sync1_out       : out std_logic := '0';
-            sync2_out       : out std_logic := '0';
-            sync3_out       : out std_logic := '0';
-            sync4_out       : out std_logic := '0'
+            sync_out        : out std_logic_vector (5 downto 1) := "00000"
         );
     end component fpga_main;
 
@@ -55,10 +48,7 @@ begin
             clock_out => open,
             lcols_out => lcols,
             lrows_out => lrows,
-            sync1_out => sync1,
-            sync2_out => sync2,
-            sync3_out => sync3,
-            sync4_out => sync4);
+            sync_out => open);
 
     printer : process
         variable l : line;

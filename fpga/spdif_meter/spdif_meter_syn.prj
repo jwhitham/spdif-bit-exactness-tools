@@ -12,6 +12,7 @@ add_file -vhdl -lib work "../led_scan.vhdl"
 add_file -vhdl -lib work "spdif_meter_pll.vhd" 
 add_file -vhdl -lib work "../match_rom.vhdl" 
 add_file -vhdl -lib work "../matcher.vhdl" 
+add_file -vhdl -lib work "../regenerator.vhdl" 
 #implementation: "spdif_meter_Implmnt"
 impl -add spdif_meter_Implmnt -type fpga
 
