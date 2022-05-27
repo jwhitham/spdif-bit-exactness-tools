@@ -11,7 +11,7 @@ entity fpga_main is
         lcols_out       : out std_logic_vector (3 downto 0) := "0000";
         lrows_out       : out std_logic_vector (7 downto 0) := "00000000";
         clock_out       : out std_logic := '0';
-        sync_out        : out std_logic_vector (5 downto 1) := "00000"
+        start_out       : out std_logic := '0'
     );
 end fpga_main;
 
@@ -192,7 +192,7 @@ begin
                   data_in => right_data (27 downto 19));
 
     sync (4) <= '1' when matcher_sync /= "00" else '0';
-    sync_out <= sync;
+    start_out <= '1' when pulse_length = "11" else '0';
 
     sync_leds : for index in 1 to 5 generate
         process (clock_in)

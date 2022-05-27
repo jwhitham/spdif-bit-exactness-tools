@@ -48,9 +48,9 @@ begin
             case measurement_state is
                 when START =>
                     -- wait for the start of a new packet
-                    my_clocks <= (others => '0');
+                    my_clocks <= zero_clocks + 1;
                     their_packets <= zero_packets;
-                    my_clocks_done <= (others => '0');
+                    my_clocks_done <= zero_clocks;
                     sync_gen <= '0';
                     if pulse_length_in = "11" then
                         measurement_state <= IN_HEADER_1;
@@ -77,8 +77,10 @@ begin
                         if their_packets = zero_packets then
                             -- counting is complete
                             my_clocks_done <= my_clocks;
-                            my_clocks <= (others => '0');
-                            sync_gen <= '1';
+                            my_clocks <= zero_clocks + 1;
+                            if my_clocks_done /= zero_clocks then
+                                sync_gen <= '1';
+                            end if;
                         end if;
                         -- back to the header
                         measurement_state <= IN_HEADER_1;

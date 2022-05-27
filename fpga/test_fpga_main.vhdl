@@ -24,7 +24,7 @@ architecture structural of test_fpga_main is
             raw_data_out    : out std_logic;
             lcols_out       : out std_logic_vector (3 downto 0) := "0000";
             lrows_out       : out std_logic_vector (7 downto 0) := "00000000";
-            sync_out        : out std_logic_vector (5 downto 1) := "00000"
+            start_out       : out std_logic
         );
     end component fpga_main;
 
@@ -48,7 +48,7 @@ begin
             clock_out => open,
             lcols_out => lcols,
             lrows_out => lrows,
-            sync_out => open);
+            start_out => open);
 
     printer : process
         variable l : line;
