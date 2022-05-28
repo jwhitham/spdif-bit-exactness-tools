@@ -31,28 +31,33 @@ a "[VU meter](https://en.wikipedia.org/wiki/VU_meter)" using LEDs
 A1 .. H1 for the left channel, and A2 .. H2 for the right.
 
 The audio signal is compared to the [test pattern](../README.md) in the
-[test WAV files](../examples). The quality of the match is shown on LEDs
-A4 .. E4:
+[test WAV files](../examples). 
 
-- LED A4 (near pin K14) = receiving correct "biphase mark code" signals
-- LED B4 = receiving correct packet start codes
-- LED C4 = receiving data with correct parity
-- LED D4 and E4:
-   - both off = test pattern not received
-   - D4 only = test pattern received: 16-bit data with a +1/-1 rounding error
-   - E4 only = test pattern received: bit-exact 16-bit data (this is shown in the photo)
-   - both on = test pattern received: bit-exact 24-bit data
+The photo shows an earlier version of the design with different status
+LED meanings. The status LEDs are now:
+
+- LED B4 (near pin K14) = receiving correct "biphase mark code" signals
+- LED C4 = receiving correct packet start codes
+- LED D4 = receiving data with correct parity
+- LED E4 = receiving test pattern
+- LED F4 = generating output signal clock
 
 LEDs A3 .. H3 show the number of clock cycles in a single-width pulse (A3 = LSB),
-unless a test pattern is received, in which case it indicates the sample
-rate:
+unless a test pattern is received (and E4 is on). In this case, E3 .. H3 indicate
+the sample rate which is encoded within the test pattern:
 
 - LEDs G3 and H3 on = sample rate is 96kHz
 - LEDs F3, G3 and H3 on = sample rate is 48kHz
-- LEDs A3, D3, E3, F3 and H3 on = sample rate is 44.1kHz (this is shown in the photo)
+- LEDs E3, F3 and H3 on = sample rate is 44.1kHz
 - LEDs G3 on = sample rate is 32kHz
 
-The LEDs in column 4 are not activated until the appropriate signal
+When E4 is on, the quality of the test pattern is shown in LEDs A3 and B3:
+- both off = test pattern not received
+- A3 only = test pattern received: 16-bit data with a +1/-1 rounding error
+- B3 only = test pattern received: bit-exact 16-bit data
+- both on = test pattern received: bit-exact 24-bit data
+
+The status LEDs in column 4 are not activated until the appropriate signal
 has been received continuously for about 170 milliseconds (assuming
 a 96MHz clock).
 

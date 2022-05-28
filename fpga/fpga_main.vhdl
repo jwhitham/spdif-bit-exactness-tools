@@ -208,15 +208,18 @@ begin
         end process;
     end generate sync_leds;
 
+    leds4 (0) <= '0';
+    leds4 (7 downto 6) <= "00";
+
     process (clock_in)
     begin
         if clock_in = '1' and clock_in'event then
-            leds3 <= single_time;
-            leds4 (0) <= '0';
-            leds4 (6) <= sync (4);
-            leds4 (7) <= sync (5);
             if matcher_sync /= "00" then
-                leds3 <= sample_rate (7 downto 0);
+                leds3 (7 downto 4) <= sample_rate (7 downto 4);
+                leds3 (3 downto 2) <= "00";
+                leds3 (1 downto 0) <= matcher_sync;
+            else
+                leds3 <= single_time;
             end if;
             raw_data_out <= raw_data_in;
         end if;
