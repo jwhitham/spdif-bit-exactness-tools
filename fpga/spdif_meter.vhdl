@@ -28,7 +28,6 @@ architecture structural of spdif_meter is
 
     signal lcols       : std_logic_vector (3 downto 0) := "0000";
     signal lrows       : std_logic_vector (7 downto 0) := "00000000";
-    signal sync_out    : std_logic_vector (5 downto 1) := "00000";
     signal clock       : std_logic := '0';
 
     component fpga_main is
@@ -38,8 +37,7 @@ architecture structural of spdif_meter is
             raw_data_out    : out std_logic;
             lcols_out       : out std_logic_vector (3 downto 0) := "0000";
             lrows_out       : out std_logic_vector (7 downto 0) := "00000000";
-            clock_out       : out std_logic := '0';
-            start_out       : out std_logic := '0'
+            clock_out       : out std_logic := '0'
         );
     end component fpga_main;
 
@@ -66,8 +64,7 @@ begin
             raw_data_out => raw_data_out,
             clock_out => clock_out,
             lcols_out => lcols,
-            lrows_out => lrows,
-            start_out => start_out);
+            lrows_out => lrows);
 
     led1 <= lrows (0);
     led2 <= lrows (1);

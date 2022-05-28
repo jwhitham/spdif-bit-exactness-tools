@@ -16,8 +16,3 @@ set_io clk12MHz P7
 set_io raw_data_in B14
 set_io raw_data_out H1
 set_io clock_out J1
-set_io sync1_out E1
-set_io sync2_out D1
-set_io sync3_out C1
-set_io sync4_out B1
-set_io sync5_out D3
