@@ -5,15 +5,18 @@ use ieee.numeric_std.all;
 
 use std.textio.all;
 
-entity test_fifo512x8 is
-end test_fifo512x8;
+entity test_fifo is
+end test_fifo;
 
-architecture structural of test_fifo512x8 is
+architecture structural of test_fifo is
 
-    component fifo512x8 is
+    constant full_size : Natural := 4096;
+    constant halfway : Natural := full_size / 2;
+
+    component fifo is
         port (
-            data_in     : in std_logic_vector (7 downto 0);
-            data_out    : out std_logic_vector (7 downto 0) := "00000000";
+            data_in     : in std_logic;
+            data_out    : out std_logic := '0';
             empty_out   : out std_logic := '1';
             full_out    : out std_logic := '0';
             half_out    : out std_logic := '0';
@@ -23,10 +26,10 @@ architecture structural of test_fifo512x8 is
             clock_in    : in std_logic;
             write_in    : in std_logic;
             read_in     : in std_logic);
-    end component fifo512x8;
+    end component fifo;
 
-    signal data_in     : std_logic_vector (7 downto 0) := "00000000";
-    signal data_out    : std_logic_vector (7 downto 0) := "00000000";
+    signal data_in     : std_logic := '0';
+    signal data_out    : std_logic := '0';
     signal empty       : std_logic := '0';
     signal full        : std_logic := '0';
     signal half        : std_logic := '0';
@@ -39,7 +42,7 @@ architecture structural of test_fifo512x8 is
     signal read_error  : std_logic := '0';
 begin
 
-    fifo : fifo512x8
+    f : fifo
         port map (
             data_in => data_in,
             data_out => data_out,
@@ -67,6 +70,17 @@ begin
 
     process
         variable l : line;
+
+        function hash (x : Integer) return std_logic is
+            variable a, b, c : boolean;
+        begin
+            if ((x mod 2) /= 0) xor ((x mod 4) = 0) xor ((x mod 8) /= 0) xor ((x mod 16) = 0) then
+                return '1';
+            else
+                return '0';
+            end if;
+        end hash;
+
         procedure check
            (check_write_error : std_logic := '0';
             check_read_error : std_logic := '0';
@@ -111,7 +125,7 @@ begin
         check (check_empty => '1');
 
         -- write one
-        data_in <= x"55";
+        data_in <= '1';
         do_write <= '1';
         wait for 1 us;
         check;
@@ -123,109 +137,109 @@ begin
         wait for 1 us;
         do_read <= '0';
         check (check_empty => '1');
-        assert data_out = x"55";
+        assert data_out = '1';
 
         -- read when empty: error, but the output holds
         do_read <= '1';
         wait for 1 us;
         check (check_empty => '1', check_read_error => '1');
         do_read <= '0';
-        assert data_out = x"55";
+        assert data_out = '1';
 
         -- output is held in place
         wait for 1 us;
         check (check_empty => '1');
-        assert data_out = x"55";
+        assert data_out = '1';
 
         -- check throughput, with up to 3 items in the FIFO
         for i in 1 to 3 loop
-            data_in <= std_logic_vector (to_unsigned (i, 8));
+            data_in <= hash (i);
             do_write <= '1';
             wait for 1 us;
             do_write <= '0';
             check;
         end loop;
         for i in 4 to 8 loop
-            data_in <= std_logic_vector (to_unsigned (i, 8));
+            data_in <= hash (i);
             do_read <= '1';
             do_write <= '1';
             wait for 1 us;
             do_read <= '0';
             do_write <= '0';
-            assert data_out = std_logic_vector (to_unsigned (i - 3, 8));
+            assert data_out = hash (i - 3);
             check;
         end loop;
         for i in 9 to 11 loop
             check;
-            data_in <= std_logic_vector (to_unsigned (i, 8));
+            data_in <= hash (i);
             do_read <= '1';
             wait for 1 us;
             do_read <= '0';
-            assert data_out = std_logic_vector (to_unsigned (i - 3, 8));
+            assert data_out = hash (i - 3);
         end loop;
         check (check_empty => '1');
 
         -- fill to halfway
-        for i in 1 to 256 loop
-            data_in <= std_logic_vector (to_unsigned (i mod 256, 8));
+        for i in 1 to halfway loop
+            data_in <= hash (i);
             do_write <= '1';
             wait for 1 us;
             do_write <= '0';
             check;
-            assert data_out = std_logic_vector (to_unsigned (8, 8));
+            assert data_out = hash (8);
         end loop;
         -- halfway flag asserted after the 257th write
-        for i in 257 to 510 loop
-            data_in <= std_logic_vector (to_unsigned (i mod 256, 8));
+        for i in halfway + 1 to full_size - 2 loop
+            data_in <= hash (i);
             do_write <= '1';
             wait for 1 us;
             do_write <= '0';
             check (check_half => '1');
-            assert data_out = std_logic_vector (to_unsigned (8, 8));
+            assert data_out = hash (8);
         end loop;
         -- full flag asserted after the 511th write
-        data_in <= x"55";
+        data_in <= '1';
         do_write <= '1';
         wait for 1 us;
         do_write <= '0';
         check (check_half => '1', check_full => '1');
-        assert data_out = std_logic_vector (to_unsigned (8, 8));
+        assert data_out = hash (8);
         -- error if trying to write again
-        data_in <= x"ee";
+        data_in <= '0';
         do_write <= '1';
         wait for 1 us;
         do_write <= '0';
         check (check_half => '1', check_full => '1', check_write_error => '1');
-        assert data_out = std_logic_vector (to_unsigned (8, 8));
+        assert data_out = hash (8);
 
         -- empty to halfway
-        for i in 1 to 255 loop
+        for i in 1 to halfway - 1 loop
             do_read <= '1';
             wait for 1 us;
             do_read <= '0';
             check (check_half => '1');
-            assert data_out = std_logic_vector (to_unsigned (i mod 256, 8));
+            assert data_out = hash (i);
         end loop;
         -- empty to one left 
-        for i in 256 to 510 loop
+        for i in halfway to full_size - 2 loop
             do_read <= '1';
             wait for 1 us;
             do_read <= '0';
             check;
-            assert data_out = std_logic_vector (to_unsigned (i mod 256, 8));
+            assert data_out = hash (i);
         end loop;
         -- empty flag asserted after the 511th read
         do_read <= '1';
         wait for 1 us;
         do_read <= '0';
         check (check_empty => '1');
-        assert data_out = x"55";
+        assert data_out = '1';
         -- error if trying to read again
         do_read <= '1';
         wait for 1 us;
         do_read <= '0';
         check (check_empty => '1', check_read_error => '1');
-        assert data_out = x"55";
+        assert data_out = '1';
 
 
         done <= '1';
