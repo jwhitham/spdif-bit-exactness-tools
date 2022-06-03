@@ -3,7 +3,6 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-use std.textio.all;
 
 entity fifo512x8 is
     port (
@@ -27,10 +26,10 @@ architecture structural of fifo512x8 is
     signal raddr        : t_addr := (others => '0');
     signal waddr_next   : t_addr;
     signal raddr_next   : t_addr;
-    signal half_threshold : std_logic;
-    signal full         : std_logic;
-    signal empty        : std_logic;
-    signal write_now    : std_logic;
+    signal full_sig     : std_logic := '0';
+    signal empty_sig    : std_logic := '1';
+    signal do_write     : std_logic := '0';
+    signal do_read      : std_logic := '0';
     constant one : std_logic := '1';
 
     component sb_ram512x8 is
@@ -52,67 +51,94 @@ begin
         port map (
             waddr => waddr,
             wdata => data_in,
-            we => write_now,
+            we => do_write,
             wclke => one,
             wclk => clock_in,
             raddr => raddr,
             rdata => data_out,
-            re => one,
+            re => do_read,
             rclke => one,
             rclk => clock_in);
 
     waddr_next <= std_logic_vector (unsigned (waddr) + 1);
     raddr_next <= std_logic_vector (unsigned (raddr) + 1);
-    empty_out <= empty;
-    full_out <= full;
-    write_now <= write_in and not full;
-
-    empty <= '1' when raddr = waddr else '0';
-    full <= '1' when raddr = waddr_next else '0';
-    half_threshold <= '1'
-        when raddr = std_logic_vector (unsigned (waddr) + 256) else '0';
+    empty_sig <= '1' when (raddr = waddr) else '0';
+    full_sig <= '1' when (raddr = waddr_next) else '0';
+    empty_out <= empty_sig;
+    full_out <= full_sig;
+    do_write <= write_in and not full_sig;
+    do_read <= read_in and not empty_sig;
 
     process (clock_in)
-        variable l : line;
     begin
         if clock_in'event and clock_in = '1' then
-            -- Track ring buffer addresses
+            -- Control for write address
             write_error <= '0';
             if write_in = '1' then
-                if full = '1' then
+                if full_sig = '1' then
+                    -- Write is not allowed
                     write_error <= '1';
                 else
+                    -- Write ok, move to next address
                     waddr <= waddr_next;
                 end if;
             end if;
+            if reset_in = '1' then
+                write_error <= '0';
+                waddr <= (others => '0');
+            end if;
+        end if;
+    end process;
+
+    process (clock_in)
+    begin
+        if clock_in'event and clock_in = '1' then
+            -- Control for read address
             read_error <= '0';
             if read_in = '1' then
-                if empty = '1' then
+                if empty_sig = '1' then
+                    -- Read is not allowed
                     read_error <= '1';
                 else
+                    -- Read ok, move to next address
                     raddr <= raddr_next;
                 end if;
             end if;
+            if reset_in = '1' then
+                read_error <= '0';
+                raddr <= (others => '0');
+            end if;
+        end if;
+    end process;
 
-            -- Track half-full threshold
-            if write_in = '1' and read_in = '0' then
-                if half_threshold = '1' then
-                    -- moving above half-full
-                    half_out <= '1';
-                end if;
-            elsif write_in = '0' and read_in = '1' then
-                if half_threshold = '1' then
-                    -- moving below half-full
-                    half_out <= '0';
+    process (clock_in)
+        variable inc, dec, half : boolean := false;
+    begin
+        if clock_in'event and clock_in = '1' then
+            -- Control for halfway marker
+            inc := write_in = '1' and full_sig = '0';
+            dec := read_in = '1' and empty_sig = '0';
+            half := std_logic_vector (unsigned (raddr) + to_unsigned (256, raddr'Length)) = waddr;
+
+            if inc /= dec then
+                -- Adding or removing from the FIFO, but not both
+                if inc then
+                    -- Adding to FIFO
+                    if half then
+                        half_out <= '1';
+                    end if;
+                else
+                    -- Removing from FIFO
+                    if half then
+                        half_out <= '0';
+                    end if;
                 end if;
             end if;
-
             if reset_in = '1' then
-                raddr <= (others => '0');
-                waddr <= (others => '0');
                 half_out <= '0';
             end if;
         end if;
     end process;
+
 
 end structural;

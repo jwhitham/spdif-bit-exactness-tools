@@ -3,6 +3,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+use std.textio.all;
+
 entity sb_ram512x8 is
     port (
         waddr       : in std_logic_vector (8 downto 0);
@@ -24,16 +26,22 @@ architecture behavioural of sb_ram512x8 is
     signal storage : t_storage := (others => (others => '0'));
 begin
     process (wclk)
+        variable l : line;
     begin
-        if wclk'event and wclk = '1' and wclke = '1' and we = '1' then
-            storage (to_integer (unsigned (waddr))) <= wdata;
+        if wclk'event and wclk = '1' then
+            if wclke = '1' and we = '1' then
+                storage (to_integer (unsigned (waddr))) <= wdata;
+            end if;
         end if;
     end process;
 
     process (rclk)
+        variable l : line;
     begin
-        if rclk'event and rclk = '1' and rclke = '1' and re = '1' then
-            rdata <= storage (to_integer (unsigned (raddr)));
+        if rclk'event and rclk = '1' then
+            if rclke = '1' and re = '1' then
+                rdata <= storage (to_integer (unsigned (raddr)));
+            end if;
         end if;
     end process;
 end architecture behavioural;
