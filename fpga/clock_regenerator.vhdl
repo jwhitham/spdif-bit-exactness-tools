@@ -9,7 +9,7 @@ entity clock_regenerator is
         sync_in          : in std_logic;
         sync_out         : out std_logic := '0';
         clock_in         : in std_logic;
-        clock_out        : out std_logic := '0'
+        strobe_out       : out std_logic := '0'
     );
 end clock_regenerator;
 
@@ -22,7 +22,7 @@ architecture structural of clock_regenerator is
     constant counter_bits                : Integer := fixed_point_bits + max_transition_time_log_2;
 
     -- Count the number of clock_in cycles required for 2**num_packets_log_2 packets
-    -- Use this to make a fixed point clock divider to convert clock_in to clock_out
+    -- Use this to make a fixed point clock divider to convert clock_in to strobe_out
     subtype t_their_packets is unsigned ((num_packets_log_2 - 1) downto 0);
     subtype t_my_clocks is unsigned ((counter_bits - 1) downto 0);
     constant zero_packets       : t_their_packets := (others => '0');
@@ -38,7 +38,7 @@ architecture structural of clock_regenerator is
     type t_measurement_state is (START, IN_HEADER_1, IN_HEADER_2, IN_HEADER_3, IN_BODY);
     signal measurement_state    : t_measurement_state := START;
     signal sync_gen             : std_logic := '0';
-    signal clock_gen            : std_logic := '0';
+    signal strobe_gen           : std_logic := '0';
 
 begin
     process (clock_in)
@@ -93,19 +93,19 @@ begin
         end if;
     end process;
 
-    clock_out <= clock_gen;
     sync_out <= sync_gen;
 
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
+            strobe_out <= '0';
             if sync_gen = '0' then
                 divisor <= (others => '0');
             elsif divisor < my_clocks_done then
                 divisor <= divisor + fixed_point_one;
             else
                 divisor <= divisor + fixed_point_one - my_clocks_done;
-                clock_gen <= not clock_gen;
+                strobe_out <= '1';
             end if;
         end if;
     end process;

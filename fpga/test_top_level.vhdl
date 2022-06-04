@@ -10,6 +10,8 @@ end test_top_level;
 
 architecture structural of test_top_level is
 
+    constant num_sync : Natural := 7;
+
     signal pulse_length    : std_logic_vector (1 downto 0) := "00";
     signal packet_data     : std_logic := '0';
     signal packet_shift    : std_logic := '0';
@@ -18,14 +20,16 @@ architecture structural of test_top_level is
     signal clock           : std_logic := '0';
     signal raw_data        : std_logic := '0';
     signal done            : std_logic := '0';
-    signal sync            : std_logic_vector (6 downto 1) := (others => '0');
+    signal sync            : std_logic_vector (num_sync downto 1) := (others => '0');
     signal sample_rate     : std_logic_vector (15 downto 0) := (others => '0');
     signal single_time     : std_logic_vector (7 downto 0) := (others => '0');
     signal left_data       : std_logic_vector (31 downto 0) := (others => '0');
     signal left_strobe     : std_logic := '0';
     signal right_data      : std_logic_vector (31 downto 0) := (others => '0');
     signal right_strobe    : std_logic := '0';
-    signal r_clock         : std_logic := '0';
+    signal rg_strobe       : std_logic := '0';
+    signal oe_error        : std_logic := '0';
+    signal oe_data         : std_logic := '0';
 
     signal uptime          : Integer := 0;
     signal start_of_r_sync : Integer := 0;
@@ -95,9 +99,21 @@ architecture structural of test_top_level is
             sync_in          : in std_logic;
             sync_out         : out std_logic := '0';
             clock_in         : in std_logic;
-            clock_out        : out std_logic := '0'
+            strobe_out       : out std_logic := '0'
         );
     end component clock_regenerator;
+
+    component output_encoder is
+        port (
+            pulse_length_in : in std_logic_vector (1 downto 0);
+            sync_in         : in std_logic;
+            data_out        : out std_logic := '0';
+            error_out       : out std_logic := '0';
+            sync_out        : out std_logic := '0';
+            strobe_in       : in std_logic;
+            clock_in        : in std_logic
+        );
+    end component output_encoder;
 begin
     test_signal_gen : test_signal_generator
         port map (raw_data_out => raw_data, done_out => done, clock_out => clock);
@@ -143,7 +159,16 @@ begin
                   pulse_length_in => pulse_length,
                   sync_in => sync (3),
                   sync_out => sync (6),
-                  clock_out => r_clock);
+                  strobe_out => rg_strobe);
+
+    oe : output_encoder
+        port map (clock_in => clock,
+                  pulse_length_in => pulse_length,
+                  sync_in => sync (6),
+                  sync_out => sync (7),
+                  error_out => oe_error,
+                  strobe_in => rg_strobe,
+                  data_out => oe_data);
 
     t1p : process
         variable l : line;
@@ -186,7 +211,10 @@ begin
             report_sync_event (5, 4, "matcher");
         end process;
         process begin
-            report_sync_event (6, 6, "regenerator");
+            report_sync_event (6, 6, "clock regenerator");
+        end process;
+        process begin
+            report_sync_event (7, 7, "output encoder");
         end process;
     end block sync_events;
 
@@ -220,7 +248,7 @@ begin
         variable delta : Integer;
     begin
         while done /= '1' loop
-            wait until r_clock'event or sync (6)'event or done = '1';
+            wait until rg_strobe'event or sync (6)'event or done = '1';
             if sync (6)'event then
                 if sync (6) = '0' then
                     if start_of_r_sync /= 0 then
@@ -237,7 +265,7 @@ begin
                     start_of_r_sync <= uptime;
                     count_r_clocks <= 0;
                 end if;
-            elsif sync (6) = '1' and r_clock'event and r_clock = '1' then
+            elsif sync (6) = '1' and rg_strobe'event and rg_strobe = '1' then
                 count_r_clocks <= count_r_clocks + 1;
             end if;
         end loop;
@@ -295,6 +323,7 @@ begin
         assert right_strobe = '0' or right_strobe = '1';
         assert left_data (0) = '0' or left_data (0) = '1';
         assert right_data (0) = '0' or right_data (0) = '1';
+        assert oe_error = '0';
 
         while done /= '1' loop
             if right_strobe = '1' then

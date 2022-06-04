@@ -12,6 +12,9 @@ for F in \
             match_rom \
             matcher \
             clock_regenerator \
+            sb_ram40_4k \
+            fifo \
+            output_encoder \
             test_signal_generator \
             input_decoder \
             packet_decoder \
