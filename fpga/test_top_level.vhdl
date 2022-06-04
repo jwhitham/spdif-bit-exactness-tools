@@ -28,7 +28,6 @@ architecture structural of test_top_level is
     signal right_data      : std_logic_vector (31 downto 0) := (others => '0');
     signal right_strobe    : std_logic := '0';
     signal rg_strobe       : std_logic := '0';
-    signal oe_error        : std_logic := '0';
     signal oe_data         : std_logic := '0';
 
     signal uptime          : Integer := 0;
@@ -166,7 +165,7 @@ begin
                   pulse_length_in => pulse_length,
                   sync_in => sync (1),
                   sync_out => sync (7),
-                  error_out => oe_error,
+                  error_out => open,
                   strobe_in => rg_strobe,
                   data_out => oe_data);
 
@@ -323,7 +322,6 @@ begin
         assert right_strobe = '0' or right_strobe = '1';
         assert left_data (0) = '0' or left_data (0) = '1';
         assert right_data (0) = '0' or right_data (0) = '1';
-        assert oe_error = '0';
 
         while done /= '1' loop
             if right_strobe = '1' then

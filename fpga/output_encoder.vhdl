@@ -58,6 +58,7 @@ begin
     begin
         if clock_in'event and clock_in = '1' then
 
+            fifo_write <= '0';
             case encode_state is
                 when READY =>
                     case pulse_length_in is
@@ -119,13 +120,13 @@ begin
     begin
         if clock_in'event and clock_in = '1' then
             case output_state is
-                when ACTIVE =>
-                    null;
+                when RESET =>
+                    output_state <= FILLING;
                 when FILLING =>
                     if fifo_half_full = '1' then
                         output_state <= ACTIVE;
                     end if;
-                when RESET =>
+                when ACTIVE =>
                     null;
             end case;
 
