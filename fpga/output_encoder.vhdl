@@ -38,6 +38,7 @@ architecture structural of output_encoder is
     signal fifo_write_error : std_logic := '0';
 
     component fifo is
+        generic (test_addr_size : Natural := 12);
         port (
             data_in     : in std_logic;
             data_out    : out std_logic := '0';
@@ -100,6 +101,7 @@ begin
     error_out <= fifo_read_error or fifo_write_error;
 
     f : fifo
+        generic map (test_addr_size => 4)
         port map (
             data_in => fifo_data_in,
             data_out => fifo_data_out,

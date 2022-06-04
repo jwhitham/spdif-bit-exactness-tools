@@ -164,7 +164,7 @@ begin
     oe : output_encoder
         port map (clock_in => clock,
                   pulse_length_in => pulse_length,
-                  sync_in => sync (6),
+                  sync_in => sync (1),
                   sync_out => sync (7),
                   error_out => oe_error,
                   strobe_in => rg_strobe,

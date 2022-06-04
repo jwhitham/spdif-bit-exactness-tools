@@ -78,9 +78,7 @@ begin
                             -- counting is complete
                             my_clocks_done <= my_clocks;
                             my_clocks <= zero_clocks + 1;
-                            if my_clocks_done /= zero_clocks then
-                                sync_gen <= '1';
-                            end if;
+                            sync_gen <= '1';
                         end if;
                         -- back to the header
                         measurement_state <= IN_HEADER_1;

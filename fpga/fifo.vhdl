@@ -5,6 +5,7 @@ use ieee.numeric_std.all;
 
 
 entity fifo is
+    generic (test_addr_size : Natural := 12);
     port (
         data_in     : in std_logic;
         data_out    : out std_logic := '0';
@@ -21,11 +22,11 @@ end fifo;
 
 architecture structural of fifo is
 
-    constant addr_size  : Natural := 12;
+    constant true_addr_size : Natural := 12;
     constant data_size  : Natural := 16;
     constant mask_size  : Natural := 4;
 
-    subtype t_addr is std_logic_vector (addr_size - 1 downto 0);
+    subtype t_addr is std_logic_vector (true_addr_size - 1 downto 0);
     subtype t_data is std_logic_vector (data_size - 1 downto 0);
 
     signal wdata        : t_data := (others => '0');
@@ -34,6 +35,7 @@ architecture structural of fifo is
     signal raddr        : t_addr := (others => '0');
     signal mask         : t_data := (others => '0');
     signal mask_mux     : std_logic_vector (mask_size - 1 downto 0) := (others => '0');
+    signal test_mask    : t_addr := (others => '1');
     signal waddr_next   : t_addr;
     signal raddr_next   : t_addr;
     signal full_sig     : std_logic := '0';
@@ -66,17 +68,21 @@ begin
             READ_MODE => 0,
             WRITE_MODE => 0)
         port map (
-            WADDR => waddr (addr_size - 1 downto mask_size),
+            WADDR => waddr (true_addr_size - 1 downto mask_size),
             WDATA => wdata,
             MASK => mask,
             WE => do_write,
             WCLKE => one,
             WCLK => clock_in,
-            RADDR => raddr (addr_size - 1 downto mask_size),
+            RADDR => raddr (true_addr_size - 1 downto mask_size),
             RDATA => rdata,
             RE => do_read,
             RCLKE => one,
             RCLK => clock_in);
+
+    make_test_mask : for i in 0 to true_addr_size - 1 generate
+        test_mask (i) <= '1' when i < test_addr_size else '0';
+    end generate make_test_mask;
 
     process (waddr)
     begin
@@ -86,8 +92,8 @@ begin
     data_out <= rdata (to_integer (unsigned (mask_mux)));
     wdata <= (others => data_in);
 
-    waddr_next <= std_logic_vector (unsigned (waddr) + 1);
-    raddr_next <= std_logic_vector (unsigned (raddr) + 1);
+    waddr_next <= std_logic_vector (unsigned (waddr) + 1) and test_mask;
+    raddr_next <= std_logic_vector (unsigned (raddr) + 1) and test_mask;
     empty_sig <= '1' when (raddr = waddr) else '0';
     full_sig <= '1' when (raddr = waddr_next) else '0';
     empty_out <= empty_sig;
@@ -146,7 +152,9 @@ begin
             -- Control for halfway marker
             inc := write_in = '1' and full_sig = '0';
             dec := read_in = '1' and empty_sig = '0';
-            half := std_logic_vector (unsigned (raddr) + to_unsigned (2 ** (addr_size - 1), raddr'Length)) = waddr;
+            half := (std_logic_vector
+                (unsigned (raddr) + to_unsigned (2 ** (test_addr_size - 1), raddr'Length))
+                    and test_mask) = waddr;
 
             if inc /= dec then
                 -- Adding or removing from the FIFO, but not both
