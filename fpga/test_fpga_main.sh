@@ -11,13 +11,14 @@ rm -f work-obj93.cf
 for F in \
             match_rom \
             matcher \
-            regenerator \
+            clock_regenerator \
             test_signal_generator \
             vu_meter \
             input_decoder \
             packet_decoder \
             channel_decoder \
             led_scan \
+            fifo \
             fpga_main \
             test_fpga_main
 do

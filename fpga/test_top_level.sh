@@ -11,7 +11,7 @@ rm -f work-obj93.cf
 for F in \
             match_rom \
             matcher \
-            regenerator \
+            clock_regenerator \
             test_signal_generator \
             input_decoder \
             packet_decoder \

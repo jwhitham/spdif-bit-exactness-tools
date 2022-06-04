@@ -89,7 +89,7 @@ architecture structural of test_top_level is
         );
     end component matcher;
 
-    component regenerator is
+    component clock_regenerator is
         port (
             pulse_length_in  : in std_logic_vector (1 downto 0) := "00";
             sync_in          : in std_logic;
@@ -97,7 +97,7 @@ architecture structural of test_top_level is
             clock_in         : in std_logic;
             clock_out        : out std_logic := '0'
         );
-    end component regenerator;
+    end component clock_regenerator;
 begin
     test_signal_gen : test_signal_generator
         port map (raw_data_out => raw_data, done_out => done, clock_out => clock);
@@ -138,7 +138,7 @@ begin
                   sample_rate_out => sample_rate,
                   clock => clock);
 
-    rg : regenerator
+    rg : clock_regenerator
         port map (clock_in => clock,
                   pulse_length_in => pulse_length,
                   sync_in => sync (3),

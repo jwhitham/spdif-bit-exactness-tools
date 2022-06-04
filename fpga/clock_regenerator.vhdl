@@ -3,7 +3,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity regenerator is
+entity clock_regenerator is
     port (
         pulse_length_in  : in std_logic_vector (1 downto 0) := "00";
         sync_in          : in std_logic;
@@ -11,9 +11,9 @@ entity regenerator is
         clock_in         : in std_logic;
         clock_out        : out std_logic := '0'
     );
-end regenerator;
+end clock_regenerator;
 
-architecture structural of regenerator is
+architecture structural of clock_regenerator is
 
     constant num_packets_log_2           : Integer := 8;
     constant num_clocks_per_packet_log_2 : Integer := 6;
