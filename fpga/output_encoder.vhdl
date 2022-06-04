@@ -2,7 +2,10 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
+use std.textio.all;
+
 entity output_encoder is
+    generic (test_addr_size : Natural := 12);
     port (
         pulse_length_in : in std_logic_vector (1 downto 0);
         sync_in         : in std_logic;
@@ -25,7 +28,7 @@ architecture structural of output_encoder is
     type t_encode_state is (READY, HOLD_ONE, HOLD_TWO);
     signal encode_state       : t_encode_state := READY;
 
-    type t_output_state is (RESET, FILLING, ACTIVE);
+    type t_output_state is (RESET, FILLING, ACTIVE, FAULT);
     signal output_state       : t_output_state := RESET;
 
     signal fifo_data_in     : std_logic := '0';
@@ -59,39 +62,41 @@ begin
         if clock_in'event and clock_in = '1' then
 
             fifo_write <= '0';
-            case encode_state is
-                when READY =>
-                    case pulse_length_in is
-                        when THREE =>
-                            encode_state <= HOLD_TWO;
-                            fifo_data_in <= not fifo_data_in;
-                            fifo_write <= '1';
-                        when TWO =>
-                            encode_state <= HOLD_ONE;
-                            fifo_data_in <= not fifo_data_in;
-                            fifo_write <= '1';
-                        when ONE =>
-                            fifo_data_in <= not fifo_data_in;
-                            fifo_write <= '1';
-                        when others =>
-                            null;
-                    end case;
-
-                when HOLD_TWO =>
-                    encode_state <= HOLD_ONE;
-                    fifo_write <= '1';
-
-                when HOLD_ONE =>
+            case output_state is
+                when FAULT | RESET =>
+                    -- held in reset
                     encode_state <= READY;
-                    fifo_write <= '1';
-            end case;
+                    fifo_data_in <= '0';
 
-            if sync_in = '0' then
-                -- held in reset
-                encode_state <= READY;
-                fifo_write <= '0';
-                fifo_data_in <= '0';
-            end if;
+                when FILLING | ACTIVE =>
+                    -- load new data into the FIFO
+                    case encode_state is
+                        when READY =>
+                            case pulse_length_in is
+                                when THREE =>
+                                    encode_state <= HOLD_TWO;
+                                    fifo_data_in <= not fifo_data_in;
+                                    fifo_write <= '1';
+                                when TWO =>
+                                    encode_state <= HOLD_ONE;
+                                    fifo_data_in <= not fifo_data_in;
+                                    fifo_write <= '1';
+                                when ONE =>
+                                    fifo_data_in <= not fifo_data_in;
+                                    fifo_write <= '1';
+                                when others =>
+                                    null;
+                            end case;
+
+                        when HOLD_TWO =>
+                            encode_state <= HOLD_ONE;
+                            fifo_write <= '1';
+
+                        when HOLD_ONE =>
+                            encode_state <= READY;
+                            fifo_write <= '1';
+                    end case;
+            end case;
         end if;
     end process;
 
@@ -99,18 +104,18 @@ begin
     data_out <= fifo_data_out;
     fifo_read <= strobe_in when output_state = ACTIVE else '0';
     sync_out <= '1' when output_state = ACTIVE else '0';
-    error_out <= fifo_read_error or fifo_write_error;
+    error_out <= '1' when output_state = FAULT else '0';
 
     f : fifo
-        generic map (test_addr_size => 4)
+        generic map (test_addr_size => test_addr_size)
         port map (
             data_in => fifo_data_in,
             data_out => fifo_data_out,
             empty_out => open,
             full_out => open,
             half_out => fifo_half_full,
-            write_error => fifo_read_error,
-            read_error => fifo_write_error,
+            write_error => fifo_write_error,
+            read_error => fifo_read_error,
             reset_in => fifo_reset,
             clock_in => clock_in,
             write_in => fifo_write,
@@ -126,10 +131,14 @@ begin
                     if fifo_half_full = '1' then
                         output_state <= ACTIVE;
                     end if;
-                when ACTIVE =>
+                when ACTIVE | FAULT =>
                     null;
             end case;
 
+            if fifo_read_error = '1' or fifo_write_error = '1' then
+                -- If an error occurs, stop until the next reset
+                output_state <= FAULT;
+            end if;
             if sync_in = '0' then
                 -- Wait for clock_regenerator sync before allowing anything into the FIFO
                 output_state <= RESET;

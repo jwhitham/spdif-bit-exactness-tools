@@ -10,25 +10,35 @@ end test_top_level;
 
 architecture structural of test_top_level is
 
-    constant num_sync : Natural := 7;
+    constant num_sync : Natural := 12;
 
     signal pulse_length    : std_logic_vector (1 downto 0) := "00";
     signal packet_data     : std_logic := '0';
     signal packet_shift    : std_logic := '0';
     signal packet_start    : std_logic := '0';
-    signal packet_channel  : std_logic_vector (1 downto 0) := "00";
+    signal left_data       : std_logic_vector (31 downto 0) := (others => '0');
+    signal left_strobe     : std_logic := '0';
+    signal right_data      : std_logic_vector (31 downto 0) := (others => '0');
+    signal right_strobe    : std_logic := '0';
+
+    signal pulse_length_2  : std_logic_vector (1 downto 0) := "00";
+    signal packet_data_2   : std_logic := '0';
+    signal packet_shift_2  : std_logic := '0';
+    signal packet_start_2  : std_logic := '0';
+    signal left_data_2     : std_logic_vector (31 downto 0) := (others => '0');
+    signal left_strobe_2   : std_logic := '0';
+    signal right_data_2    : std_logic_vector (31 downto 0) := (others => '0');
+    signal right_strobe_2  : std_logic := '0';
+
     signal clock           : std_logic := '0';
     signal raw_data        : std_logic := '0';
     signal done            : std_logic := '0';
     signal sync            : std_logic_vector (num_sync downto 1) := (others => '0');
     signal sample_rate     : std_logic_vector (15 downto 0) := (others => '0');
     signal single_time     : std_logic_vector (7 downto 0) := (others => '0');
-    signal left_data       : std_logic_vector (31 downto 0) := (others => '0');
-    signal left_strobe     : std_logic := '0';
-    signal right_data      : std_logic_vector (31 downto 0) := (others => '0');
-    signal right_strobe    : std_logic := '0';
     signal rg_strobe       : std_logic := '0';
     signal oe_data         : std_logic := '0';
+    signal oe_error        : std_logic := '0';
 
     signal uptime          : Integer := 0;
     signal start_of_r_sync : Integer := 0;
@@ -103,6 +113,7 @@ architecture structural of test_top_level is
     end component clock_regenerator;
 
     component output_encoder is
+        generic (test_addr_size : Natural := 12);
         port (
             pulse_length_in : in std_logic_vector (1 downto 0);
             sync_in         : in std_logic;
@@ -161,13 +172,53 @@ begin
                   strobe_out => rg_strobe);
 
     oe : output_encoder
+        generic map (test_addr_size => 4)
         port map (clock_in => clock,
                   pulse_length_in => pulse_length,
-                  sync_in => sync (1),
+                  sync_in => sync (6),
                   sync_out => sync (7),
-                  error_out => open,
+                  error_out => oe_error,
                   strobe_in => rg_strobe,
                   data_out => oe_data);
+
+    assert oe_error = '0';
+
+    dec4 : input_decoder
+        port map (clock_in => clock, data_in => oe_data,
+                  sync_out => sync (8), single_time_out => open,
+                  pulse_length_out => pulse_length_2);
+
+    dec5 : packet_decoder
+        port map (clock => clock,
+                  pulse_length_in => pulse_length_2,
+                  sync_in => sync (8),
+                  sync_out => sync (9),
+                  data_out => packet_data_2,
+                  start_out => packet_start_2,
+                  shift_out => packet_shift_2);
+
+    dec6 : channel_decoder 
+        port map (clock => clock,
+                  data_in => packet_data_2,
+                  shift_in => packet_shift_2,
+                  start_in => packet_start_2,
+                  sync_in => sync (9),
+                  sync_out => sync (10),
+                  left_data_out => left_data_2,
+                  left_strobe_out => left_strobe_2,
+                  right_data_out => right_data_2,
+                  right_strobe_out => right_strobe_2);
+
+    m2 : matcher
+        port map (left_data_in => left_data_2,
+                  left_strobe_in => left_strobe_2,
+                  right_data_in => right_data_2,
+                  right_strobe_in => right_strobe_2,
+                  sync_in => sync (10),
+                  sync_out => sync (12 downto 11),
+                  sample_rate_out => open,
+                  clock => clock);
+
 
     t1p : process
         variable l : line;
@@ -214,6 +265,18 @@ begin
         end process;
         process begin
             report_sync_event (7, 7, "output encoder");
+        end process;
+        process begin
+            report_sync_event (8, 8, "second input decoder");
+        end process;
+        process begin
+            report_sync_event (9, 9, "second packet decoder");
+        end process;
+        process begin
+            report_sync_event (10, 10, "second channel decoder");
+        end process;
+        process begin
+            report_sync_event (12, 11, "second matcher");
         end process;
     end block sync_events;
 
