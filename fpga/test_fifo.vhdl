@@ -72,13 +72,10 @@ begin
         variable l : line;
 
         function hash (x : Integer) return std_logic is
-            variable a, b, c : boolean;
+            constant table : std_logic_vector (127 downto 0) :=
+                x"aaeb0f31668a6fe22515e558c7e2fb06";
         begin
-            if ((x mod 2) /= 0) xor ((x mod 4) = 0) xor ((x mod 8) /= 0) xor ((x mod 16) = 0) then
-                return '1';
-            else
-                return '0';
-            end if;
+            return table (x mod 127);
         end hash;
 
         procedure check

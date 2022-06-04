@@ -16,11 +16,13 @@ end fpga_main;
 
 architecture structural of fpga_main is
 
+    constant num_syncs : Natural := 6;
+
     signal pulse_length    : std_logic_vector (1 downto 0) := "00";
     signal packet_data     : std_logic := '0';
     signal packet_shift    : std_logic := '0';
     signal packet_start    : std_logic := '0';
-    signal sync            : std_logic_vector (5 downto 1) := (others => '0');
+    signal sync            : std_logic_vector (num_syncs downto 1) := (others => '0');
     signal single_time     : std_logic_vector (7 downto 0) := (others => '0');
     signal sample_rate     : std_logic_vector (15 downto 0) := (others => '0');
     signal matcher_sync    : std_logic_vector (1 downto 0) := "00";
@@ -38,18 +40,19 @@ architecture structural of fpga_main is
     signal right_meter     : t_leds := (others => '0');
 
     subtype t_sync_counter is unsigned (23 downto 0);
-    type t_sync_counters is array (1 to 5) of t_sync_counter;
+    type t_sync_counters is array (1 to num_syncs) of t_sync_counter;
 
     signal sync_counter    : t_sync_counters := (others => (others => '0'));
     constant max_counter   : t_sync_counter := (others => '1');
 
-    component test_signal_generator is
-        port (
-            done_out        : out std_logic;
-            clock_out       : out std_logic;
-            raw_data_out    : out std_logic
-        );
-    end component test_signal_generator;
+    signal fifo_half_full   : std_logic := '0';
+    signal fifo_reset       : std_logic := '1';
+    signal fifo_in_enable   : std_logic := '0';
+    signal fifo_out_enable  : std_logic := '0';
+    signal fifo_write_error : std_logic := '0';
+    signal fifo_read_error  : std_logic := '0';
+    signal fifo_data_in     : std_logic := '0';
+    signal fifo_data_out    : std_logic := '0';
 
     component input_decoder is
         port (
@@ -128,6 +131,22 @@ architecture structural of fpga_main is
             clock_out        : out std_logic := '0'
         );
     end component regenerator;
+
+    component fifo is
+        port (
+            data_in     : in std_logic;
+            data_out    : out std_logic := '0';
+            empty_out   : out std_logic := '1';
+            full_out    : out std_logic := '0';
+            half_out    : out std_logic := '0';
+            write_error : out std_logic := '0';
+            read_error  : out std_logic := '0';
+            reset_in    : in std_logic;
+            clock_in    : in std_logic;
+            write_in    : in std_logic;
+            read_in     : in std_logic);
+    end component fifo;
+
 begin
     dec1 : input_decoder
         port map (clock_in => clock_in, data_in => raw_data_in,
@@ -180,6 +199,38 @@ begin
                   lrows_out => lrows_out,
                   lcols_out => lcols_out);
 
+    f : fifo
+        port map (
+            data_in => fifo_data_in,
+            data_out => fifo_data_out,
+            empty_out => open,
+            full_out => open,
+            half_out => fifo_half_full,
+            write_error => fifo_read_error,
+            read_error => fifo_write_error,
+            reset_in => fifo_reset,
+            clock_in => clock_in,
+            write_in => fifo_in_enable,
+            read_in => fifo_out_enable);
+
+    process (clock_in)
+    begin
+        if clock_in'event and clock_in = '1' then
+            fifo_reset <= '0';
+            fifo_in_enable <= '1';
+            if sync (5) = '0' then
+                fifo_reset <= '1';
+                fifo_out_enable <= '0';
+                fifo_in_enable <= '0';
+
+            elsif fifo_half_full = '1' then
+                fifo_out_enable <= '1';
+            end if;
+            fifo_data_in <= raw_data_in;
+            raw_data_out <= fifo_data_out;
+        end if;
+    end process;
+
     left : vu_meter 
         port map (clock => clock_in,
                   meter_out => left_meter,
@@ -191,8 +242,9 @@ begin
                   data_in => right_data (27 downto 19));
 
     sync (4) <= '1' when matcher_sync /= "00" else '0';
+    sync (6) <= fifo_out_enable and not (fifo_write_error or fifo_read_error);
 
-    sync_leds : for index in 1 to 5 generate
+    sync_leds : for index in 1 to num_syncs generate
         process (clock_in)
         begin
             if clock_in = '1' and clock_in'event then
@@ -209,7 +261,7 @@ begin
     end generate sync_leds;
 
     leds4 (0) <= '0';
-    leds4 (7 downto 6) <= "00";
+    leds4 (7) <= '0';
 
     process (clock_in)
     begin
@@ -221,7 +273,6 @@ begin
             else
                 leds3 <= single_time;
             end if;
-            raw_data_out <= raw_data_in;
         end if;
     end process;
 

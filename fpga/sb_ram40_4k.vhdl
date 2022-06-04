@@ -35,7 +35,7 @@ begin
         if wclk'event and wclk = '1' then
             if wclke = '1' and we = '1' then
                 for i in 0 to 15 loop
-                    if mask (i) = '1' then
+                    if mask (i) = '0' then  -- 0 = write
                         storage (to_integer (unsigned (waddr))) (i) <= wdata (i);
                     end if;
                 end loop;

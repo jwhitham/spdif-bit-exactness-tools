@@ -42,46 +42,46 @@ architecture structural of fifo is
     signal do_read      : std_logic := '0';
     constant one        : std_logic := '1';
 
-    component sb_ram40_4k is
+    component SB_RAM40_4K is
         generic (
-            read_mode : Integer;
-            write_mode : Integer);
+            READ_MODE : Integer;
+            WRITE_MODE : Integer);
         port (
-            rdata       : out std_logic_vector (15 downto 0);
-            raddr       : in std_logic_vector (7 downto 0);
-            waddr       : in std_logic_vector (7 downto 0);
-            mask        : in std_logic_vector (15 downto 0);
-            wdata       : in std_logic_vector (15 downto 0);
-            rclke       : in std_logic;
-            rclk        : in std_logic;
-            re          : in std_logic;
-            wclke       : in std_logic;
-            wclk        : in std_logic;
-            we          : in std_logic);
-    end component sb_ram40_4k;
+            RDATA       : out std_logic_vector (15 downto 0);
+            RADDR       : in std_logic_vector (7 downto 0);
+            WADDR       : in std_logic_vector (7 downto 0);
+            MASK        : in std_logic_vector (15 downto 0);
+            WDATA       : in std_logic_vector (15 downto 0);
+            RCLKE       : in std_logic;
+            RCLK        : in std_logic;
+            RE          : in std_logic;
+            WCLKE       : in std_logic;
+            WCLK        : in std_logic;
+            WE          : in std_logic);
+    end component SB_RAM40_4K;
 begin
 
-    ram : sb_ram40_4k
+    ram : SB_RAM40_4K
         generic map (
-            read_mode => 0,
-            write_mode => 0)
+            READ_MODE => 0,
+            WRITE_MODE => 0)
         port map (
-            waddr => waddr (addr_size - 1 downto mask_size),
-            wdata => wdata,
-            mask => mask,
-            we => do_write,
-            wclke => one,
-            wclk => clock_in,
-            raddr => raddr (addr_size - 1 downto mask_size),
-            rdata => rdata,
-            re => do_read,
-            rclke => one,
-            rclk => clock_in);
+            WADDR => waddr (addr_size - 1 downto mask_size),
+            WDATA => wdata,
+            MASK => mask,
+            WE => do_write,
+            WCLKE => one,
+            WCLK => clock_in,
+            RADDR => raddr (addr_size - 1 downto mask_size),
+            RDATA => rdata,
+            RE => do_read,
+            RCLKE => one,
+            RCLK => clock_in);
 
     process (waddr)
     begin
-        mask <= (others => '0');
-        mask (to_integer (unsigned (waddr (mask_size - 1 downto 0)))) <= '1';
+        mask <= (others => '1'); -- 1 = don't write
+        mask (to_integer (unsigned (waddr (mask_size - 1 downto 0)))) <= '0';
     end process;
     data_out <= rdata (to_integer (unsigned (mask_mux)));
     wdata <= (others => data_in);
