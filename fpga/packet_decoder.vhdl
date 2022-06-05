@@ -75,9 +75,8 @@ begin
                             -- New packet begins
                             sync_state <= SYNC;
                         when TWO =>
-                            -- Ordinary data (0)
-                            sync_state <= NORMAL;
-                            shift <= '1';
+                            -- Not valid after 1
+                            sync_state <= DESYNC;
                         when ONE =>
                             -- Ordinary data (1) skipped
                             sync_state <= NORMAL;

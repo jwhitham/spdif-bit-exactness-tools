@@ -24,12 +24,9 @@ input decoder single time = 63
 input decoder single time = 8
 input decoder synchronised
 packet decoder synchronised
-channel decoder synchronised
-000000 000000
+packet decoder desynchronised
 input decoder desynchronised
 input decoder single time = 63
-packet decoder desynchronised
-channel decoder desynchronised
 Start of ../examples/20220502-48k.csv
 input decoder single time = 15
 input decoder single time = 7
@@ -44,7 +41,6 @@ input decoder single time = 8
 input decoder synchronised
 packet decoder synchronised
 channel decoder synchronised
-000000 fffbff
 000800 fff7ff
 001000 ffefff
 002000 ffdfff
@@ -103,8 +99,9 @@ input decoder single time = 12
 input decoder single time = 8
 input decoder synchronised
 packet decoder synchronised
+packet decoder desynchronised
+packet decoder synchronised
 channel decoder synchronised
-000000 7d5600
 f66900 51f300
 b61800 1d7600
 4dc100 db5e00
@@ -157,9 +154,10 @@ input decoder single time = 9
 input decoder synchronised
 packet decoder synchronised
 input decoder single time = 8
+packet decoder desynchronised
+packet decoder synchronised
 channel decoder synchronised
-000000 fffffe
-000002 fffffd
+000000 fffffd
 000004 fffffb
 000008 fffff7
 000010 ffffef
@@ -289,15 +287,15 @@ ea6d66 3e4874
 000040 ffffbf
 000080 ffff7f
 000100 fffeff
+000200 fffdff
 clock regenerator synchronised
 packet encoder synchronised
 output encoder synchronised
 second input decoder synchronised
 packet encoder desynchronised
-000200 fffdff
+000400 fffbff
 output encoder desynchronised
 second input decoder desynchronised
-000400 fffbff
 000800 fff7ff
 001000 ffefff
 002000 ffdfff
@@ -371,16 +369,17 @@ input decoder single time = 63
 packet decoder desynchronised
 channel decoder desynchronised
 matcher desynchronised
-regenerator r_clocks = 9024 clocks = 159738
+regenerator r_clocks = 8896 clocks = 157474
 clock regenerator desynchronised
 Start of test_44100_data with quality = Quality.EXACT_16
 input decoder single time = 27
 input decoder single time = 9
 input decoder synchronised
 packet decoder synchronised
+packet decoder desynchronised
 input decoder single time = 8
+packet decoder synchronised
 channel decoder synchronised
-000000 ffff00
 000000 ffff00
 000000 ffff00
 000000 ffff00
@@ -510,15 +509,13 @@ ea6d00 3e4800
 000000 ffff00
 000000 ffff00
 000100 fffe00
+000200 fffd00
 clock regenerator synchronised
 packet encoder synchronised
-output encoder synchronised
-second input decoder synchronised
-packet encoder desynchronised
-000200 fffd00
-output encoder desynchronised
-second input decoder desynchronised
 000400 fffb00
+output encoder synchronised
+packet encoder desynchronised
+output encoder desynchronised
 000800 fff700
 001000 ffef00
 002000 ffdf00
@@ -592,16 +589,17 @@ input decoder single time = 63
 packet decoder desynchronised
 channel decoder desynchronised
 matcher desynchronised
-regenerator r_clocks = 9024 clocks = 159738
+regenerator r_clocks = 8832 clocks = 156340
 clock regenerator desynchronised
 Start of test_44100_data with quality = Quality.ROUND_16
 input decoder single time = 27
 input decoder single time = 9
 input decoder synchronised
 packet decoder synchronised
+packet decoder desynchronised
 input decoder single time = 8
+packet decoder synchronised
 channel decoder synchronised
-000000 000000
 000000 000000
 000000 000000
 000000 000000
@@ -731,15 +729,13 @@ ea6d00 3e4800
 000000 000000
 000000 ffff00
 000100 ffff00
+000200 fffe00
 clock regenerator synchronised
 packet encoder synchronised
-output encoder synchronised
-second input decoder synchronised
-packet encoder desynchronised
-000200 fffe00
-output encoder desynchronised
-second input decoder desynchronised
 000400 fffc00
+output encoder synchronised
+packet encoder desynchronised
+output encoder desynchronised
 000800 fff800
 001000 fff000
 002000 ffe000
@@ -813,5 +809,5 @@ input decoder single time = 63
 packet decoder desynchronised
 channel decoder desynchronised
 matcher desynchronised
-regenerator r_clocks = 9024 clocks = 159738
+regenerator r_clocks = 8832 clocks = 156340
 clock regenerator desynchronised
