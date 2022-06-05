@@ -28,7 +28,7 @@ architecture structural of output_encoder is
     type t_encode_state is (READY, HOLD_ONE, HOLD_TWO);
     signal encode_state       : t_encode_state := READY;
 
-    type t_output_state is (RESET, FILLING, ACTIVE, FAULT);
+    type t_output_state is (RESET, FILLING, ACTIVE);
     signal output_state       : t_output_state := RESET;
 
     signal fifo_data_in     : std_logic := '0';
@@ -63,7 +63,7 @@ begin
 
             fifo_write <= '0';
             case output_state is
-                when FAULT | RESET =>
+                when RESET =>
                     -- held in reset
                     encode_state <= READY;
                     fifo_data_in <= '0';
@@ -103,7 +103,7 @@ begin
     fifo_reset <= '1' when output_state = RESET else '0';
     fifo_read <= strobe_in when output_state = ACTIVE else '0';
     sync_out <= '1' when output_state = ACTIVE else '0';
-    error_out <= '1' when output_state = FAULT else '0';
+    error_out <= fifo_write_error or fifo_read_error;
 
     f : fifo
         generic map (test_addr_size => test_addr_size)
@@ -125,19 +125,19 @@ begin
         if clock_in'event and clock_in = '1' then
             case output_state is
                 when RESET =>
+                    -- Initial state - fill to halfway
                     output_state <= FILLING;
-                when FILLING =>
+                when FILLING | ACTIVE =>
+                    -- When half-way point is reached, output encoder becomes active
                     if fifo_half_full = '1' then
                         output_state <= ACTIVE;
                     end if;
-                when ACTIVE | FAULT =>
-                    null;
+                    -- Any error forces a reset and refill
+                    if fifo_read_error = '1' or fifo_write_error = '1' then
+                        output_state <= RESET;
+                    end if;
             end case;
 
-            if fifo_read_error = '1' or fifo_write_error = '1' then
-                -- If an error occurs, stop until the next reset
-                output_state <= FAULT;
-            end if;
             if sync_in = '0' then
                 -- Wait for clock_regenerator sync before allowing anything into the FIFO
                 output_state <= RESET;
