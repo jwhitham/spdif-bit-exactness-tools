@@ -38,13 +38,19 @@ architecture structural of clock_regenerator is
     type t_measurement_state is (START, IN_HEADER_1, IN_HEADER_2, IN_HEADER_3, IN_BODY);
     signal measurement_state    : t_measurement_state := START;
     signal sync_gen             : std_logic := '0';
-    signal strobe_gen           : std_logic := '0';
 
+    subtype t_clock_count is unsigned ((num_clocks_per_packet_log_2 - 1) downto 0);
+    constant zero_clock_count   : t_clock_count := (others => '0');
+    signal clock_count          : t_clock_count := zero_clock_count;
+    signal packet_start_strobe  : std_logic := '0';
+
+    signal strobe_gen           : std_logic := '0';
 begin
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
             my_clocks <= my_clocks + 1;
+            packet_start_strobe <= '0';
             case measurement_state is
                 when START =>
                     -- wait for the start of a new packet
@@ -82,6 +88,7 @@ begin
                         end if;
                         -- back to the header
                         measurement_state <= IN_HEADER_1;
+                        packet_start_strobe <= '1';
                     end if;
             end case;
             if sync_in = '0' then
@@ -97,13 +104,25 @@ begin
     begin
         if clock_in'event and clock_in = '1' then
             strobe_out <= '0';
+
             if sync_gen = '0' then
+                -- Do nothing while waiting for the measurement stage to synchronise
                 divisor <= (others => '0');
-            elsif divisor < my_clocks_done then
-                divisor <= divisor + fixed_point_one;
-            else
-                divisor <= divisor + fixed_point_one - my_clocks_done;
+                clock_count <= (others => '0');
+            elsif packet_start_strobe = '1' then
+                -- Output: start the packet with a clock tick
+                divisor <= (others => '0');
+                clock_count <= (others => '1');
                 strobe_out <= '1';
+            elsif clock_count /= zero_clock_count then
+                -- Output: wait for the right time to send another clock tick
+                if divisor < my_clocks_done then
+                    divisor <= divisor + fixed_point_one;
+                else
+                    divisor <= divisor + fixed_point_one - my_clocks_done;
+                    strobe_out <= '1';
+                    clock_count <= clock_count - 1;
+                end if;
             end if;
         end if;
     end process;
