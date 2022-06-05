@@ -1,9 +1,9 @@
 Start of ../examples/20220502-32k.csv
 second channel decoder desynchronised
-second packet decoder desynchronised
 channel decoder desynchronised
 packet decoder desynchronised
 input decoder single time = 63
+packet encoder desynchronised
 input decoder single time = 26
 input decoder single time = 23
 input decoder single time = 11
@@ -290,11 +290,13 @@ ea6d66 3e4874
 000080 ffff7f
 000100 fffeff
 clock regenerator synchronised
+packet encoder synchronised
 output encoder synchronised
 second input decoder synchronised
-second packet decoder synchronised
+packet encoder desynchronised
 000200 fffdff
-second channel decoder synchronised
+output encoder desynchronised
+second input decoder desynchronised
 000400 fffbff
 000800 fff7ff
 001000 ffefff
@@ -349,7 +351,6 @@ ea6d66 3e4874
 200000 dfffff
 400000 bfffff
 800000 7fffff
-second matcher synchronised
 01b900 654321
 c64e00 655e00
 257600 7d5600
@@ -372,11 +373,6 @@ channel decoder desynchronised
 matcher desynchronised
 regenerator r_clocks = 9024 clocks = 159738
 clock regenerator desynchronised
-output encoder desynchronised
-second input decoder desynchronised
-second packet decoder desynchronised
-second channel decoder desynchronised
-second matcher desynchronised
 Start of test_44100_data with quality = Quality.EXACT_16
 input decoder single time = 27
 input decoder single time = 9
@@ -515,11 +511,13 @@ ea6d00 3e4800
 000000 ffff00
 000100 fffe00
 clock regenerator synchronised
+packet encoder synchronised
 output encoder synchronised
 second input decoder synchronised
-second packet decoder synchronised
+packet encoder desynchronised
 000200 fffd00
-second channel decoder synchronised
+output encoder desynchronised
+second input decoder desynchronised
 000400 fffb00
 000800 fff700
 001000 ffef00
@@ -574,7 +572,6 @@ ea6d00 3e4800
 200000 dfff00
 400000 bfff00
 800000 7fff00
-second matcher synchronised
 01b900 654300
 c64e00 655e00
 257600 7d5600
@@ -597,11 +594,6 @@ channel decoder desynchronised
 matcher desynchronised
 regenerator r_clocks = 9024 clocks = 159738
 clock regenerator desynchronised
-output encoder desynchronised
-second input decoder desynchronised
-second packet decoder desynchronised
-second channel decoder desynchronised
-second matcher desynchronised
 Start of test_44100_data with quality = Quality.ROUND_16
 input decoder single time = 27
 input decoder single time = 9
@@ -740,11 +732,13 @@ ea6d00 3e4800
 000000 ffff00
 000100 ffff00
 clock regenerator synchronised
+packet encoder synchronised
 output encoder synchronised
 second input decoder synchronised
-second packet decoder synchronised
+packet encoder desynchronised
 000200 fffe00
-second channel decoder synchronised
+output encoder desynchronised
+second input decoder desynchronised
 000400 fffc00
 000800 fff800
 001000 fff000
@@ -799,7 +793,6 @@ ea6d00 3e4800
 200000 e00000
 400000 c00000
 800000 800000
-second matcher synchronised
 01b900 654300
 c64e00 655e00
 257600 7d5600
@@ -822,8 +815,3 @@ channel decoder desynchronised
 matcher desynchronised
 regenerator r_clocks = 9024 clocks = 159738
 clock regenerator desynchronised
-output encoder desynchronised
-second input decoder desynchronised
-second packet decoder desynchronised
-second channel decoder desynchronised
-second matcher desynchronised

@@ -10,9 +10,10 @@ end test_top_level;
 
 architecture structural of test_top_level is
 
-    constant num_sync : Natural := 12;
+    constant num_sync : Natural := 13;
 
     signal pulse_length    : std_logic_vector (1 downto 0) := "00";
+    signal pe_pulse_length : std_logic_vector (1 downto 0) := "00";
     signal packet_data     : std_logic := '0';
     signal packet_shift    : std_logic := '0';
     signal packet_start    : std_logic := '0';
@@ -124,6 +125,17 @@ architecture structural of test_top_level is
             clock_in        : in std_logic
         );
     end component output_encoder;
+    component packet_encoder is
+        port (
+            pulse_length_out : out std_logic_vector (1 downto 0);
+            sync_out         : out std_logic;
+            data_in          : in std_logic;
+            shift_in         : in std_logic;
+            start_in         : in std_logic;
+            sync_in          : in std_logic;
+            clock            : in std_logic
+        );
+    end component packet_encoder;
 begin
     test_signal_gen : test_signal_generator
         port map (raw_data_out => raw_data, done_out => done, clock_out => clock);
@@ -171,12 +183,21 @@ begin
                   sync_out => sync (6),
                   strobe_out => rg_strobe);
 
+    pe : packet_encoder
+        port map (clock => clock,
+                  pulse_length_out => pe_pulse_length,
+                  sync_in => sync (6),
+                  sync_out => sync (7),
+                  data_in => packet_data,
+                  start_in => packet_start,
+                  shift_in => packet_shift);
+
     oe : output_encoder
         generic map (test_addr_size => 4)
         port map (clock_in => clock,
-                  pulse_length_in => pulse_length,
-                  sync_in => sync (6),
-                  sync_out => sync (7),
+                  pulse_length_in => pe_pulse_length,
+                  sync_in => sync (7),
+                  sync_out => sync (8),
                   error_out => oe_error,
                   strobe_in => rg_strobe,
                   data_out => oe_data);
@@ -185,14 +206,14 @@ begin
 
     dec4 : input_decoder
         port map (clock_in => clock, data_in => oe_data,
-                  sync_out => sync (8), single_time_out => open,
+                  sync_out => sync (9), single_time_out => open,
                   pulse_length_out => pulse_length_2);
 
     dec5 : packet_decoder
         port map (clock => clock,
                   pulse_length_in => pulse_length_2,
-                  sync_in => sync (8),
-                  sync_out => sync (9),
+                  sync_in => sync (10),
+                  sync_out => sync (11),
                   data_out => packet_data_2,
                   start_out => packet_start_2,
                   shift_out => packet_shift_2);
@@ -202,8 +223,8 @@ begin
                   data_in => packet_data_2,
                   shift_in => packet_shift_2,
                   start_in => packet_start_2,
-                  sync_in => sync (9),
-                  sync_out => sync (10),
+                  sync_in => sync (10),
+                  sync_out => sync (11),
                   left_data_out => left_data_2,
                   left_strobe_out => left_strobe_2,
                   right_data_out => right_data_2,
@@ -214,8 +235,8 @@ begin
                   left_strobe_in => left_strobe_2,
                   right_data_in => right_data_2,
                   right_strobe_in => right_strobe_2,
-                  sync_in => sync (10),
-                  sync_out => sync (12 downto 11),
+                  sync_in => sync (11),
+                  sync_out => sync (13 downto 12),
                   sample_rate_out => open,
                   clock => clock);
 
@@ -264,19 +285,22 @@ begin
             report_sync_event (6, 6, "clock regenerator");
         end process;
         process begin
-            report_sync_event (7, 7, "output encoder");
+            report_sync_event (7, 7, "packet encoder");
         end process;
         process begin
-            report_sync_event (8, 8, "second input decoder");
+            report_sync_event (8, 8, "output encoder");
         end process;
         process begin
-            report_sync_event (9, 9, "second packet decoder");
+            report_sync_event (9, 9, "second input decoder");
         end process;
         process begin
-            report_sync_event (10, 10, "second channel decoder");
+            report_sync_event (10, 10, "second packet decoder");
         end process;
         process begin
-            report_sync_event (12, 11, "second matcher");
+            report_sync_event (11, 11, "second channel decoder");
+        end process;
+        process begin
+            report_sync_event (13, 12, "second matcher");
         end process;
     end block sync_events;
 

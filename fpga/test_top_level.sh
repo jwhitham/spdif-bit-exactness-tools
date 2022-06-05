@@ -15,6 +15,7 @@ for F in \
             sb_ram40_4k \
             fifo \
             output_encoder \
+            packet_encoder \
             test_signal_generator \
             input_decoder \
             packet_decoder \
