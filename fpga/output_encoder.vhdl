@@ -101,7 +101,6 @@ begin
     end process;
 
     fifo_reset <= '1' when output_state = RESET else '0';
-    data_out <= fifo_data_out;
     fifo_read <= strobe_in when output_state = ACTIVE else '0';
     sync_out <= '1' when output_state = ACTIVE else '0';
     error_out <= '1' when output_state = FAULT else '0';
@@ -143,6 +142,8 @@ begin
                 -- Wait for clock_regenerator sync before allowing anything into the FIFO
                 output_state <= RESET;
             end if;
+
+            data_out <= fifo_data_out;
         end if;
     end process;
 

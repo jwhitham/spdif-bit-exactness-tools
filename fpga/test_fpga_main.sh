@@ -18,7 +18,9 @@ for F in \
             packet_decoder \
             channel_decoder \
             led_scan \
+            sb_ram40_4k \
             fifo \
+            output_encoder \
             fpga_main \
             test_fpga_main
 do
