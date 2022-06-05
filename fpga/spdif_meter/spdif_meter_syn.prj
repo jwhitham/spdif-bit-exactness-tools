@@ -14,6 +14,7 @@ add_file -vhdl -lib work "../match_rom.vhdl"
 add_file -vhdl -lib work "../matcher.vhdl" 
 add_file -vhdl -lib work "../fifo.vhdl" 
 add_file -vhdl -lib work "../clock_regenerator.vhdl" 
+add_file -vhdl -lib work "../output_encoder.vhdl" 
 #implementation: "spdif_meter_Implmnt"
 impl -add spdif_meter_Implmnt -type fpga
 
