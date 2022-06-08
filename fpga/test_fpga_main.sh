@@ -21,6 +21,7 @@ for F in \
             sb_ram40_4k \
             fifo \
             output_encoder \
+            packet_encoder \
             fpga_main \
             test_fpga_main
 do

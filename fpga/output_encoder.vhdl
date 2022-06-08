@@ -104,6 +104,8 @@ begin
     fifo_read <= strobe_in when output_state = ACTIVE else '0';
     sync_out <= '1' when output_state = ACTIVE else '0';
     error_out <= fifo_write_error or fifo_read_error;
+    assert fifo_write_error = '0';
+    assert fifo_read_error = '0';
 
     f : fifo
         generic map (test_addr_size => test_addr_size)

@@ -125,6 +125,7 @@ architecture structural of test_top_level is
             clock_in        : in std_logic
         );
     end component output_encoder;
+
     component packet_encoder is
         port (
             pulse_length_out : out std_logic_vector (1 downto 0);

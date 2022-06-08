@@ -4,7 +4,7 @@ Version=Lattice Semiconductor Corporation iCEcube - Release: 2020.12.27943 - Bui
 ProjectName=spdif_meter
 Vendor=SiliconBlue
 Synthesis=synplify
-ProjectVFiles=../vu_meter.vhdl=work,../spdif_meter.vhdl=work,../packet_decoder.vhdl=work,../input_decoder.vhdl=work,../fpga_main.vhdl=work,../channel_decoder.vhdl=work,../led_scan.vhdl=work,spdif_meter_pll.vhd=work,../match_rom.vhdl=work,../matcher.vhdl=work,../fifo.vhdl=work,../clock_regenerator.vhdl=work,../output_encoder.vhdl
+ProjectVFiles=../vu_meter.vhdl=work,../spdif_meter.vhdl=work,../packet_decoder.vhdl=work,../input_decoder.vhdl=work,../fpga_main.vhdl=work,../channel_decoder.vhdl=work,../led_scan.vhdl=work,spdif_meter_pll.vhd=work,../match_rom.vhdl=work,../matcher.vhdl=work,../fifo.vhdl=work,../clock_regenerator.vhdl=work,../output_encoder.vhdl=work,../packet_encoder.vhdl
 ProjectCFiles=
 CurImplementation=spdif_meter_Implmnt
 Implementations=spdif_meter_Implmnt

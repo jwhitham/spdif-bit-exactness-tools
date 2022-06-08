@@ -16,7 +16,7 @@ end fpga_main;
 
 architecture structural of fpga_main is
 
-    constant num_syncs : Natural := 6;
+    constant num_syncs : Natural := 7;
 
     signal pulse_length    : std_logic_vector (1 downto 0) := "00";
     signal packet_data     : std_logic := '0';
@@ -29,7 +29,7 @@ architecture structural of fpga_main is
     signal left_strobe     : std_logic := '0';
     signal right_strobe    : std_logic := '0';
     signal rg_strobe       : std_logic := '0';
-    signal oe_error        : std_logic := '0';
+    signal pe_pulse_length : std_logic_vector (1 downto 0) := "00";
 
     subtype t_data is std_logic_vector (31 downto 0);
     signal left_data       : t_data := (others => '0');
@@ -138,6 +138,17 @@ architecture structural of fpga_main is
         );
     end component output_encoder;
 
+    component packet_encoder is
+        port (
+            pulse_length_out : out std_logic_vector (1 downto 0);
+            sync_out         : out std_logic;
+            data_in          : in std_logic;
+            shift_in         : in std_logic;
+            start_in         : in std_logic;
+            sync_in          : in std_logic;
+            clock            : in std_logic
+        );
+    end component packet_encoder;
 begin
     dec1 : input_decoder
         port map (clock_in => clock_in, data_in => raw_data_in,
@@ -181,12 +192,21 @@ begin
                   sync_out => sync (5),
                   strobe_out => rg_strobe);
 
-    oe : output_encoder
-        port map (clock_in => clock_in,
-                  pulse_length_in => pulse_length,
+    pe : packet_encoder
+        port map (clock => clock_in,
+                  pulse_length_out => pe_pulse_length,
                   sync_in => sync (5),
                   sync_out => sync (6),
-                  error_out => oe_error,
+                  data_in => packet_data,
+                  start_in => packet_start,
+                  shift_in => packet_shift);
+
+    oe : output_encoder
+        port map (clock_in => clock_in,
+                  pulse_length_in => pe_pulse_length,
+                  sync_in => sync (6),
+                  sync_out => sync (7),
+                  error_out => open,
                   strobe_in => rg_strobe,
                   data_out => raw_data_out);
 
@@ -228,7 +248,6 @@ begin
     end generate sync_leds;
 
     leds4 (0) <= '0';
-    leds4 (7) <= oe_error;
 
     process (clock_in)
     begin
