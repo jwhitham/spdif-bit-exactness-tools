@@ -2,6 +2,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use std.textio.all;
 
 entity packet_encoder is
     port (
@@ -23,20 +24,12 @@ architecture structural of packet_encoder is
     constant TWO            : t_pulse_length := "10";
     constant THREE          : t_pulse_length := "11";
 
-    type t_packet_state is (READY,
-                            B_HEADER, B_HEADER_2, B_HEADER_3,
-                            MW_HEADER,
-                            M_HEADER, M_HEADER_2,
-                            W_HEADER, W_HEADER_2,
-                            PACKET_BODY,
-                            DESYNC);
-    signal packet_state : t_packet_state := READY;
+    type t_header_type is (B_HEADER, W_HEADER, M_HEADER);
+    signal header_type      : t_header_type := B_HEADER;
 
-    subtype t_bit_count is unsigned (4 downto 0);
-    signal bit_count    : t_bit_count := (others => '0');
-
-    signal repeat       : std_logic := '0';
-
+    subtype t_bit_count is Natural range 0 to 31;
+    signal bit_count        : t_bit_count := 0;
+    signal repeat           : std_logic := '0';
 
 begin
     process (clock)
@@ -44,126 +37,147 @@ begin
         if clock'event and clock = '1' then
             pulse_length_out <= ZERO;
 
-            if repeat = '1' then
+
+            if sync_in = '0' then
+                -- Wait for sync
+                bit_count <= 0;
+                sync_out <= '0';
+                repeat <= '0';
+
+            elsif repeat = '1' then
+                -- Repeat ONE
                 repeat <= '0';
                 pulse_length_out <= ONE;
-            end if;
-            if shift_in = '1' then
-                case packet_state is
-                    when READY =>
-                        -- Await start of packet
-                        -- There are 28 bits in each packet excluding the 4 special header bits
-                        bit_count <= to_unsigned (28, 5);
-                        if start_in = '1' and sync_in = '1' then
+                assert shift_in = '0';
+                assert start_in = '0';
+
+            elsif shift_in = '1' then
+                bit_count <= t_bit_count (Natural (bit_count + 1) mod 32);
+                if start_in = '1' then
+                    case bit_count is
+                        when 0 =>
                             -- Begin the header.
                             -- We expect to receive one of:
                             -- 1000 (B) 0100 (W) 0010 (M)
                             -- for which we will generate
-                            -- B: THREE ONE ONE THREE
-                            -- W: THREE TWO ONE TWO
-                            -- M: THREE THREE ONE ONE
+                            -- B: 3113
+                            -- W: 3212
+                            -- M: 3311
                             pulse_length_out <= THREE; -- Generated THREE so far
                             sync_out <= '1';
                             if data_in = '1' then
-                                packet_state <= B_HEADER;
+                                header_type <= B_HEADER;
                             else
-                                packet_state <= MW_HEADER;
+                                header_type <= W_HEADER; -- or maybe M_HEADER..
                             end if;
-                        end if;
-                    when B_HEADER =>
-                        -- Expecting to receive 000
-                        if data_in = '1' then
-                            packet_state <= DESYNC;
-                        else
-                            pulse_length_out <= ONE; -- Generated THREE ONE so far
-                            packet_state <= B_HEADER_2;
-                        end if;
-                    when B_HEADER_2 =>
-                        -- Expecting to receive 00
-                        if data_in = '1' then
-                            packet_state <= DESYNC;
-                        else
-                            pulse_length_out <= ONE; -- Generated THREE ONE ONE
-                            packet_state <= B_HEADER_3;
-                        end if;
-                    when B_HEADER_3 =>
-                        -- Expecting to receive 0
-                        if data_in = '1' then
-                            packet_state <= DESYNC;
-                        else
-                            pulse_length_out <= THREE; -- Generated THREE ONE ONE THREE (B)
-                            packet_state <= PACKET_BODY;
-                        end if;
-                    when MW_HEADER =>
-                        -- Expecting to receive 100 (W) or 010 (M)
-                        if data_in = '1' then
-                            pulse_length_out <= TWO; -- Generated THREE TWO so far
-                            packet_state <= W_HEADER;
-                        else
-                            pulse_length_out <= THREE; -- Generated THREE THREE so far
-                            packet_state <= M_HEADER;
-                        end if;
-                    when W_HEADER =>
-                        -- Expecting to receive 00
-                        if data_in = '1' then
-                            packet_state <= DESYNC;
-                        else
-                            pulse_length_out <= ONE; -- Generated THREE TWO ONE so far
-                            packet_state <= W_HEADER_2;
-                        end if;
-                    when W_HEADER_2 =>
-                        -- Expecting to receive 0
-                        if data_in = '1' then
-                            packet_state <= DESYNC;
-                        else
-                            pulse_length_out <= TWO; -- Generated THREE TWO ONE TWO (W)
-                            packet_state <= PACKET_BODY;
-                        end if;
-                    when M_HEADER =>
-                        -- Expecting to receive 10
-                        if data_in = '1' then
-                            pulse_length_out <= ONE; -- Generated THREE THREE ONE
-                            packet_state <= M_HEADER_2;
-                        else
-                            packet_state <= DESYNC;
-                        end if;
-                    when M_HEADER_2 =>
-                        -- Expecting to receive 0
-                        if data_in = '1' then
-                            packet_state <= DESYNC;
-                        else
-                            pulse_length_out <= ONE; -- Generated THREE THREE ONE ONE (M)
-                            packet_state <= PACKET_BODY;
-                        end if;
-                    when PACKET_BODY =>
-                        -- Translate incoming bits to pulse lengths
-                        if data_in = '1' then
-                            -- bit 1: generate ONE ONE
-                            pulse_length_out <= ONE;
-                            repeat <= '1';
-                        else
-                            -- bit 0: generate TWO
-                            pulse_length_out <= TWO;
-                        end if;
-
-                        if bit_count = 0 then
-                            packet_state <= READY;
-                        else
-                            bit_count <= bit_count - 1;
-                        end if;
-                    when DESYNC =>
-                        sync_out <= '0';
-                end case;
-            end if;
-
-            if sync_in = '0' then
-                -- sits in READY state until sync'ed
-                packet_state <= READY;
-                sync_out <= '0';
-            elsif start_in = '1' and (packet_state /= READY or shift_in /= '1') then
-                -- Detect invalid start
-                packet_state <= DESYNC;
-                sync_out <= '0';
+                        when others =>
+                            -- start bit should not be high
+                            bit_count <= 0;
+                            sync_out <= '0';
+                            assert False;
+                    end case;
+                else
+                    case bit_count is
+                        when 0 =>
+                            -- Wait for start
+                            bit_count <= 0;
+                        when 1 =>
+                            case header_type is
+                                when B_HEADER =>
+                                    -- Received 1 expecting to receive 000
+                                    if data_in = '1' then
+                                        bit_count <= 0;
+                                        sync_out <= '0';
+                                        assert False;
+                                    else
+                                        pulse_length_out <= ONE; -- Generated 31
+                                    end if;
+                                when W_HEADER | M_HEADER =>
+                                    -- Received 0 expecting to receive 100 (W) or 010 (M)
+                                    if data_in = '1' then
+                                        pulse_length_out <= TWO; -- Generated 32
+                                        header_type <= W_HEADER;
+                                    else
+                                        pulse_length_out <= THREE; -- Generated 33
+                                        header_type <= M_HEADER;
+                                    end if;
+                            end case;
+                        when 2 =>
+                            case header_type is
+                                when B_HEADER =>
+                                    -- Received 10 expecting to receive 00
+                                    if data_in = '1' then
+                                        bit_count <= 0;
+                                        sync_out <= '0';
+                                        assert False;
+                                    else
+                                        pulse_length_out <= ONE; -- Generated 311
+                                    end if;
+                                when W_HEADER =>
+                                    -- Received 01 expecting to receive 00
+                                    if data_in = '1' then
+                                        bit_count <= 0;
+                                        sync_out <= '0';
+                                        assert False;
+                                    else
+                                        pulse_length_out <= ONE; -- Generated 321
+                                    end if;
+                                when M_HEADER =>
+                                    -- Received 00 expecting to receive 10
+                                    if data_in = '1' then
+                                        pulse_length_out <= ONE; -- Generated 331
+                                    else
+                                        bit_count <= 0;
+                                        sync_out <= '0';
+                                        assert False;
+                                    end if;
+                            end case;
+                        when 3 =>
+                            case header_type is
+                                when B_HEADER =>
+                                    -- Received 100 expecting to receive 0
+                                    if data_in = '1' then
+                                        bit_count <= 0;
+                                        sync_out <= '0';
+                                        assert False;
+                                    else
+                                        pulse_length_out <= THREE; -- Generated 3113
+                                    end if;
+                                when W_HEADER =>
+                                    -- Received 010 expecting to receive 0
+                                    if data_in = '1' then
+                                        bit_count <= 0;
+                                        sync_out <= '0';
+                                        assert False;
+                                    else
+                                        pulse_length_out <= TWO; -- Generated 3212
+                                    end if;
+                                when M_HEADER =>
+                                    -- Received 001 expecting to receive 0
+                                    if data_in = '1' then
+                                        bit_count <= 0;
+                                        sync_out <= '0';
+                                        assert False;
+                                    else
+                                        pulse_length_out <= ONE; -- Generated 3311
+                                    end if;
+                            end case;
+                        when 4 to 31 =>
+                            -- Translate incoming bits to pulse lengths
+                            if data_in = '1' then
+                                -- bit 1: generate ONE ONE
+                                pulse_length_out <= ONE;
+                                repeat <= '1';
+                            else
+                                -- bit 0: generate TWO
+                                pulse_length_out <= TWO;
+                            end if;
+                        when others =>
+                            bit_count <= 0;
+                            sync_out <= '0';
+                            assert False;
+                    end case;
+                end if;
             end if;
         end if;
     end process;
