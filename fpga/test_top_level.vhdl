@@ -194,7 +194,7 @@ begin
                   shift_in => packet_shift);
 
     oe : output_encoder
-        generic map (test_addr_size => 4)
+        generic map (test_addr_size => 7)
         port map (clock_in => clock,
                   pulse_length_in => pe_pulse_length,
                   sync_in => sync (7),
