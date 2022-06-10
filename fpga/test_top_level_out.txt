@@ -10,7 +10,7 @@ input decoder single time = 11
 input decoder synchronised
 packet decoder synchronised
 channel decoder synchronised
-d09600 8de400
+000000 8de400
 8fb400 cfb500
 input decoder desynchronised
 input decoder single time = 63
@@ -102,7 +102,7 @@ packet decoder synchronised
 packet decoder desynchronised
 packet decoder synchronised
 channel decoder synchronised
-f66900 51f300
+020000 51f300
 b61800 1d7600
 4dc100 db5e00
 40d900 9e0d00
@@ -157,7 +157,6 @@ input decoder single time = 8
 packet decoder desynchronised
 packet decoder synchronised
 channel decoder synchronised
-000000 fffffd
 000004 fffffb
 000008 fffff7
 000010 ffffef
@@ -380,7 +379,7 @@ packet decoder desynchronised
 input decoder single time = 8
 packet decoder synchronised
 channel decoder synchronised
-000000 ffff00
+ea6d66 ffff00
 000000 ffff00
 000000 ffff00
 000000 ffff00
@@ -511,8 +510,8 @@ ea6d00 3e4800
 000100 fffe00
 000200 fffd00
 clock regenerator synchronised
-packet encoder synchronised
 000400 fffb00
+packet encoder synchronised
 output encoder synchronised
 000800 fff700
 second input decoder synchronised
@@ -602,7 +601,7 @@ packet decoder desynchronised
 input decoder single time = 8
 packet decoder synchronised
 channel decoder synchronised
-000000 000000
+ea6d00 000000
 000000 000000
 000000 000000
 000000 000000
@@ -733,8 +732,8 @@ ea6d00 3e4800
 000100 ffff00
 000200 fffe00
 clock regenerator synchronised
-packet encoder synchronised
 000400 fffc00
+packet encoder synchronised
 output encoder synchronised
 000800 fff800
 second input decoder synchronised

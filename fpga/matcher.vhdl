@@ -5,9 +5,8 @@ use ieee.numeric_std.all;
 
 entity matcher is
     port (
-        left_data_in    : in std_logic_vector (31 downto 0);
+        data_in         : in std_logic_vector (31 downto 0);
         left_strobe_in  : in std_logic;
-        right_data_in   : in std_logic_vector (31 downto 0);
         right_strobe_in : in std_logic;
         sync_in         : in std_logic;
         sync_out        : out std_logic_vector (1 downto 0) := "00";
@@ -26,8 +25,7 @@ architecture structural of matcher is
 
     signal address      : t_address := (others => '0');
     signal data_match   : t_sample := (others => '0');
-    signal left_in      : t_sample := (others => '0');
-    signal right_in     : t_sample := (others => '0');
+    signal audio_in     : t_sample := (others => '0');
 
     component match_rom is
         port (
@@ -79,22 +77,21 @@ begin
             data_out => data_match,
             clock => clock);
 
-    left_in <= left_data_in (27 downto 4);
-    right_in <= right_data_in (27 downto 4);
+    audio_in <= data_in (27 downto 4);
 
     process (clock)
         variable m : t_match := RESET;
     begin
         if clock = '1' and clock'event then
             if left_strobe_in = '1' then
-                m := match_assessment (left_in, data_match, current_match);
+                m := match_assessment (audio_in, data_match, current_match);
                 if address (address'Right) = '1' then
                     -- Two left samples in a row - desync
                     current_match <= RESET;
                     address <= zero_address;
                 elsif address = zero_address then
                     -- First left sample shows the sample rate
-                    sample_rate_out <= left_in (23 downto 8);
+                    sample_rate_out <= audio_in (23 downto 8);
                     address <= address + 1;
                 elsif m /= RESET then
                     -- Matching left sample
@@ -107,7 +104,7 @@ begin
                 end if;
 
             elsif right_strobe_in = '1' then
-                m := match_assessment (right_in, data_match, current_match);
+                m := match_assessment (audio_in, data_match, current_match);
                 if address (address'Right) = '0' then
                     -- Two right samples in a row - desync
                     current_match <= RESET;

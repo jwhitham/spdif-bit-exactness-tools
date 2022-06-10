@@ -32,8 +32,7 @@ architecture structural of fpga_main is
     signal pe_pulse_length : std_logic_vector (1 downto 0) := "00";
 
     subtype t_data is std_logic_vector (31 downto 0);
-    signal left_data       : t_data := (others => '0');
-    signal right_data      : t_data := (others => '0');
+    signal data            : t_data := (others => '0');
 
     subtype t_leds is std_logic_vector (7 downto 0);
     signal leds3           : t_leds := (others => '0');
@@ -75,9 +74,8 @@ architecture structural of fpga_main is
             shift_in        : in std_logic;
             start_in        : in std_logic;
             sync_in         : in std_logic;
-            left_data_out   : out std_logic_vector (31 downto 0);
+            data_out        : out std_logic_vector (31 downto 0);
             left_strobe_out : out std_logic;
-            right_data_out  : out std_logic_vector (31 downto 0);
             right_strobe_out: out std_logic;
             sync_out        : out std_logic;
             clock           : in std_logic
@@ -98,15 +96,15 @@ architecture structural of fpga_main is
     component vu_meter
         port (
             data_in         : in std_logic_vector (8 downto 0);
+            strobe_in       : in std_logic;
             meter_out       : out std_logic_vector (7 downto 0) := "00000000";
             clock           : in std_logic);
     end component vu_meter;
 
     component matcher is
         port (
-            left_data_in    : in std_logic_vector (31 downto 0);
+            data_in         : in std_logic_vector (31 downto 0);
             left_strobe_in  : in std_logic;
-            right_data_in   : in std_logic_vector (31 downto 0);
             right_strobe_in : in std_logic;
             sync_in         : in std_logic;
             sync_out        : out std_logic_vector (1 downto 0) := "00";
@@ -171,14 +169,12 @@ begin
                   start_in => packet_start,
                   sync_in => sync (2),
                   sync_out => sync (3),
-                  left_data_out => left_data,
+                  data_out => data,
                   left_strobe_out => left_strobe,
-                  right_data_out => right_data,
                   right_strobe_out => right_strobe);
     m : matcher
-        port map (left_data_in => left_data,
+        port map (data_in => data,
                   left_strobe_in => left_strobe,
-                  right_data_in => right_data,
                   right_strobe_in => right_strobe,
                   sync_in => sync (3),
                   sync_out => matcher_sync,
@@ -222,12 +218,14 @@ begin
     left : vu_meter 
         port map (clock => clock_in,
                   meter_out => left_meter,
-                  data_in => left_data (27 downto 19));
+                  strobe_in => left_strobe,
+                  data_in => data (27 downto 19));
 
     right : vu_meter 
         port map (clock => clock_in,
                   meter_out => right_meter,
-                  data_in => right_data (27 downto 19));
+                  strobe_in => right_strobe,
+                  data_in => data (27 downto 19));
 
     sync (4) <= '1' when matcher_sync /= "00" else '0';
 

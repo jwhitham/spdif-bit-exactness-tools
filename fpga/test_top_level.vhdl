@@ -17,18 +17,17 @@ architecture structural of test_top_level is
     signal packet_data     : std_logic := '0';
     signal packet_shift    : std_logic := '0';
     signal packet_start    : std_logic := '0';
-    signal left_data       : std_logic_vector (31 downto 0) := (others => '0');
+    signal data            : std_logic_vector (31 downto 0) := (others => '0');
     signal left_strobe     : std_logic := '0';
-    signal right_data      : std_logic_vector (31 downto 0) := (others => '0');
     signal right_strobe    : std_logic := '0';
+    signal left_data       : std_logic_vector (31 downto 0) := (others => '0');
 
     signal pulse_length_2  : std_logic_vector (1 downto 0) := "00";
     signal packet_data_2   : std_logic := '0';
     signal packet_shift_2  : std_logic := '0';
     signal packet_start_2  : std_logic := '0';
-    signal left_data_2     : std_logic_vector (31 downto 0) := (others => '0');
+    signal data_2          : std_logic_vector (31 downto 0) := (others => '0');
     signal left_strobe_2   : std_logic := '0';
-    signal right_data_2    : std_logic_vector (31 downto 0) := (others => '0');
     signal right_strobe_2  : std_logic := '0';
 
     signal clock           : std_logic := '0';
@@ -81,9 +80,8 @@ architecture structural of test_top_level is
             shift_in        : in std_logic;
             start_in        : in std_logic;
             sync_in         : in std_logic;
-            left_data_out   : out std_logic_vector (31 downto 0);
+            data_out        : out std_logic_vector (31 downto 0);
             left_strobe_out : out std_logic;
-            right_data_out  : out std_logic_vector (31 downto 0);
             right_strobe_out: out std_logic;
             sync_out        : out std_logic;
             clock           : in std_logic
@@ -92,9 +90,8 @@ architecture structural of test_top_level is
 
     component matcher is
         port (
-            left_data_in    : in std_logic_vector (31 downto 0);
+            data_in         : in std_logic_vector (31 downto 0);
             left_strobe_in  : in std_logic;
-            right_data_in   : in std_logic_vector (31 downto 0);
             right_strobe_in : in std_logic;
             sync_in         : in std_logic;
             sync_out        : out std_logic_vector (1 downto 0) := "00";
@@ -162,15 +159,13 @@ begin
                   start_in => packet_start,
                   sync_in => sync (2),
                   sync_out => sync (3),
-                  left_data_out => left_data,
+                  data_out => data,
                   left_strobe_out => left_strobe,
-                  right_data_out => right_data,
                   right_strobe_out => right_strobe);
 
     m : matcher
-        port map (left_data_in => left_data,
+        port map (data_in => data,
                   left_strobe_in => left_strobe,
-                  right_data_in => right_data,
                   right_strobe_in => right_strobe,
                   sync_in => sync (3),
                   sync_out => sync (5 downto 4),
@@ -226,15 +221,13 @@ begin
                   start_in => packet_start_2,
                   sync_in => sync (10),
                   sync_out => sync (11),
-                  left_data_out => left_data_2,
+                  data_out => data_2,
                   left_strobe_out => left_strobe_2,
-                  right_data_out => right_data_2,
                   right_strobe_out => right_strobe_2);
 
     m2 : matcher
-        port map (left_data_in => left_data_2,
+        port map (data_in => data_2,
                   left_strobe_in => left_strobe_2,
-                  right_data_in => right_data_2,
                   right_strobe_in => right_strobe_2,
                   sync_in => sync (11),
                   sync_out => sync (13 downto 12),
@@ -408,14 +401,16 @@ begin
         assert packet_shift = '0' or packet_shift = '1';
         assert left_strobe = '0' or left_strobe = '1';
         assert right_strobe = '0' or right_strobe = '1';
-        assert left_data (0) = '0' or left_data (0) = '1';
-        assert right_data (0) = '0' or right_data (0) = '1';
+        assert data (0) = '0' or data (0) = '1';
 
         while done /= '1' loop
+            if left_strobe = '1' then
+                left_data <= data;
+            end if;
             if right_strobe = '1' then
                 write_hex_sample (left_data (27 downto 4));
                 write (l, String'(" "));
-                write_hex_sample (right_data (27 downto 4));
+                write_hex_sample (data (27 downto 4));
                 writeline (output, l);
             end if;
             wait until clock'event and clock = '1';
