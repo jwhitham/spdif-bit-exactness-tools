@@ -11,10 +11,10 @@ end test_fifo;
 architecture structural of test_fifo is
 
     component fifo is
-        generic (test_addr_size : Natural := 12);
+        generic (test_addr_size : Natural := 12; data_size_log_2 : Natural := 1);
         port (
-            data_in     : in std_logic;
-            data_out    : out std_logic := '0';
+            data_in     : in std_logic_vector (0 downto 0);
+            data_out    : out std_logic_vector (0 downto 0) := (others => '0');
             empty_out   : out std_logic := '1';
             full_out    : out std_logic := '0';
             half_out    : out std_logic := '0';
@@ -50,8 +50,8 @@ begin
         constant full_size : Natural := 2 ** addr_size;     -- 16 or 256 or 4096
         constant halfway : Natural := full_size / 2;
 
-        signal data_in     : std_logic := '0';
-        signal data_out    : std_logic := '0';
+        signal data_in     : std_logic_vector (0 downto 0) := (others => '0');
+        signal data_out    : std_logic_vector (0 downto 0) := (others => '0');
         signal empty       : std_logic := '0';
         signal full        : std_logic := '0';
         signal half        : std_logic := '0';
@@ -63,7 +63,7 @@ begin
     begin
 
         f : fifo
-            generic map (test_addr_size => addr_size)
+            generic map (test_addr_size => addr_size, data_size_log_2 => 0)
             port map (
                 data_in => data_in,
                 data_out => data_out,
@@ -80,11 +80,11 @@ begin
         process
             variable l : line;
 
-            function hash (x : Integer) return std_logic is
+            function hash (x : Integer) return std_logic_vector is
                 constant table : std_logic_vector (127 downto 0) :=
                     x"aaeb0f31668a6fe22515e558c7e2fb06";
             begin
-                return table (x mod 127);
+                return (0 => table (x mod 127));
             end hash;
 
             procedure check
@@ -135,7 +135,7 @@ begin
             check (check_empty => '1');
 
             -- write one
-            data_in <= '1';
+            data_in <= (others => '1');
             do_write <= '1';
             wait for 1 us;
             check;
@@ -147,19 +147,19 @@ begin
             wait for 1 us;
             do_read <= '0';
             check (check_empty => '1');
-            assert data_out = '1';
+            assert data_out (0) = '1';
 
             -- read when empty: error, but the output holds
             do_read <= '1';
             wait for 1 us;
             check (check_empty => '1', check_read_error => '1');
             do_read <= '0';
-            assert data_out = '1';
+            assert data_out (0) = '1';
 
             -- output is held in place
             wait for 1 us;
             check (check_empty => '1');
-            assert data_out = '1';
+            assert data_out (0) = '1';
 
             -- check throughput, with up to 3 items in the FIFO
             for i in 1 to 3 loop
@@ -208,14 +208,14 @@ begin
                 assert data_out = hash (8);
             end loop;
             -- full flag asserted after the final write
-            data_in <= '1';
+            data_in (0) <= '1';
             do_write <= '1';
             wait for 1 us;
             do_write <= '0';
             check (check_half => '1', check_full => '1');
             assert data_out = hash (8);
             -- error if trying to write again
-            data_in <= '0';
+            data_in (0) <= '0';
             do_write <= '1';
             wait for 1 us;
             do_write <= '0';
@@ -243,13 +243,13 @@ begin
             wait for 1 us;
             do_read <= '0';
             check (check_empty => '1');
-            assert data_out = '1';
+            assert data_out (0) = '1';
             -- error if trying to read again
             do_read <= '1';
             wait for 1 us;
             do_read <= '0';
             check (check_empty => '1', check_read_error => '1');
-            assert data_out = '1';
+            assert data_out (0) = '1';
 
             write (l, String'("end test for addr_size = "));
             write (l, addr_size);

@@ -5,10 +5,10 @@ use ieee.numeric_std.all;
 
 
 entity fifo is
-    generic (test_addr_size : Natural := 12);
+    generic (test_addr_size : Natural := 11; data_size_log_2 : Natural := 1);
     port (
-        data_in     : in std_logic;
-        data_out    : out std_logic := '0';
+        data_in     : in std_logic_vector ((2 ** data_size_log_2) - 1 downto 0);
+        data_out    : out std_logic_vector ((2 ** data_size_log_2) - 1 downto 0) := (others => '0');
         empty_out   : out std_logic := '1';
         full_out    : out std_logic := '0';
         half_out    : out std_logic := '0';
@@ -22,12 +22,15 @@ end fifo;
 
 architecture structural of fifo is
 
-    constant true_addr_size : Natural := 12;
-    constant data_size  : Natural := 16;
-    constant mask_size  : Natural := 4;
+    -- FIFO contains 2**test_addr_size items
+    -- true_addr_size is the upper limit on test_addr_size
+    constant true_addr_size : Natural := 12 - data_size_log_2;
+    constant true_data_size : Natural := 16;
+    constant data_size      : Natural := 2 ** data_size_log_2;
+    constant mask_size      : Natural := 4 - data_size_log_2;
 
     subtype t_addr is std_logic_vector (true_addr_size - 1 downto 0);
-    subtype t_data is std_logic_vector (data_size - 1 downto 0);
+    subtype t_data is std_logic_vector (true_data_size - 1 downto 0);
 
     signal wdata        : t_data := (others => '0');
     signal rdata        : t_data := (others => '0');
@@ -84,13 +87,24 @@ begin
         test_mask (i) <= '1' when i < test_addr_size else '0';
     end generate make_test_mask;
 
-    process (waddr)
+    process (waddr, data_in, rdata, mask_mux)
     begin
+        -- Write enable:
         mask <= (others => '1'); -- 1 = don't write
-        mask (to_integer (unsigned (waddr (mask_size - 1 downto 0)))) <= '0';
+        for i in 0 to data_size - 1 loop
+            mask ((to_integer (unsigned (waddr (mask_size - 1 downto 0))) * data_size) + i) <= '0';
+        end loop;
+
+        -- Input to FIFO:
+        for i in 0 to true_data_size - 1 loop
+            wdata (i) <= data_in (i mod data_size);
+        end loop;
+
+        -- Output from FIFO:
+        for i in 0 to data_size - 1 loop
+            data_out (i) <= rdata ((to_integer (unsigned (mask_mux)) * data_size) + i);
+        end loop;
     end process;
-    data_out <= rdata (to_integer (unsigned (mask_mux)));
-    wdata <= (others => data_in);
 
     waddr_next <= std_logic_vector (unsigned (waddr) + 1) and test_mask;
     raddr_next <= std_logic_vector (unsigned (raddr) + 1) and test_mask;
