@@ -13,8 +13,8 @@ architecture structural of test_fifo is
     component fifo is
         generic (test_addr_size : Natural := 12; data_size_log_2 : Natural := 1);
         port (
-            data_in     : in std_logic_vector (0 downto 0);
-            data_out    : out std_logic_vector (0 downto 0) := (others => '0');
+            data_in     : in std_logic_vector ((2 ** data_size_log_2) - 1 downto 0);
+            data_out    : out std_logic_vector ((2 ** data_size_log_2) - 1 downto 0) := (others => '0');
             empty_out   : out std_logic := '1';
             full_out    : out std_logic := '0';
             half_out    : out std_logic := '0';
@@ -26,7 +26,7 @@ architecture structural of test_fifo is
             read_in     : in std_logic);
     end component fifo;
 
-    signal done        : std_logic_vector (0 to 3) := (others => '0');
+    signal done        : std_logic_vector (0 to 6) := (others => '0');
     signal clock       : std_logic := '0';
 begin
 
@@ -35,7 +35,7 @@ begin
     begin
         done (0) <= '1';
         wait for 500 ns;
-        while done (3) /= '1' loop
+        while done (6) /= '1' loop
             clock <= '1';
             wait for 500 ns;
             clock <= '0';
@@ -44,14 +44,19 @@ begin
         wait;
     end process;
 
-    ftest : for test_size in 1 to 3 generate
+    ftest : for test_size in 1 to 6 generate
 
-        constant addr_size : Natural := 4 * test_size;      -- 4 or 8 or 12
-        constant full_size : Natural := 2 ** addr_size;     -- 16 or 256 or 4096
-        constant halfway : Natural := full_size / 2;
+        constant data_size_log_2 : Natural := ((test_size - 1) / 2); -- 0 or 1 or 2
+        constant data_size       : Natural := 2 ** data_size_log_2;  -- 1 or 2 or 4
+        constant addr_size       : Natural := (6 * (((test_size - 1) mod 2) + 1)) - data_size_log_2;
+                -- 6, 12, 5, 11, 4, 10
+        constant full_size       : Natural := 2 ** addr_size;
+        constant halfway         : Natural := full_size / 2;
 
-        signal data_in     : std_logic_vector (0 downto 0) := (others => '0');
-        signal data_out    : std_logic_vector (0 downto 0) := (others => '0');
+        subtype t_data is std_logic_vector (data_size - 1 downto 0);
+
+        signal data_in     : t_data := (others => '0');
+        signal data_out    : t_data := (others => '0');
         signal empty       : std_logic := '0';
         signal full        : std_logic := '0';
         signal half        : std_logic := '0';
@@ -63,7 +68,7 @@ begin
     begin
 
         f : fifo
-            generic map (test_addr_size => addr_size, data_size_log_2 => 0)
+            generic map (test_addr_size => addr_size, data_size_log_2 => data_size_log_2)
             port map (
                 data_in => data_in,
                 data_out => data_out,
@@ -80,11 +85,15 @@ begin
         process
             variable l : line;
 
-            function hash (x : Integer) return std_logic_vector is
+            function hash (x : Integer) return t_data is
                 constant table : std_logic_vector (127 downto 0) :=
                     x"aaeb0f31668a6fe22515e558c7e2fb06";
+                variable r : t_data := (others => '0');
             begin
-                return (0 => table (x mod 127));
+                for i in 0 to data_size - 1 loop
+                    r (i) := table (((x * data_size) + i) mod 127);
+                end loop;
+                return r;
             end hash;
 
             procedure check
@@ -110,6 +119,8 @@ begin
             wait until done (test_size - 1) = '1';
             write (l, String'("begin test for addr_size = "));
             write (l, addr_size);
+            write (l, String'(" data_size = "));
+            write (l, data_size);
             writeline (output, l);
 
             -- initial state should be stable
@@ -135,7 +146,7 @@ begin
             check (check_empty => '1');
 
             -- write one
-            data_in <= (others => '1');
+            data_in <= hash (99);
             do_write <= '1';
             wait for 1 us;
             check;
@@ -147,19 +158,19 @@ begin
             wait for 1 us;
             do_read <= '0';
             check (check_empty => '1');
-            assert data_out (0) = '1';
+            assert data_out = hash (99);
 
             -- read when empty: error, but the output holds
             do_read <= '1';
             wait for 1 us;
             check (check_empty => '1', check_read_error => '1');
             do_read <= '0';
-            assert data_out (0) = '1';
+            assert data_out = hash (99);
 
             -- output is held in place
             wait for 1 us;
             check (check_empty => '1');
-            assert data_out (0) = '1';
+            assert data_out = hash (99);
 
             -- check throughput, with up to 3 items in the FIFO
             for i in 1 to 3 loop
@@ -208,14 +219,14 @@ begin
                 assert data_out = hash (8);
             end loop;
             -- full flag asserted after the final write
-            data_in (0) <= '1';
+            data_in <= hash (98);
             do_write <= '1';
             wait for 1 us;
             do_write <= '0';
             check (check_half => '1', check_full => '1');
             assert data_out = hash (8);
             -- error if trying to write again
-            data_in (0) <= '0';
+            data_in <= hash (97);
             do_write <= '1';
             wait for 1 us;
             do_write <= '0';
@@ -243,13 +254,13 @@ begin
             wait for 1 us;
             do_read <= '0';
             check (check_empty => '1');
-            assert data_out (0) = '1';
+            assert data_out = hash (98);
             -- error if trying to read again
             do_read <= '1';
             wait for 1 us;
             do_read <= '0';
             check (check_empty => '1', check_read_error => '1');
-            assert data_out (0) = '1';
+            assert data_out = hash (98);
 
             write (l, String'("end test for addr_size = "));
             write (l, addr_size);
