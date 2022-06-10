@@ -11,7 +11,7 @@ end test_fifo;
 architecture structural of test_fifo is
 
     component fifo is
-        generic (test_addr_size : Natural := 12; data_size_log_2 : Natural := 1);
+        generic (test_addr_size : Natural := 11; data_size_log_2 : Natural := 1);
         port (
             data_in     : in std_logic_vector ((2 ** data_size_log_2) - 1 downto 0);
             data_out    : out std_logic_vector ((2 ** data_size_log_2) - 1 downto 0) := (others => '0');

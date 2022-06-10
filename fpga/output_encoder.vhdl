@@ -5,7 +5,7 @@ use ieee.std_logic_1164.all;
 use std.textio.all;
 
 entity output_encoder is
-    generic (test_addr_size : Natural := 12);
+    generic (test_addr_size : Natural := 11);
     port (
         pulse_length_in : in std_logic_vector (1 downto 0);
         sync_in         : in std_logic;
@@ -41,10 +41,10 @@ architecture structural of output_encoder is
     signal data_gen         : std_logic := '0';
 
     component fifo is
-        generic (test_addr_size : Natural := 12);
+        generic (test_addr_size : Natural := 11; data_size_log_2 : Natural := 1);
         port (
-            data_in     : in std_logic;
-            data_out    : out std_logic := '0';
+            data_in     : in std_logic_vector ((2 ** data_size_log_2) - 1 downto 0);
+            data_out    : out std_logic_vector ((2 ** data_size_log_2) - 1 downto 0) := (others => '0');
             empty_out   : out std_logic := '1';
             full_out    : out std_logic := '0';
             half_out    : out std_logic := '0';
@@ -56,32 +56,18 @@ architecture structural of output_encoder is
             read_in     : in std_logic);
     end component fifo;
 
+
 begin
-    f0 : fifo
-        generic map (test_addr_size => test_addr_size)
+    f : fifo
+        generic map (test_addr_size => test_addr_size, data_size_log_2 => 1)
         port map (
-            data_in => pulse_length_in (0),
-            data_out => pulse_length (0),
+            data_in => pulse_length_in,
+            data_out => pulse_length,
             empty_out => open,
             full_out => open,
             half_out => fifo_half_full,
             write_error => fifo_write_error,
             read_error => fifo_read_error,
-            reset_in => fifo_reset,
-            clock_in => clock_in,
-            write_in => fifo_write,
-            read_in => fifo_read);
-
-    f1 : fifo
-        generic map (test_addr_size => test_addr_size)
-        port map (
-            data_in => pulse_length_in (1),
-            data_out => pulse_length (1),
-            empty_out => open,
-            full_out => open,
-            half_out => open,
-            write_error => open,
-            read_error => open,
             reset_in => fifo_reset,
             clock_in => clock_in,
             write_in => fifo_write,
