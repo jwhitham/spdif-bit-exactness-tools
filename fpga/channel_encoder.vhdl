@@ -18,11 +18,20 @@ end channel_encoder;
 
 architecture structural of channel_encoder is
 
-    subtype t_counter is Natural range 0 to 31;
     signal parity       : std_logic := '0';
     signal waiting      : std_logic := '0';
-    signal data         : std_logic_vector (31 downto 0) := (others => '0');
-    signal counter      : t_counter := 0;
+    signal data         : std_logic_vector (30 downto 0) := (others => '0');
+
+    constant b_interval     : Natural := 192;
+
+    subtype t_status_counter is Natural range 0 to b_interval;
+    signal status_counter   : t_status_counter := 0;
+
+    subtype t_bit_counter is Natural range 0 to 31;
+    signal bit_counter      : t_bit_counter := 0;
+    constant status_bit     : t_status_counter := 30;
+    constant user_bit       : t_status_counter := 29;
+    constant validity_bit   : t_status_counter := 28;
 begin
 
     data_out <= data (0);
@@ -32,30 +41,63 @@ begin
         if clock'event and clock = '1' then
             start_out <= '0';
             shift_out <= '0';
-            sync_out <= sync_in;
 
-            if waiting = '1' then
-                assert left_strobe_in = '0';
-                assert right_strobe_in = '0';
+            if sync_in = '0' then
+                bit_counter <= 0;
+                status_counter <= 0;
+                sync_out <= '0';
                 waiting <= '0';
-            elsif sync_in = '1' and (left_strobe_in = '1' or right_strobe_in = '1') then
-                assert (data_in (3 downto 0) = "0100") or (data_in (3 downto 0) = "0001") or (data_in (3 downto 0) = "0010");
-                counter <= 31;
-                data <= data_in;
+
+            elsif waiting = '1' then
+                waiting <= '0';
+
+            elsif left_strobe_in = '1' or right_strobe_in = '1' then
+                bit_counter <= 31;
+                data <= data_in (30 downto 0);
+
+                -- Generate B/M header
+                if left_strobe_in = '1' then
+                    if status_counter = 0 or status_counter = b_interval then
+                        data (3 downto 0) <= "0001"; -- Output B
+                        status_counter <= 1;
+                        sync_out <= '1';
+                    else
+                        data (3 downto 0) <= "0100"; -- Output M
+                        status_counter <= status_counter + 1;
+                    end if;
+                else
+                    data (3 downto 0) <= "0010"; -- Output W
+                end if;
+                -- See https://www.minidisc.org/manuals/an22.pdf for description of channel status bits
+                -- They repeat periodically, beginning with a B packet, which is sent every b_interval.
+                case status_counter is
+                    when 2 =>
+                        data (status_bit) <= '1'; -- copy
+                    when 13 =>
+                        data (status_bit) <= '1'; -- category 0x02 - PCM encoder/decoder
+                    --when 3 =>
+                    --    data (status_bit) <= preemphasis_in;
+                    when others =>
+                        data (status_bit) <= '0';
+                end case;
+                data (validity_bit) <= '0'; -- can be D/A converted
+                data (user_bit) <= '0';
+
                 parity <= '1';
                 start_out <= '1';
                 shift_out <= '1';
                 waiting <= '1';
-            elsif counter /= 0 then
+
+            elsif bit_counter /= 0 then
                 assert left_strobe_in = '0';
                 assert right_strobe_in = '0';
                 waiting <= '1';
-                counter <= counter - 1;
+                bit_counter <= bit_counter - 1;
                 data (data'Left - 1 downto 0) <= data (data'Left downto 1);
                 data (data'Left) <= '0';
                 shift_out <= '1';
                 parity <= parity xor data (0);
-                if counter = 1 then
+                if bit_counter = 1 then
                     data (0) <= parity;
                 end if;
             end if;
