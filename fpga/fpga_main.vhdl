@@ -8,6 +8,10 @@ entity fpga_main is
         clock_in        : in std_logic;
         raw_data_in     : in std_logic;
         raw_data_out    : out std_logic;
+        btn_nw          : in std_logic;
+        btn_ne          : in std_logic;
+        btn_se          : in std_logic;
+        btn_sw          : in std_logic;
         lcols_out       : out std_logic_vector (3 downto 0) := "0000";
         lrows_out       : out std_logic_vector (7 downto 0) := "00000000";
         clock_out       : out std_logic := '0'
@@ -33,9 +37,13 @@ architecture structural of fpga_main is
     signal ce_packet_shift : std_logic := '0';
     signal ce_packet_start : std_logic := '0';
     signal pe_pulse_length : std_logic_vector (1 downto 0) := "00";
+    signal preemph         : std_logic := '0';
+    signal cd_source       : std_logic := '0';
+    signal oe_out          : std_logic := '0';
 
     subtype t_data is std_logic_vector (31 downto 0);
     signal data            : t_data := (others => '0');
+    signal data2           : t_data := (others => '0');
 
     subtype t_leds is std_logic_vector (7 downto 0);
     signal leds3           : t_leds := (others => '0');
@@ -146,6 +154,8 @@ architecture structural of fpga_main is
             start_out       : out std_logic;
             sync_out        : out std_logic;
             data_in         : in std_logic_vector (31 downto 0);
+            preemph_in      : in std_logic;
+            cd_source_in    : in std_logic;
             left_strobe_in  : in std_logic;
             right_strobe_in : in std_logic;
             sync_in         : in std_logic;
@@ -212,9 +222,25 @@ begin
                   data_out => ce_packet_data,
                   start_out => ce_packet_start,
                   shift_out => ce_packet_shift,
-                  data_in => data,
+                  preemph_in => preemph,
+                  cd_source_in => cd_source,
+                  data_in => data2,
                   left_strobe_in => left_strobe,
                   right_strobe_in => right_strobe);
+
+    process (btn_se, btn_sw, btn_nw, btn_ne, data) is
+    begin
+        data2 <= data;
+        if btn_sw = '0' then
+            data2 (19 downto 0) <= (others => data2 (27)); -- go 8 bit
+        end if;
+        if btn_se = '0' then
+            data2 (23 downto 0) <= (others => data2 (27)); -- go 4 bit
+        end if;
+        preemph <= not btn_nw;
+        cd_source <= '0';
+    end process;
+
 
     pe : packet_encoder
         port map (clock => clock_in,
@@ -232,7 +258,7 @@ begin
                   sync_out => sync (8),
                   error_out => open,
                   strobe_in => rg_strobe,
-                  data_out => raw_data_out);
+                  data_out => oe_out);
 
     leds : led_scan
         port map (clock => clock_in,
@@ -282,6 +308,11 @@ begin
                 leds3 (1 downto 0) <= matcher_sync;
             else
                 leds3 <= single_time;
+            end if;
+            if btn_ne = '0' then
+                raw_data_out <= raw_data_in;
+            else
+                raw_data_out <= oe_out;
             end if;
         end if;
     end process;

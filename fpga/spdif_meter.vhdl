@@ -9,6 +9,10 @@ entity spdif_meter is
         raw_data_out    : out std_logic;
         start_out       : out std_logic := '0';
         clock_out       : out std_logic := '0';
+        btn_nw          : in std_logic;
+        btn_ne          : in std_logic;
+        btn_se          : in std_logic;
+        btn_sw          : in std_logic;
         lcol1           : out std_logic := '0';
         lcol2           : out std_logic := '0';
         lcol3           : out std_logic := '0';
@@ -35,6 +39,10 @@ architecture structural of spdif_meter is
             clock_in        : in std_logic;
             raw_data_in     : in std_logic;
             raw_data_out    : out std_logic;
+            btn_nw          : in std_logic;
+            btn_ne          : in std_logic;
+            btn_se          : in std_logic;
+            btn_sw          : in std_logic;
             lcols_out       : out std_logic_vector (3 downto 0) := "0000";
             lrows_out       : out std_logic_vector (7 downto 0) := "00000000";
             clock_out       : out std_logic := '0'
@@ -63,6 +71,10 @@ begin
             raw_data_in => raw_data_in,
             raw_data_out => raw_data_out,
             clock_out => clock_out,
+            btn_nw => btn_nw,
+            btn_ne => btn_ne,
+            btn_se => btn_se,
+            btn_sw => btn_sw,
             lcols_out => lcols,
             lrows_out => lrows);
 

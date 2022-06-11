@@ -21,7 +21,7 @@ begin
                     -- sign bit matches bit i - stop
                     exit;
                 else
-                    meter_out (i) <= '0';
+                    meter_out (7 - i) <= '0';
                 end if;
             end loop;
         end if;

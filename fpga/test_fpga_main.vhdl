@@ -15,6 +15,7 @@ architecture structural of test_fpga_main is
     signal done            : std_logic := '0';
     signal lcols           : std_logic_vector (3 downto 0) := (others => '0');
     signal lrows           : std_logic_vector (7 downto 0) := (others => '0');
+    signal one             : std_logic := '1';
 
     component fpga_main is
         port (
@@ -22,6 +23,10 @@ architecture structural of test_fpga_main is
             clock_out       : out std_logic;
             raw_data_in     : in std_logic;
             raw_data_out    : out std_logic;
+            btn_nw          : in std_logic;
+            btn_ne          : in std_logic;
+            btn_se          : in std_logic;
+            btn_sw          : in std_logic;
             lcols_out       : out std_logic_vector (3 downto 0) := "0000";
             lrows_out       : out std_logic_vector (7 downto 0) := "00000000"
         );
@@ -44,6 +49,10 @@ begin
             clock_in => clock,
             raw_data_in => raw_data,
             raw_data_out => open,
+            btn_nw => one,
+            btn_ne => one,
+            btn_sw => one,
+            btn_se => one,
             clock_out => open,
             lcols_out => lcols,
             lrows_out => lrows);

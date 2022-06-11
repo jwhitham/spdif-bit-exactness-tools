@@ -43,6 +43,7 @@ architecture structural of test_top_level is
     signal rg_strobe       : std_logic := '0';
     signal oe_data         : std_logic := '0';
     signal oe_error        : std_logic := '0';
+    signal zero            : std_logic := '0';
 
     signal uptime          : Integer := 0;
     signal start_of_r_sync : Integer := 0;
@@ -148,6 +149,8 @@ architecture structural of test_top_level is
             data_in         : in std_logic_vector (31 downto 0);
             left_strobe_in  : in std_logic;
             right_strobe_in : in std_logic;
+            preemph_in      : in std_logic;
+            cd_source_in    : in std_logic;
             sync_in         : in std_logic;
             clock           : in std_logic
         );
@@ -204,6 +207,8 @@ begin
                   data_out => packet_data_2,
                   start_out => packet_start_2,
                   shift_out => packet_shift_2,
+                  preemph_in => zero,
+                  cd_source_in => zero,
                   left_strobe_in => left_strobe,
                   right_strobe_in => right_strobe,
                   data_in => data);
