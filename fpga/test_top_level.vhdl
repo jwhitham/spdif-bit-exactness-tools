@@ -150,7 +150,6 @@ architecture structural of test_top_level is
             left_strobe_in  : in std_logic;
             right_strobe_in : in std_logic;
             preemph_in      : in std_logic;
-            cd_source_in    : in std_logic;
             sync_in         : in std_logic;
             clock           : in std_logic
         );
@@ -208,7 +207,6 @@ begin
                   start_out => packet_start_2,
                   shift_out => packet_shift_2,
                   preemph_in => zero,
-                  cd_source_in => zero,
                   left_strobe_in => left_strobe,
                   right_strobe_in => right_strobe,
                   data_in => data);

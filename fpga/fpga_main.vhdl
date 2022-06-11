@@ -38,7 +38,6 @@ architecture structural of fpga_main is
     signal ce_packet_start : std_logic := '0';
     signal pe_pulse_length : std_logic_vector (1 downto 0) := "00";
     signal preemph         : std_logic := '0';
-    signal cd_source       : std_logic := '0';
     signal oe_out          : std_logic := '0';
 
     subtype t_data is std_logic_vector (31 downto 0);
@@ -155,7 +154,6 @@ architecture structural of fpga_main is
             sync_out        : out std_logic;
             data_in         : in std_logic_vector (31 downto 0);
             preemph_in      : in std_logic;
-            cd_source_in    : in std_logic;
             left_strobe_in  : in std_logic;
             right_strobe_in : in std_logic;
             sync_in         : in std_logic;
@@ -223,7 +221,6 @@ begin
                   start_out => ce_packet_start,
                   shift_out => ce_packet_shift,
                   preemph_in => preemph,
-                  cd_source_in => cd_source,
                   data_in => data2,
                   left_strobe_in => left_strobe,
                   right_strobe_in => right_strobe);
@@ -238,7 +235,6 @@ begin
             data2 (23 downto 0) <= (others => data2 (27)); -- go 4 bit
         end if;
         preemph <= not btn_nw;
-        cd_source <= '0';
     end process;
 
 

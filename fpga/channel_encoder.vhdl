@@ -12,7 +12,6 @@ entity channel_encoder is
         left_strobe_in  : in std_logic;
         right_strobe_in : in std_logic;
         preemph_in      : in std_logic;
-        cd_source_in    : in std_logic;
         sync_in         : in std_logic;
         clock           : in std_logic
     );
@@ -75,12 +74,10 @@ begin
                 case status_counter is
                     when 2 =>
                         data (status_bit) <= '1'; -- copy
-                    when 8 =>
-                        data (status_bit) <= cd_source_in; -- category 0x40 - CD
                     when 13 =>
-                        data (status_bit) <= not cd_source_in; -- category 0x02 - PCM encoder/decoder
+                        data (status_bit) <= '1'; -- category 0x02 - PCM encoder/decoder
                     when 3 =>
-                        data (status_bit) <= preemph_in;
+                        data (status_bit) <= preemph_in; -- DAC instructed to undo 15/50 preemphasis
                     when others =>
                         data (status_bit) <= '0';
                 end case;
