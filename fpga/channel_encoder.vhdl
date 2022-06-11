@@ -42,7 +42,7 @@ begin
                 assert (data_in (3 downto 0) = "0100") or (data_in (3 downto 0) = "0001") or (data_in (3 downto 0) = "0010");
                 counter <= 31;
                 data <= data_in;
-                parity <= '0';
+                parity <= '1';
                 start_out <= '1';
                 shift_out <= '1';
                 waiting <= '1';
@@ -54,9 +54,9 @@ begin
                 data (data'Left - 1 downto 0) <= data (data'Left downto 1);
                 data (data'Left) <= '0';
                 shift_out <= '1';
-                parity <= parity xor data_in (0);
+                parity <= parity xor data (0);
                 if counter = 1 then
-                    null; -- data (0) <= parity;
+                    data (0) <= parity;
                 end if;
             end if;
         end if;
