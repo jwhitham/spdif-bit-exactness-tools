@@ -20,6 +20,7 @@ for F in \
             input_decoder \
             packet_decoder \
             channel_decoder \
+            channel_encoder \
             test_top_level
 do
     ghdl -a $F.vhdl
