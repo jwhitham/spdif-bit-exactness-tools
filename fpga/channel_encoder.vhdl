@@ -99,7 +99,7 @@ begin
                 shift_out <= '1';
                 parity <= parity xor data (0);
                 if bit_counter = 1 then
-                    data (0) <= parity;
+                    data (0) <= parity xor data (0);
                 end if;
             end if;
         end if;
