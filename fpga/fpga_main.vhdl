@@ -16,7 +16,7 @@ end fpga_main;
 
 architecture structural of fpga_main is
 
-    constant num_syncs : Natural := 7;
+    constant num_syncs : Natural := 8;
 
     signal pulse_length    : std_logic_vector (1 downto 0) := "00";
     signal packet_data     : std_logic := '0';
@@ -29,6 +29,9 @@ architecture structural of fpga_main is
     signal left_strobe     : std_logic := '0';
     signal right_strobe    : std_logic := '0';
     signal rg_strobe       : std_logic := '0';
+    signal ce_packet_data  : std_logic := '0';
+    signal ce_packet_shift : std_logic := '0';
+    signal ce_packet_start : std_logic := '0';
     signal pe_pulse_length : std_logic_vector (1 downto 0) := "00";
 
     subtype t_data is std_logic_vector (31 downto 0);
@@ -136,6 +139,20 @@ architecture structural of fpga_main is
         );
     end component output_encoder;
 
+    component channel_encoder is
+        port (
+            data_out        : out std_logic;
+            shift_out       : out std_logic;
+            start_out       : out std_logic;
+            sync_out        : out std_logic;
+            data_in         : in std_logic_vector (31 downto 0);
+            left_strobe_in  : in std_logic;
+            right_strobe_in : in std_logic;
+            sync_in         : in std_logic;
+            clock           : in std_logic
+        );
+    end component channel_encoder;
+
     component packet_encoder is
         port (
             pulse_length_out : out std_logic_vector (1 downto 0);
@@ -188,20 +205,31 @@ begin
                   sync_out => sync (5),
                   strobe_out => rg_strobe);
 
+    ce : channel_encoder
+        port map (clock => clock_in,
+                  sync_in => sync (5),
+                  sync_out => sync (6),
+                  data_out => ce_packet_data,
+                  start_out => ce_packet_start,
+                  shift_out => ce_packet_shift,
+                  data_in => data,
+                  left_strobe_in => left_strobe,
+                  right_strobe_in => right_strobe);
+
     pe : packet_encoder
         port map (clock => clock_in,
                   pulse_length_out => pe_pulse_length,
-                  sync_in => sync (5),
-                  sync_out => sync (6),
-                  data_in => packet_data,
-                  start_in => packet_start,
-                  shift_in => packet_shift);
+                  sync_in => sync (6),
+                  sync_out => sync (7),
+                  data_in => ce_packet_data,
+                  start_in => ce_packet_start,
+                  shift_in => ce_packet_shift);
 
     oe : output_encoder
         port map (clock_in => clock_in,
                   pulse_length_in => pe_pulse_length,
-                  sync_in => sync (6),
-                  sync_out => sync (7),
+                  sync_in => sync (7),
+                  sync_out => sync (8),
                   error_out => open,
                   strobe_in => rg_strobe,
                   data_out => raw_data_out);
@@ -233,19 +261,17 @@ begin
         process (clock_in)
         begin
             if clock_in = '1' and clock_in'event then
-                leds4 (index) <= '0';
+                leds4 (index - 1) <= '0';
                 if sync (index) = '0' then
                     sync_counter (index) <= (others => '0');
                 elsif sync_counter (index) /= max_counter then
                     sync_counter (index) <= sync_counter (index) + 1;
                 else
-                    leds4 (index) <= '1';
+                    leds4 (index - 1) <= '1';
                 end if;
             end if;
         end process;
     end generate sync_leds;
-
-    leds4 (0) <= '0';
 
     process (clock_in)
     begin

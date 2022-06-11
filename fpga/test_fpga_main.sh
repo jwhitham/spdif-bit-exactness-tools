@@ -22,6 +22,7 @@ for F in \
             fifo \
             output_encoder \
             packet_encoder \
+            channel_encoder \
             fpga_main \
             test_fpga_main
 do
