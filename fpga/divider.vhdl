@@ -19,7 +19,7 @@ end divider;
 
 architecture structural of divider is
 
-    subtype t_wide is unsigned (top_width + bottom_width - 2 downto 0);
+    subtype t_wide is unsigned (top_width + bottom_width - 1 downto 0);
     subtype t_state is Natural range 0 to top_width + 1; 
 
     constant FINISHED   : t_state := top_width;
@@ -34,6 +34,7 @@ architecture structural of divider is
 begin
     subtracted <= top - bottom;
     top (top'Left downto top_width) <= (others => '0');
+    bottom (bottom'Left) <= '0';
     result_out <= result;
 
     process (clock_in)
@@ -43,8 +44,8 @@ begin
 
             if start_in = '1' then
                 top (top_width - 1 downto 0) <= unsigned (top_value_in);
-                bottom <= (others => '0');
-                bottom (t_wide'Left downto top_width - 1) <= unsigned (bottom_value_in);
+                bottom (top_width - 2 downto 0) <= (others => '0');
+                bottom (bottom'Left - 1 downto top_width - 1) <= unsigned (bottom_value_in);
                 state <= 0;
 
             elsif state /= IDLE then
@@ -55,8 +56,7 @@ begin
                 else
                     -- when dividing
                     result (result'Left downto 1) <= result (result'Left - 1 downto 0);
-                    bottom (t_wide'Left - 1 downto 0) <= bottom (t_wide'Left downto 1);
-                    bottom (t_wide'Left) <= '0';
+                    bottom (bottom'Left - 1 downto 0) <= bottom (bottom'Left downto 1);
 
                     if subtracted (subtracted'Left) = '0' then
                         -- subtraction did not result in overflow
