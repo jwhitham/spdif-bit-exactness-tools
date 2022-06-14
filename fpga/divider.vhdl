@@ -5,8 +5,8 @@ use ieee.numeric_std.all;
 
 entity divider is
     generic (
-        top_width : Natural := 16;
-        bottom_width : Natural := 16);
+        top_width    : Natural;
+        bottom_width : Natural);
     port (
         top_value_in    : in std_logic_vector (top_width - 1 downto 0);
         bottom_value_in : in std_logic_vector (bottom_width - 1 downto 0);

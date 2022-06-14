@@ -5,7 +5,7 @@ use ieee.numeric_std.all;
 
 
 entity fifo is
-    generic (test_addr_size : Natural := 11; data_size_log_2 : Natural := 1);
+    generic (test_addr_size : Natural := Natural'High; data_size_log_2 : Natural := 1);
     port (
         data_in     : in std_logic_vector ((2 ** data_size_log_2) - 1 downto 0);
         data_out    : out std_logic_vector ((2 ** data_size_log_2) - 1 downto 0) := (others => '0');
@@ -21,6 +21,17 @@ entity fifo is
 end fifo;
 
 architecture structural of fifo is
+
+    function minimum (a, b : Natural) return Natural is
+    begin
+        if a < b then
+            return a;
+        else
+            return b;
+        end if;
+    end minimum;
+
+    constant addr_size      : Natural := minimum (12 - data_size_log_2, test_addr_size);
 
     -- FIFO contains 2**test_addr_size items
     -- true_addr_size is the upper limit on test_addr_size
@@ -84,7 +95,7 @@ begin
             RCLK => clock_in);
 
     make_test_mask : for i in 0 to true_addr_size - 1 generate
-        test_mask (i) <= '1' when i < test_addr_size else '0';
+        test_mask (i) <= '1' when i < addr_size else '0';
     end generate make_test_mask;
 
     process (waddr, data_in, rdata, mask_mux)
@@ -167,7 +178,7 @@ begin
             inc := write_in = '1' and full_sig = '0';
             dec := read_in = '1' and empty_sig = '0';
             half := (std_logic_vector
-                (unsigned (raddr) + to_unsigned (2 ** (test_addr_size - 1), raddr'Length))
+                (unsigned (raddr) + to_unsigned (2 ** (addr_size - 1), raddr'Length))
                     and test_mask) = waddr;
 
             if inc /= dec then
