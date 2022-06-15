@@ -32,6 +32,15 @@ architecture structural of fifo is
     constant ram_data_size_log_2  : Natural := 4;
     constant ram_data_size  : Natural := 2 ** ram_data_size_log_2;
 
+    function at_least_one (n : Natural) return Natural is
+    begin
+        if n > 1 then
+            return n;
+        else
+            return 1;
+        end if;
+    end at_least_one;
+
     -- Internally the address registers for read and write have this structure:
     --
     --    msb                                    lsb
@@ -42,7 +51,7 @@ architecture structural of fifo is
     -- mask_select chooses a subset of the data bits
     -- + There may be 0..4 mask_select bits
     constant mask_select_size   : Natural := ram_data_size_log_2 - data_size_log_2;
-    subtype t_addr_mask_select is std_logic_vector (mask_select_size - 1 downto 0);
+    subtype t_addr_mask_select is std_logic_vector (at_least_one (mask_select_size) - 1 downto 0);
 
     -- raddr/waddr is passed to each block RAM:
     -- + The width is always 8 bits (as the block RAMs are 256 by 16)
@@ -63,36 +72,13 @@ architecture structural of fifo is
         end if;
     end calc_row_select_size;
     constant row_select_size    : Natural := calc_row_select_size;
-
-    -- row_select can be zero, which is tricky for creating a row_select type, because it would have 0 width,
-    -- so we assign a 1 bit width for the row select type.
-    function calc_row_select_type_size return Natural is
-    begin
-        if row_select_size = 0 then
-            return 1;
-        else
-            return row_select_size;
-        end if;
-    end calc_row_select_type_size;
-    constant row_select_type_size    : Natural := calc_row_select_type_size;
-    subtype t_addr_row_select is std_logic_vector (row_select_type_size - 1 downto 0);
+    subtype t_addr_row_select is std_logic_vector (at_least_one (row_select_size) - 1 downto 0);
 
     -- The address register size.
     -- + This could be larger than addr_size
+    -- + If only a subset of the address register bits are needed, we mask out the higher ones
     constant reg_addr_size      : Natural := mask_select_size + ram_addr_size + row_select_size;
     subtype t_reg_addr is std_logic_vector (reg_addr_size - 1 downto 0);
-
-    -- Unused address bits
-    -- If only a subset of the address register bits are needed, we ignore higher ones:
-    function calc_unused_reg_addr_bits return Natural is
-    begin
-        if reg_addr_size > addr_size then
-            return reg_addr_size - addr_size;
-        else
-            return 0;
-        end if;
-    end calc_unused_reg_addr_bits;
-    constant unused_reg_addr_bits : Natural := calc_unused_reg_addr_bits;
 
     -- Number of block RAMs
     constant num_rows       : Natural := 2 ** row_select_size;
@@ -175,7 +161,7 @@ begin
     end generate rows;
 
     -- Generate write mask bus
-    wmb : process (write_addr)
+    wmb : process (write_addr_mask_select)
     begin
         write_mask <= (others => '1'); -- 1 = don't write
         for i in 0 to data_size - 1 loop
@@ -192,7 +178,7 @@ begin
     end process wdb;
 
     -- Generate multiplexer for data output
-    dom : process (data_in)
+    dom : process (read_data, row_mux_reg, mask_mux_reg)
     begin
         for i in 0 to data_size - 1 loop
             data_out (i) <= read_data
@@ -207,8 +193,8 @@ begin
     end generate make_used_bits_mask;
 
     -- Generate bit slices of the address registers
-    -- The row select is tricky, because there may be 0 row select bits, in which case the row select
-    -- bit slices still have width 1 for ease of use elsewhere.
+    -- The row select and mask select are tricky, because there may be 0 bits in these fields,
+    -- but the bus lines are still width 1 for ease of use elsewhere.
     bs : process (write_addr, read_addr)
     begin
         if row_select_size /= 0 then
@@ -218,14 +204,18 @@ begin
             write_addr_row_select <= "0";
             read_addr_row_select <= "0";
         end if;
+
+        write_addr_ram <= write_addr (ram_addr_size + mask_select_size - 1 downto mask_select_size);
+        read_addr_ram <= read_addr (ram_addr_size + mask_select_size - 1 downto mask_select_size);
+
+        if mask_select_size /= 0 then
+            write_addr_mask_select <= write_addr (mask_select_size - 1 downto 0);
+            read_addr_mask_select <= read_addr (mask_select_size - 1 downto 0);
+        else
+            write_addr_mask_select <= "0";
+            read_addr_mask_select <= "0";
+        end if;
     end process bs;
-
-    -- Generate lower bit slices
-    write_addr_ram <= write_addr (ram_addr_size + mask_select_size - 1 downto mask_select_size);
-    read_addr_ram <= read_addr (ram_addr_size + mask_select_size - 1 downto mask_select_size);
-
-    write_addr_mask_select <= write_addr (mask_select_size - 1 downto 0);
-    read_addr_mask_select <= read_addr (mask_select_size - 1 downto 0);
 
     -- Generate global signals
     do_read <= read_in and not empty_sig;

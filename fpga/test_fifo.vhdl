@@ -26,8 +26,25 @@ architecture structural of test_fifo is
             read_in     : in std_logic);
     end component fifo;
 
-    signal done        : std_logic_vector (0 to 6) := (others => '0');
-    signal clock       : std_logic := '0';
+
+    constant num_tests      : Natural := 12;
+
+    type t_test_spec is record
+            addr_size       : Natural;
+            data_size_log_2 : Natural;
+        end record;
+    type t_test_spec_table is array (Natural range 1 to num_tests) of t_test_spec;
+
+    -- Try various combinations of address size and data size
+    constant test_spec_table : t_test_spec_table :=
+        ((6, 0), (6, 1), (6, 2), (6, 3), (6, 4),
+         (12, 0), (13, 0),
+         (8, 4), (9, 4),
+         (16, 0),
+         (14, 4), (4, 0));
+    signal done              : std_logic_vector (0 to num_tests) := (others => '0');
+    signal clock             : std_logic := '0';
+
 begin
 
 
@@ -35,7 +52,7 @@ begin
     begin
         done (0) <= '1';
         wait for 500 ns;
-        while done (6) /= '1' loop
+        while done (num_tests) /= '1' loop
             clock <= '1';
             wait for 500 ns;
             clock <= '0';
@@ -44,12 +61,11 @@ begin
         wait;
     end process;
 
-    ftest : for test_size in 1 to 6 generate
+    ftest : for spec_index in 1 to num_tests generate
 
-        constant data_size_log_2 : Natural := ((test_size - 1) / 2); -- 0 or 1 or 2
-        constant data_size       : Natural := 2 ** data_size_log_2;  -- 1 or 2 or 4
-        constant addr_size       : Natural := (6 * (((test_size - 1) mod 2) + 1)) - data_size_log_2;
-                -- 6, 12, 5, 11, 4, 10
+        constant data_size_log_2 : Natural := test_spec_table (spec_index).data_size_log_2;
+        constant data_size       : Natural := 2 ** data_size_log_2;
+        constant addr_size       : Natural := test_spec_table (spec_index).addr_size;
         constant full_size       : Natural := 2 ** addr_size;
         constant halfway         : Natural := full_size / 2;
 
@@ -111,12 +127,12 @@ begin
             end check;
         begin
             -- initial state
-            done (test_size) <= '0';
+            done (spec_index) <= '0';
             do_write <= '0';
             do_read <= '0';
             reset <= '0';
             check (check_empty => '1');
-            wait until done (test_size - 1) = '1';
+            wait until done (spec_index - 1) = '1';
             write (l, String'("begin test for addr_size = "));
             write (l, addr_size);
             write (l, String'(" data_size = "));
@@ -265,7 +281,7 @@ begin
             write (l, String'("end test for addr_size = "));
             write (l, addr_size);
             writeline (output, l);
-            done (test_size) <= '1';
+            done (spec_index) <= '1';
             wait;
         end process;
     end generate ftest;
