@@ -1,17 +1,16 @@
+-- This FIFO is configurable and based on SB_RAM40_4K block RAMs.
+-- + The maximum number of items in the FIFO is 2**addr_size - 1.
+-- + The width of the FIFO (in bits) is 2**data_size_log_2.
+-- + An array of block RAMs is used to support configurations requiring more than 4K bits.
+
 
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
--- This FIFO is configurable and based on SB_RAM40_4K block RAMs.
--- + The maximum number of items in the FIFO is 2**addr_size - 1.
--- + The width of the FIFO (in bits) is 2**data_size_log_2.
--- + The maximum width is 16 bits.
--- + The minimum width is 1 bit.
-
 
 entity fifo is
-    generic (addr_size : Natural := 11; data_size_log_2 : Natural := 1);
+    generic (addr_size : Natural; data_size_log_2 : Natural);
     port (
         data_in     : in std_logic_vector ((2 ** data_size_log_2) - 1 downto 0);
         data_out    : out std_logic_vector ((2 ** data_size_log_2) - 1 downto 0) := (others => '0');
@@ -30,7 +29,7 @@ architecture structural of fifo is
 
     -- The RAM data size is always 16 bits (as the block RAMs are 256 by 16)
     constant ram_data_size_log_2  : Natural := 4;
-    constant ram_data_size  : Natural := 2 ** ram_data_size_log_2;
+    constant ram_data_size        : Natural := 2 ** ram_data_size_log_2;
 
     function at_least_one (n : Natural) return Natural is
     begin
@@ -41,6 +40,22 @@ architecture structural of fifo is
         end if;
     end at_least_one;
 
+    -- The block RAMs are organised as a 2D matrix of rows and columns.
+    -- + More than one column is needed if the data size > 16 bits.
+    -- + More than one row is needed if address size - log2(data size) > 12 bits.
+    --
+    -- Determine the number of columns:
+    function calc_num_cols_log_2 return Natural is
+    begin
+        if data_size_log_2 <= ram_data_size_log_2 then
+            return 1;
+        else
+            return data_size_log_2 - ram_data_size_log_2;
+        end if;
+    end calc_num_cols_log_2;
+    constant num_cols_log_2         : Natural := calc_num_cols_log_2;
+    constant num_cols               : Natural := 2 ** num_cols_log_2;
+
     -- Internally the address registers for read and write have this structure:
     --
     --    msb                                    lsb
@@ -49,8 +64,17 @@ architecture structural of fifo is
     --   +------------+---------------+-------------+
 
     -- mask_select chooses a subset of the data bits
-    -- + There may be 0..4 mask_select bits
-    constant mask_select_size   : Natural := ram_data_size_log_2 - data_size_log_2;
+    -- + There may be 0..4 mask_select bits.
+    -- + There are 0 if data_size_log_2 >= 4.
+    function calc_mask_select_size return Natural is
+    begin
+        if ram_data_size_log_2 > data_size_log_2 then
+            return ram_data_size_log_2 - data_size_log_2;
+        else
+            return 0;
+        end if;
+    end calc_mask_select_size;
+    constant mask_select_size   : Natural := calc_mask_select_size;
     subtype t_addr_mask_select is std_logic_vector (at_least_one (mask_select_size) - 1 downto 0);
 
     -- raddr/waddr is passed to each block RAM:
@@ -86,8 +110,8 @@ architecture structural of fifo is
     -- Number of data bits
     constant data_size      : Natural := 2 ** data_size_log_2;
 
-    -- Data bus size (set by RAM definition - 16 bits wide)
-    subtype t_ram_data is std_logic_vector (ram_data_size - 1 downto 0);
+    -- Data bus size 
+    subtype t_ram_data is std_logic_vector ((ram_data_size * num_cols) - 1 downto 0);
     type t_data_rows is array (0 to num_rows - 1) of t_ram_data;
 
     -- Block RAM definition
@@ -138,26 +162,31 @@ begin
     -- Block RAMs are generated here
     rows : for row in 0 to num_rows - 1 generate
         signal do_write     : std_logic := '0';
-        constant one        : std_logic := '1';
     begin
         do_write <= (write_in and not full_sig) when to_integer (unsigned (write_addr_row_select)) = row else '0';
 
-        ram : SB_RAM40_4K
-            generic map (
-                READ_MODE => 0,
-                WRITE_MODE => 0)
-            port map (
-                WADDR => write_addr_ram,
-                WDATA => write_data,
-                MASK => write_mask,
-                WE => do_write,
-                WCLKE => one,
-                WCLK => clock_in,
-                RADDR => read_addr_ram,
-                RDATA => read_data (row),
-                RE => do_read,
-                RCLKE => one,
-                RCLK => clock_in);
+        cols : for col in 0 to num_cols - 1 generate
+            constant one             : std_logic := '1';
+            constant col_slice_right : Natural := col * ram_data_size;
+            constant col_slice_left  : Natural := col_slice_right + ram_data_size - 1;
+        begin
+            ram : SB_RAM40_4K
+                generic map (
+                    READ_MODE => 0,
+                    WRITE_MODE => 0)
+                port map (
+                    WADDR => write_addr_ram,
+                    WDATA => write_data (col_slice_left downto col_slice_right),
+                    MASK => write_mask (col_slice_left downto col_slice_right),
+                    WE => do_write,
+                    WCLKE => one,
+                    WCLK => clock_in,
+                    RADDR => read_addr_ram,
+                    RDATA => read_data (row) (col_slice_left downto col_slice_right),
+                    RE => do_read,
+                    RCLKE => one,
+                    RCLK => clock_in);
+        end generate cols;
     end generate rows;
 
     -- Generate write mask bus
@@ -172,7 +201,7 @@ begin
     -- Generate write data bus
     wdb : process (data_in)
     begin
-        for i in 0 to ram_data_size - 1 loop
+        for i in 0 to (ram_data_size * num_cols) - 1 loop
             write_data (i) <= data_in (i mod data_size);
         end loop;
     end process wdb;

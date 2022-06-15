@@ -1,3 +1,4 @@
+-- Test case for configurable FIFO
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -11,7 +12,7 @@ end test_fifo;
 architecture structural of test_fifo is
 
     component fifo is
-        generic (addr_size : Natural := 11; data_size_log_2 : Natural := 1);
+        generic (addr_size : Natural; data_size_log_2 : Natural);
         port (
             data_in     : in std_logic_vector ((2 ** data_size_log_2) - 1 downto 0);
             data_out    : out std_logic_vector ((2 ** data_size_log_2) - 1 downto 0) := (others => '0');
@@ -27,21 +28,27 @@ architecture structural of test_fifo is
     end component fifo;
 
 
-    constant num_tests      : Natural := 12;
-
     type t_test_spec is record
             addr_size       : Natural;
             data_size_log_2 : Natural;
         end record;
-    type t_test_spec_table is array (Natural range 1 to num_tests) of t_test_spec;
+    type t_test_spec_table is array (Natural range <>) of t_test_spec;
 
     -- Try various combinations of address size and data size
     constant test_spec_table : t_test_spec_table :=
-        ((6, 0), (6, 1), (6, 2), (6, 3), (6, 4),
-         (12, 0), (13, 0),
-         (8, 4), (9, 4),
-         (16, 0),
-         (14, 4), (4, 0));
+         -- One row and one column
+        ((6, 0), (6, 1), (6, 2), (6, 3), (6, 4), (12, 0), (8, 4), (4, 0),
+         -- Two rows one column
+         (13, 0), (9, 4),
+         -- Many rows one column
+         (16, 0), (14, 4), 
+         -- One row two columns
+         (6, 5), (8, 5),
+         -- One row four columns
+         (8, 6),
+         -- Four rows four columns
+         (10, 6));
+    constant num_tests       : Natural := test_spec_table'Length;
     signal done              : std_logic_vector (0 to num_tests) := (others => '0');
     signal clock             : std_logic := '0';
 
@@ -61,7 +68,7 @@ begin
         wait;
     end process;
 
-    ftest : for spec_index in 1 to num_tests generate
+    ftest : for spec_index in 0 to num_tests - 1 generate
 
         constant data_size_log_2 : Natural := test_spec_table (spec_index).data_size_log_2;
         constant data_size       : Natural := 2 ** data_size_log_2;
@@ -127,12 +134,12 @@ begin
             end check;
         begin
             -- initial state
-            done (spec_index) <= '0';
+            done (spec_index + 1) <= '0';
             do_write <= '0';
             do_read <= '0';
             reset <= '0';
             check (check_empty => '1');
-            wait until done (spec_index - 1) = '1';
+            wait until done (spec_index) = '1';
             write (l, String'("begin test for addr_size = "));
             write (l, addr_size);
             write (l, String'(" data_size = "));
@@ -281,7 +288,7 @@ begin
             write (l, String'("end test for addr_size = "));
             write (l, addr_size);
             writeline (output, l);
-            done (spec_index) <= '1';
+            done (spec_index + 1) <= '1';
             wait;
         end process;
     end generate ftest;
