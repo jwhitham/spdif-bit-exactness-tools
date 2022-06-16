@@ -134,7 +134,7 @@ architecture structural of fpga_main is
     end component clock_regenerator;
 
     component output_encoder is
-        generic (test_addr_size : Natural := 11);
+        generic (addr_size : Natural := 11);
         port (
             pulse_length_in : in std_logic_vector (1 downto 0);
             sync_in         : in std_logic;

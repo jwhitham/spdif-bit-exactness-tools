@@ -230,8 +230,8 @@ begin
             write_addr_row_select <= write_addr (reg_addr_size - 1 downto ram_addr_size + mask_select_size);
             read_addr_row_select <= read_addr (reg_addr_size - 1 downto ram_addr_size + mask_select_size);
         else
-            write_addr_row_select <= "0";
-            read_addr_row_select <= "0";
+            write_addr_row_select <= (others => '0');
+            read_addr_row_select <= (others => '0');
         end if;
 
         write_addr_ram <= write_addr (ram_addr_size + mask_select_size - 1 downto mask_select_size);
@@ -241,8 +241,8 @@ begin
             write_addr_mask_select <= write_addr (mask_select_size - 1 downto 0);
             read_addr_mask_select <= read_addr (mask_select_size - 1 downto 0);
         else
-            write_addr_mask_select <= "0";
-            read_addr_mask_select <= "0";
+            write_addr_mask_select <= (others => '0');
+            read_addr_mask_select <= (others => '0');
         end if;
     end process bs;
 

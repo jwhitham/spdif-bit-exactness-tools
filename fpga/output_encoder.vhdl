@@ -5,7 +5,7 @@ use ieee.std_logic_1164.all;
 use std.textio.all;
 
 entity output_encoder is
-    generic (test_addr_size : Natural := 11);
+    generic (addr_size : Natural := 11);
     port (
         pulse_length_in : in std_logic_vector (1 downto 0);
         sync_in         : in std_logic;
@@ -41,7 +41,7 @@ architecture structural of output_encoder is
     signal data_gen         : std_logic := '0';
 
     component fifo is
-        generic (test_addr_size : Natural := 11; data_size_log_2 : Natural := 1);
+        generic (addr_size : Natural; data_size_log_2 : Natural);
         port (
             data_in     : in std_logic_vector ((2 ** data_size_log_2) - 1 downto 0);
             data_out    : out std_logic_vector ((2 ** data_size_log_2) - 1 downto 0) := (others => '0');
@@ -59,7 +59,7 @@ architecture structural of output_encoder is
 
 begin
     f : fifo
-        generic map (test_addr_size => test_addr_size, data_size_log_2 => 1)
+        generic map (addr_size => addr_size, data_size_log_2 => 1)
         port map (
             data_in => pulse_length_in,
             data_out => pulse_length,
