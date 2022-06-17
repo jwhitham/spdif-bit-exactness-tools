@@ -12,13 +12,13 @@ end test_fifo;
 architecture structural of test_fifo is
 
     component fifo is
-        generic (addr_size : Natural; data_size_log_2 : Natural);
+        generic (addr_size : Natural; data_size_log_2 : Natural; threshold_level : Real);
         port (
             data_in     : in std_logic_vector ((2 ** data_size_log_2) - 1 downto 0);
             data_out    : out std_logic_vector ((2 ** data_size_log_2) - 1 downto 0) := (others => '0');
             empty_out   : out std_logic := '1';
             full_out    : out std_logic := '0';
-            half_out    : out std_logic := '0';
+            thresh_out  : out std_logic := '0';
             write_error : out std_logic := '0';
             read_error  : out std_logic := '0';
             reset_in    : in std_logic;
@@ -31,23 +31,26 @@ architecture structural of test_fifo is
     type t_test_spec is record
             addr_size       : Natural;
             data_size_log_2 : Natural;
+            threshold_level : Real;
         end record;
     type t_test_spec_table is array (Natural range <>) of t_test_spec;
 
     -- Try various combinations of address size and data size
     constant test_spec_table : t_test_spec_table :=
          -- One row and one column
-        ((6, 0), (6, 1), (6, 2), (6, 3), (6, 4), (12, 0), (8, 4), (4, 0),
+        ((6, 0, 0.5), (6, 1, 0.5), (6, 2, 0.5), (6, 3, 0.5), (6, 4, 0.5), (12, 0, 0.5), (8, 4, 0.5), (4, 0, 0.5),
+         -- Different thresholds
+         (12, 0, 0.05), (12, 0, 0.15), (12, 0, 0.9), (12, 0, 0.33333),
          -- Two rows one column
-         (13, 0), (9, 4),
+         (13, 0, 0.5), (9, 4, 0.5),
          -- Many rows one column
-         (16, 0), (14, 4), 
+         (16, 0, 0.5), (14, 4, 0.5), 
          -- One row two columns
-         (6, 5), (8, 5),
+         (6, 5, 0.5), (8, 5, 0.5),
          -- One row four columns
-         (8, 6),
+         (8, 6, 0.5),
          -- Four rows four columns
-         (10, 6));
+         (10, 6, 0.5));
     constant num_tests       : Natural := test_spec_table'Length;
     signal done              : std_logic_vector (0 to num_tests) := (others => '0');
     signal clock             : std_logic := '0';
@@ -74,7 +77,9 @@ begin
         constant data_size       : Natural := 2 ** data_size_log_2;
         constant addr_size       : Natural := test_spec_table (spec_index).addr_size;
         constant full_size       : Natural := 2 ** addr_size;
-        constant halfway         : Natural := full_size / 2;
+        constant threshold_level : Real := test_spec_table (spec_index).threshold_level;
+        constant thresh_point    : Natural := Natural (Real (full_size) * threshold_level);
+        constant inv_thresh_point : Natural := full_size - thresh_point;
 
         subtype t_data is std_logic_vector (data_size - 1 downto 0);
 
@@ -82,7 +87,7 @@ begin
         signal data_out    : t_data := (others => '0');
         signal empty       : std_logic := '0';
         signal full        : std_logic := '0';
-        signal half        : std_logic := '0';
+        signal thresh      : std_logic := '0';
         signal do_write    : std_logic := '0';
         signal do_read     : std_logic := '0';
         signal reset       : std_logic := '0';
@@ -91,13 +96,15 @@ begin
     begin
 
         f : fifo
-            generic map (addr_size => addr_size, data_size_log_2 => data_size_log_2)
+            generic map (addr_size => addr_size,
+                         data_size_log_2 => data_size_log_2,
+                         threshold_level => threshold_level)
             port map (
                 data_in => data_in,
                 data_out => data_out,
                 empty_out => empty,
                 full_out => full,
-                half_out => half,
+                thresh_out => thresh,
                 write_error => write_error,
                 read_error => read_error,
                 reset_in => reset,
@@ -124,13 +131,13 @@ begin
                 check_read_error : std_logic := '0';
                 check_empty : std_logic := '0';
                 check_full : std_logic := '0';
-                check_half : std_logic := '0') is
+                check_thresh : std_logic := '0') is
             begin
                 assert write_error = check_write_error;
                 assert read_error = check_read_error;
                 assert empty = check_empty;
                 assert full = check_full;
-                assert half = check_half;
+                assert thresh = check_thresh;
             end check;
         begin
             -- initial state
@@ -144,6 +151,8 @@ begin
             write (l, addr_size);
             write (l, String'(" data_size = "));
             write (l, data_size);
+            write (l, String'(" threshold_level = "));
+            write (l, threshold_level);
             writeline (output, l);
 
             -- initial state should be stable
@@ -223,8 +232,8 @@ begin
             end loop;
             check (check_empty => '1');
 
-            -- fill to halfway
-            for i in 1 to halfway loop
+            -- fill to thresh_point
+            for i in 1 to thresh_point loop
                 data_in <= hash (i);
                 do_write <= '1';
                 wait for 1 us;
@@ -232,13 +241,13 @@ begin
                 check;
                 assert data_out = hash (8);
             end loop;
-            -- halfway flag asserted after the 50% write
-            for i in halfway + 1 to full_size - 2 loop
+            -- thresh_point flag asserted now
+            for i in thresh_point + 1 to full_size - 2 loop
                 data_in <= hash (i);
                 do_write <= '1';
                 wait for 1 us;
                 do_write <= '0';
-                check (check_half => '1');
+                check (check_thresh => '1');
                 assert data_out = hash (8);
             end loop;
             -- full flag asserted after the final write
@@ -246,26 +255,26 @@ begin
             do_write <= '1';
             wait for 1 us;
             do_write <= '0';
-            check (check_half => '1', check_full => '1');
+            check (check_thresh => '1', check_full => '1');
             assert data_out = hash (8);
             -- error if trying to write again
             data_in <= hash (97);
             do_write <= '1';
             wait for 1 us;
             do_write <= '0';
-            check (check_half => '1', check_full => '1', check_write_error => '1');
+            check (check_thresh => '1', check_full => '1', check_write_error => '1');
             assert data_out = hash (8);
 
-            -- empty to halfway
-            for i in 1 to halfway - 1 loop
+            -- empty to thresh_point
+            for i in 1 to inv_thresh_point - 1 loop
                 do_read <= '1';
                 wait for 1 us;
                 do_read <= '0';
-                check (check_half => '1');
+                check (check_thresh => '1');
                 assert data_out = hash (i);
             end loop;
             -- empty to one left 
-            for i in halfway to full_size - 2 loop
+            for i in inv_thresh_point to full_size - 2 loop
                 do_read <= '1';
                 wait for 1 us;
                 do_read <= '0';

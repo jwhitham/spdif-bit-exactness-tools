@@ -2,6 +2,7 @@
 -- + The maximum number of items in the FIFO is 2**addr_size - 1.
 -- + The width of the FIFO (in bits) is 2**data_size_log_2.
 -- + An array of block RAMs is used to support configurations requiring more than 4K bits.
+-- + thresh_out = '1' if the FIFO level is greater than threshold_level (where 1.0 = full and 0.0 = empty)
 
 
 library ieee;
@@ -10,13 +11,13 @@ use ieee.numeric_std.all;
 
 
 entity fifo is
-    generic (addr_size : Natural; data_size_log_2 : Natural);
+    generic (addr_size : Natural := 12; data_size_log_2 : Natural := 0; threshold_level : Real := 0.5);
     port (
         data_in     : in std_logic_vector ((2 ** data_size_log_2) - 1 downto 0);
         data_out    : out std_logic_vector ((2 ** data_size_log_2) - 1 downto 0) := (others => '0');
         empty_out   : out std_logic := '1';
         full_out    : out std_logic := '0';
-        half_out    : out std_logic := '0';
+        thresh_out  : out std_logic := '0';
         write_error : out std_logic := '0';
         read_error  : out std_logic := '0';
         reset_in    : in std_logic;
@@ -149,7 +150,7 @@ architecture structural of fifo is
     signal read_addr_next           : t_reg_addr := (others => '0');
     signal full_sig                 : std_logic := '0';
     signal empty_sig                : std_logic := '1';
-    signal read_addr_half           : std_logic := '0';
+    signal read_addr_thresh           : std_logic := '0';
     signal write_addr_row_select    : t_addr_row_select := (others => '0');
     signal write_addr_ram           : t_addr_ram := (others => '0');
     signal write_addr_mask_select   : t_addr_mask_select := (others => '0');
@@ -252,9 +253,13 @@ begin
     read_addr_next <= std_logic_vector (unsigned (read_addr) + 1) and used_bits_mask;
     empty_sig <= '1' when (read_addr = write_addr) else '0';
     full_sig <= '1' when (read_addr = write_addr_next) else '0';
-    read_addr_half <= '1'
-            when (std_logic_vector (unsigned (read_addr) + to_unsigned (2 ** (addr_size - 1), reg_addr_size))
+    read_addr_thresh <= '1'
+            when (std_logic_vector (unsigned (read_addr) + to_unsigned (
+                            Natural (threshold_level * Real (2 ** addr_size)), reg_addr_size))
                           and used_bits_mask) = write_addr else '0';
+    assert threshold_level >= 0.0;
+    assert threshold_level <= 1.0;
+    assert addr_size >= 4;
 
     -- Generate outputs that copy global signals
     empty_out <= empty_sig;
@@ -307,7 +312,7 @@ begin
         end if;
     end process ra;
 
-    -- Control for halfway marker
+    -- Control for threshold marker
     hw : process (clock_in)
         variable inc, dec : boolean := false;
     begin
@@ -319,18 +324,18 @@ begin
                 -- Adding or removing from the FIFO, but not both
                 if inc then
                     -- Adding to FIFO
-                    if read_addr_half = '1' then
-                        half_out <= '1';
+                    if read_addr_thresh = '1' then
+                        thresh_out <= '1';
                     end if;
                 else
                     -- Removing from FIFO
-                    if read_addr_half = '1' then
-                        half_out <= '0';
+                    if read_addr_thresh = '1' then
+                        thresh_out <= '0';
                     end if;
                 end if;
             end if;
             if reset_in = '1' then
-                half_out <= '0';
+                thresh_out <= '0';
             end if;
         end if;
     end process hw;
