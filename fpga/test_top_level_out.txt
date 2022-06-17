@@ -296,11 +296,9 @@ packet encoder synchronised
 output encoder synchronised
 second input decoder synchronised
 second packet decoder synchronised
-second packet decoder desynchronised
 000800 fff7ff
-second packet decoder synchronised
-001000 ffefff
 second channel decoder synchronised
+001000 ffefff
 002000 ffdfff
 004000 ffbfff
 008000 ff7fff
@@ -760,10 +758,8 @@ output encoder synchronised
 second input decoder synchronised
 second packet decoder synchronised
 001000 fff000
-second packet decoder desynchronised
-second packet decoder synchronised
-002000 ffe000
 second channel decoder synchronised
+002000 ffe000
 004000 ffc000
 008000 ff8000
 010000 ff0000
