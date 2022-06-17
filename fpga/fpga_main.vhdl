@@ -134,7 +134,7 @@ architecture structural of fpga_main is
     end component clock_regenerator;
 
     component output_encoder is
-        generic (addr_size : Natural := 11);
+        generic (addr_size : Natural := 11; threshold_level : Real := 0.5);
         port (
             pulse_length_in : in std_logic_vector (1 downto 0);
             sync_in         : in std_logic;
@@ -229,10 +229,10 @@ begin
     begin
         data2 <= data;
         if btn_sw = '0' then
-            data2 (19 downto 0) <= (others => data2 (27)); -- go 8 bit
+            data2 (19 downto 0) <= (others => data (27)); -- go 8 bit
         end if;
         if btn_se = '0' then
-            data2 (23 downto 0) <= (others => data2 (27)); -- go 4 bit
+            data2 (23 downto 0) <= (others => data (27)); -- go 4 bit
         end if;
         preemph <= not btn_nw;
     end process;

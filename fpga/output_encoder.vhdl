@@ -5,7 +5,7 @@ use ieee.std_logic_1164.all;
 use std.textio.all;
 
 entity output_encoder is
-    generic (addr_size : Natural := 11);
+    generic (addr_size : Natural := 11; threshold_level : Real := 0.5);
     port (
         pulse_length_in : in std_logic_vector (1 downto 0);
         sync_in         : in std_logic;
@@ -41,13 +41,13 @@ architecture structural of output_encoder is
     signal data_gen         : std_logic := '0';
 
     component fifo is
-        generic (addr_size : Natural; data_size_log_2 : Natural);
+        generic (addr_size : Natural; data_size_log_2 : Natural; threshold_level : Real);
         port (
             data_in     : in std_logic_vector ((2 ** data_size_log_2) - 1 downto 0);
             data_out    : out std_logic_vector ((2 ** data_size_log_2) - 1 downto 0) := (others => '0');
             empty_out   : out std_logic := '1';
             full_out    : out std_logic := '0';
-            half_out    : out std_logic := '0';
+            thresh_out  : out std_logic := '0';
             write_error : out std_logic := '0';
             read_error  : out std_logic := '0';
             reset_in    : in std_logic;
@@ -59,13 +59,14 @@ architecture structural of output_encoder is
 
 begin
     f : fifo
-        generic map (addr_size => addr_size, data_size_log_2 => 1)
+        generic map (addr_size => addr_size, data_size_log_2 => 1,
+                     threshold_level => threshold_level)
         port map (
             data_in => pulse_length_in,
             data_out => pulse_length,
             empty_out => open,
             full_out => open,
-            half_out => fifo_half_full,
+            thresh_out => fifo_half_full,
             write_error => fifo_write_error,
             read_error => fifo_read_error,
             reset_in => fifo_reset,

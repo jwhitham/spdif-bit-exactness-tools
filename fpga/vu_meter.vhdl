@@ -14,16 +14,18 @@ architecture structural of vu_meter is
 begin
     process (clock)
     begin
-        if clock'event and clock = '1' and strobe_in = '1' then
-            meter_out <= (others => '1');
-            for i in 7 downto 0 loop
-                if data_in (8) /= data_in (i) then
-                    -- sign bit matches bit i - stop
-                    exit;
-                else
-                    meter_out (7 - i) <= '0';
-                end if;
-            end loop;
+        if clock'event and clock = '1' then
+            if strobe_in = '1' then
+                meter_out <= (others => '1');
+                for i in 7 downto 0 loop
+                    if data_in (8) /= data_in (i) then
+                        -- sign bit matches bit i - stop
+                        exit;
+                    else
+                        meter_out (7 - i) <= '0';
+                    end if;
+                end loop;
+            end if;
         end if;
     end process;
 

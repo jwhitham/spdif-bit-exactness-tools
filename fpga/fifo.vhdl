@@ -134,6 +134,9 @@ architecture structural of fifo is
             WE          : in std_logic);
     end component SB_RAM40_4K;
 
+    -- Threshold
+    constant integer_threshold      : Natural := Natural (threshold_level * Real (2 ** addr_size));
+
     -- Registers
     signal write_addr               : t_reg_addr := (others => '0');
     signal read_addr                : t_reg_addr := (others => '0');
@@ -254,8 +257,7 @@ begin
     empty_sig <= '1' when (read_addr = write_addr) else '0';
     full_sig <= '1' when (read_addr = write_addr_next) else '0';
     read_addr_thresh <= '1'
-            when (std_logic_vector (unsigned (read_addr) + to_unsigned (
-                            Natural (threshold_level * Real (2 ** addr_size)), reg_addr_size))
+            when (std_logic_vector (unsigned (read_addr) + to_unsigned (integer_threshold, reg_addr_size))
                           and used_bits_mask) = write_addr else '0';
     assert threshold_level >= 0.0;
     assert threshold_level <= 1.0;

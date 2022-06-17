@@ -116,7 +116,7 @@ architecture structural of test_top_level is
     end component clock_regenerator;
 
     component output_encoder is
-        generic (addr_size : Natural := 11);
+        generic (addr_size : Natural := 11; threshold_level : Real := 0.5);
         port (
             pulse_length_in : in std_logic_vector (1 downto 0);
             sync_in         : in std_logic;
@@ -221,7 +221,7 @@ begin
                   shift_in => packet_shift_2);
 
     oe : output_encoder
-        generic map (addr_size => 7)
+        generic map (addr_size => 7, threshold_level => 0.5)
         port map (clock_in => clock,
                   pulse_length_in => pe_pulse_length,
                   sync_in => sync (8),
