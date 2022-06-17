@@ -15,20 +15,20 @@ end clock_regenerator;
 
 architecture structural of clock_regenerator is
 
-    constant num_packets_log_2           : Integer := 8;
-    constant num_clocks_per_packet_log_2 : Integer := 6;
-    constant max_transition_time_log_2   : Integer := 8;
+    constant num_packets_log_2           : Integer := 4;    -- average the single-width pulse time across 16 packets
+    constant num_clocks_per_packet_log_2 : Integer := 6;    -- S/PDIF packet length is exactly 64 pulses
+    constant max_transition_time_log_2   : Integer := 6;    -- max 63 clock cycles for a single-width pulse
     constant fixed_point_bits            : Integer := num_packets_log_2 + num_clocks_per_packet_log_2;
     constant counter_bits                : Integer := fixed_point_bits + max_transition_time_log_2;
 
     -- Count the number of clock_in cycles required for 2**num_packets_log_2 packets
     -- Use this to make a fixed point clock divider to convert clock_in to strobe_out
-    subtype t_their_packets is unsigned ((num_packets_log_2 - 1) downto 0);
+    subtype t_packet_counter is unsigned ((num_packets_log_2 - 1) downto 0);
     subtype t_clock_counter is unsigned ((counter_bits - 1) downto 0);
-    constant zero_packets       : t_their_packets := (others => '0');
+    constant zero_packets       : t_packet_counter := (others => '0');
     constant zero_clocks        : t_clock_counter := (others => '0');
 
-    signal their_packets        : t_their_packets := zero_packets;
+    signal packet_counter       : t_packet_counter := zero_packets;
     signal clock_counter        : t_clock_counter := (others => '0');
     signal clock_interval       : t_clock_counter := (others => '0');
     signal divisor_subtract     : t_clock_counter := (others => '0');
@@ -59,7 +59,7 @@ begin
                 when START =>
                     -- wait for the start of a new packet
                     clock_counter <= zero_clocks + 1;
-                    their_packets <= zero_packets;
+                    packet_counter <= zero_packets;
                     clock_interval <= zero_clocks;
                     sync_gen <= '0';
                     if pulse_length_in = "11" then
@@ -79,12 +79,12 @@ begin
                     -- wait until the body is reached (count 1 more pulse of any length)
                     if pulse_length_in /= "00" then
                         measurement_state <= IN_BODY;
-                        their_packets <= their_packets + 1;
+                        packet_counter <= packet_counter + 1;
                     end if;
                 when IN_BODY =>
                     -- wait until the end of the body (sync pulse)
                     if pulse_length_in = "11" then
-                        if their_packets = zero_packets then
+                        if packet_counter = zero_packets then
                             -- counting is complete
                             clock_interval <= clock_counter srl 1;
                             clock_counter <= zero_clocks + 1;

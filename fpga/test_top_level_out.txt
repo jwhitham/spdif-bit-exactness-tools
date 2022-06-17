@@ -51,8 +51,15 @@ channel decoder synchronised
 010000 feffff
 020000 fdffff
 040000 fbffff
+clock regenerator synchronised
+channel encoder synchronised
+packet encoder synchronised
 080000 f7ffff
+output encoder synchronised
+second input decoder synchronised
+second packet decoder synchronised
 100000 efffff
+second channel decoder synchronised
 200000 dfffff
 400000 bfffff
 800000 7fffff
@@ -93,6 +100,14 @@ input decoder desynchronised
 input decoder single time = 63
 packet decoder desynchronised
 channel decoder desynchronised
+regenerator r_clocks = 4903 clocks = 79788
+clock regenerator desynchronised
+channel encoder desynchronised
+packet encoder desynchronised
+output encoder desynchronised
+second input decoder desynchronised
+second packet decoder desynchronised
+second channel decoder desynchronised
 Start of ../examples/test_44100_24_bit.csv
 input decoder single time = 4
 input decoder single time = 63
@@ -112,9 +127,16 @@ b61800 1d7600
 e3b30d 0c8faf
 afe65e 4195b3
 667001 40817f
+clock regenerator synchronised
 24daf1 ebf8c9
+channel encoder synchronised
+packet encoder synchronised
 5a20c9 75c3ea
+output encoder synchronised
+second input decoder synchronised
+second packet decoder synchronised
 d0961c 8de3b3
+second channel decoder synchronised
 8fb408 cfb555
 ea6d66 3e4874
 000001 fffffe
@@ -150,6 +172,14 @@ input decoder desynchronised
 input decoder single time = 63
 packet decoder desynchronised
 channel decoder desynchronised
+regenerator r_clocks = 4356 clocks = 77164
+clock regenerator desynchronised
+channel encoder desynchronised
+packet encoder desynchronised
+output encoder desynchronised
+second input decoder desynchronised
+second packet decoder desynchronised
+second channel decoder desynchronised
 Start of test_44100_data with quality = Quality.EXACT_24
 input decoder single time = 27
 input decoder single time = 9
@@ -167,8 +197,15 @@ channel decoder synchronised
 000080 ffff7f
 000100 fffeff
 000200 fffdff
+clock regenerator synchronised
+channel encoder synchronised
+packet encoder synchronised
 000400 fffbff
+output encoder synchronised
+second input decoder synchronised
+second packet decoder synchronised
 000800 fff7ff
+second channel decoder synchronised
 001000 ffefff
 002000 ffdfff
 004000 ffbfff
@@ -224,134 +261,127 @@ ea6d66 3e4874
 matcher sample rate = 44100 sync4 = 3
 matcher synchronised
 01b900 654321
-c64e00 655e00
-257600 7d5600
-f66900 51f300
-b61800 1d7600
-4dc100 db5e00
-40d900 9e0d00
-508a00 48dd00
-e3b30d 0c8faf
-afe65e 4195b3
-667001 40817f
-24daf1 ebf8c9
-5a20c9 75c3ea
-d0961c 8de3b3
-8fb408 cfb555
-ea6d66 3e4874
-000001 fffffe
-000002 fffffd
-000004 fffffb
-000008 fffff7
-000010 ffffef
-000020 ffffdf
-000040 ffffbf
-000080 ffff7f
-000100 fffeff
-000200 fffdff
-000400 fffbff
-000800 fff7ff
-001000 ffefff
-002000 ffdfff
-004000 ffbfff
-008000 ff7fff
-010000 feffff
-020000 fdffff
-040000 fbffff
-080000 f7ffff
-100000 efffff
-200000 dfffff
-400000 bfffff
-800000 7fffff
-01b900 654321
-c64e00 655e00
-257600 7d5600
-f66900 51f300
-b61800 1d7600
-4dc100 db5e00
-40d900 9e0d00
-508a00 48dd00
-e3b30d 0c8faf
-afe65e 4195b3
-667001 40817f
-24daf1 ebf8c9
-5a20c9 75c3ea
-d0961c 8de3b3
-8fb408 cfb555
-ea6d66 3e4874
-000001 fffffe
-000002 fffffd
-000004 fffffb
-000008 fffff7
-000010 ffffef
-000020 ffffdf
-000040 ffffbf
-000080 ffff7f
-000100 fffeff
-000200 fffdff
-clock regenerator synchronised
-channel encoder synchronised
-packet encoder synchronised
-000400 fffbff
-output encoder synchronised
-second input decoder synchronised
-second packet decoder synchronised
-000800 fff7ff
-second channel decoder synchronised
-001000 ffefff
-002000 ffdfff
-004000 ffbfff
-008000 ff7fff
-010000 feffff
-020000 fdffff
-040000 fbffff
-080000 f7ffff
-100000 efffff
-200000 dfffff
-400000 bfffff
-800000 7fffff
-01b900 654321
-c64e00 655e00
-257600 7d5600
-f66900 51f300
-b61800 1d7600
-4dc100 db5e00
-40d900 9e0d00
-508a00 48dd00
-e3b30d 0c8faf
-afe65e 4195b3
-667001 40817f
-24daf1 ebf8c9
-5a20c9 75c3ea
-d0961c 8de3b3
-8fb408 cfb555
-ea6d66 3e4874
-000001 fffffe
-000002 fffffd
-000004 fffffb
-000008 fffff7
-000010 ffffef
-000020 ffffdf
-000040 ffffbf
-000080 ffff7f
-000100 fffeff
-000200 fffdff
-000400 fffbff
-000800 fff7ff
-001000 ffefff
-002000 ffdfff
-004000 ffbfff
-008000 ff7fff
-010000 feffff
-020000 fdffff
-040000 fbffff
-080000 f7ffff
-100000 efffff
-200000 dfffff
-400000 bfffff
-800000 7fffff
-01b900 654321
 second matcher synchronised
+c64e00 655e00
+257600 7d5600
+f66900 51f300
+b61800 1d7600
+4dc100 db5e00
+40d900 9e0d00
+508a00 48dd00
+e3b30d 0c8faf
+afe65e 4195b3
+667001 40817f
+24daf1 ebf8c9
+5a20c9 75c3ea
+d0961c 8de3b3
+8fb408 cfb555
+ea6d66 3e4874
+000001 fffffe
+000002 fffffd
+000004 fffffb
+000008 fffff7
+000010 ffffef
+000020 ffffdf
+000040 ffffbf
+000080 ffff7f
+000100 fffeff
+000200 fffdff
+000400 fffbff
+000800 fff7ff
+001000 ffefff
+002000 ffdfff
+004000 ffbfff
+008000 ff7fff
+010000 feffff
+020000 fdffff
+040000 fbffff
+080000 f7ffff
+100000 efffff
+200000 dfffff
+400000 bfffff
+800000 7fffff
+01b900 654321
+c64e00 655e00
+257600 7d5600
+f66900 51f300
+b61800 1d7600
+4dc100 db5e00
+40d900 9e0d00
+508a00 48dd00
+e3b30d 0c8faf
+afe65e 4195b3
+667001 40817f
+24daf1 ebf8c9
+5a20c9 75c3ea
+d0961c 8de3b3
+8fb408 cfb555
+ea6d66 3e4874
+000001 fffffe
+000002 fffffd
+000004 fffffb
+000008 fffff7
+000010 ffffef
+000020 ffffdf
+000040 ffffbf
+000080 ffff7f
+000100 fffeff
+000200 fffdff
+000400 fffbff
+000800 fff7ff
+001000 ffefff
+002000 ffdfff
+004000 ffbfff
+008000 ff7fff
+010000 feffff
+020000 fdffff
+040000 fbffff
+080000 f7ffff
+100000 efffff
+200000 dfffff
+400000 bfffff
+800000 7fffff
+01b900 654321
+c64e00 655e00
+257600 7d5600
+f66900 51f300
+b61800 1d7600
+4dc100 db5e00
+40d900 9e0d00
+508a00 48dd00
+e3b30d 0c8faf
+afe65e 4195b3
+667001 40817f
+24daf1 ebf8c9
+5a20c9 75c3ea
+d0961c 8de3b3
+8fb408 cfb555
+ea6d66 3e4874
+000001 fffffe
+000002 fffffd
+000004 fffffb
+000008 fffff7
+000010 ffffef
+000020 ffffdf
+000040 ffffbf
+000080 ffff7f
+000100 fffeff
+000200 fffdff
+000400 fffbff
+000800 fff7ff
+001000 ffefff
+002000 ffdfff
+004000 ffbfff
+008000 ff7fff
+010000 feffff
+020000 fdffff
+040000 fbffff
+080000 f7ffff
+100000 efffff
+200000 dfffff
+400000 bfffff
+800000 7fffff
+01b900 654321
 c64e00 655e00
 257600 7d5600
 f66900 51f300
@@ -371,7 +401,7 @@ input decoder single time = 63
 packet decoder desynchronised
 channel decoder desynchronised
 matcher desynchronised
-regenerator r_clocks = 8896 clocks = 157474
+regenerator r_clocks = 24256 clocks = 429346
 clock regenerator desynchronised
 channel encoder desynchronised
 packet encoder desynchronised
@@ -397,9 +427,16 @@ ea6d66 ffff00
 000000 ffff00
 000100 fffe00
 000200 fffd00
+clock regenerator synchronised
 000400 fffb00
+channel encoder synchronised
+packet encoder synchronised
 000800 fff700
+output encoder synchronised
+second input decoder synchronised
+second packet decoder synchronised
 001000 ffef00
+second channel decoder synchronised
 002000 ffdf00
 004000 ffbf00
 008000 ff7f00
@@ -454,134 +491,127 @@ ea6d00 3e4800
 matcher sample rate = 44100 sync4 = 2
 matcher synchronised
 01b900 654300
-c64e00 655e00
-257600 7d5600
-f66900 51f300
-b61800 1d7600
-4dc100 db5e00
-40d900 9e0d00
-508a00 48dd00
-e3b300 0c8f00
-afe600 419500
-667000 408100
-24da00 ebf800
-5a2000 75c300
-d09600 8de300
-8fb400 cfb500
-ea6d00 3e4800
-000000 ffff00
-000000 ffff00
-000000 ffff00
-000000 ffff00
-000000 ffff00
-000000 ffff00
-000000 ffff00
-000000 ffff00
-000100 fffe00
-000200 fffd00
-000400 fffb00
-000800 fff700
-001000 ffef00
-002000 ffdf00
-004000 ffbf00
-008000 ff7f00
-010000 feff00
-020000 fdff00
-040000 fbff00
-080000 f7ff00
-100000 efff00
-200000 dfff00
-400000 bfff00
-800000 7fff00
-01b900 654300
-c64e00 655e00
-257600 7d5600
-f66900 51f300
-b61800 1d7600
-4dc100 db5e00
-40d900 9e0d00
-508a00 48dd00
-e3b300 0c8f00
-afe600 419500
-667000 408100
-24da00 ebf800
-5a2000 75c300
-d09600 8de300
-8fb400 cfb500
-ea6d00 3e4800
-000000 ffff00
-000000 ffff00
-000000 ffff00
-000000 ffff00
-000000 ffff00
-000000 ffff00
-000000 ffff00
-000000 ffff00
-000100 fffe00
-000200 fffd00
-clock regenerator synchronised
-000400 fffb00
-channel encoder synchronised
-packet encoder synchronised
-000800 fff700
-output encoder synchronised
-second input decoder synchronised
-second packet decoder synchronised
-001000 ffef00
-second channel decoder synchronised
-002000 ffdf00
-004000 ffbf00
-008000 ff7f00
-010000 feff00
-020000 fdff00
-040000 fbff00
-080000 f7ff00
-100000 efff00
-200000 dfff00
-400000 bfff00
-800000 7fff00
-01b900 654300
-c64e00 655e00
-257600 7d5600
-f66900 51f300
-b61800 1d7600
-4dc100 db5e00
-40d900 9e0d00
-508a00 48dd00
-e3b300 0c8f00
-afe600 419500
-667000 408100
-24da00 ebf800
-5a2000 75c300
-d09600 8de300
-8fb400 cfb500
-ea6d00 3e4800
-000000 ffff00
-000000 ffff00
-000000 ffff00
-000000 ffff00
-000000 ffff00
-000000 ffff00
-000000 ffff00
-000000 ffff00
-000100 fffe00
-000200 fffd00
-000400 fffb00
-000800 fff700
-001000 ffef00
-002000 ffdf00
-004000 ffbf00
-008000 ff7f00
-010000 feff00
-020000 fdff00
-040000 fbff00
-080000 f7ff00
-100000 efff00
-200000 dfff00
-400000 bfff00
-800000 7fff00
-01b900 654300
 second matcher synchronised
+c64e00 655e00
+257600 7d5600
+f66900 51f300
+b61800 1d7600
+4dc100 db5e00
+40d900 9e0d00
+508a00 48dd00
+e3b300 0c8f00
+afe600 419500
+667000 408100
+24da00 ebf800
+5a2000 75c300
+d09600 8de300
+8fb400 cfb500
+ea6d00 3e4800
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000100 fffe00
+000200 fffd00
+000400 fffb00
+000800 fff700
+001000 ffef00
+002000 ffdf00
+004000 ffbf00
+008000 ff7f00
+010000 feff00
+020000 fdff00
+040000 fbff00
+080000 f7ff00
+100000 efff00
+200000 dfff00
+400000 bfff00
+800000 7fff00
+01b900 654300
+c64e00 655e00
+257600 7d5600
+f66900 51f300
+b61800 1d7600
+4dc100 db5e00
+40d900 9e0d00
+508a00 48dd00
+e3b300 0c8f00
+afe600 419500
+667000 408100
+24da00 ebf800
+5a2000 75c300
+d09600 8de300
+8fb400 cfb500
+ea6d00 3e4800
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000100 fffe00
+000200 fffd00
+000400 fffb00
+000800 fff700
+001000 ffef00
+002000 ffdf00
+004000 ffbf00
+008000 ff7f00
+010000 feff00
+020000 fdff00
+040000 fbff00
+080000 f7ff00
+100000 efff00
+200000 dfff00
+400000 bfff00
+800000 7fff00
+01b900 654300
+c64e00 655e00
+257600 7d5600
+f66900 51f300
+b61800 1d7600
+4dc100 db5e00
+40d900 9e0d00
+508a00 48dd00
+e3b300 0c8f00
+afe600 419500
+667000 408100
+24da00 ebf800
+5a2000 75c300
+d09600 8de300
+8fb400 cfb500
+ea6d00 3e4800
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000000 ffff00
+000100 fffe00
+000200 fffd00
+000400 fffb00
+000800 fff700
+001000 ffef00
+002000 ffdf00
+004000 ffbf00
+008000 ff7f00
+010000 feff00
+020000 fdff00
+040000 fbff00
+080000 f7ff00
+100000 efff00
+200000 dfff00
+400000 bfff00
+800000 7fff00
+01b900 654300
 c64e00 655e00
 257600 7d5600
 f66900 51f300
@@ -601,7 +631,7 @@ input decoder single time = 63
 packet decoder desynchronised
 channel decoder desynchronised
 matcher desynchronised
-regenerator r_clocks = 8832 clocks = 156340
+regenerator r_clocks = 24192 clocks = 428212
 clock regenerator desynchronised
 channel encoder desynchronised
 packet encoder desynchronised
@@ -627,9 +657,16 @@ ea6d00 000000
 000000 ffff00
 000100 ffff00
 000200 fffe00
+clock regenerator synchronised
 000400 fffc00
+channel encoder synchronised
+packet encoder synchronised
 000800 fff800
+output encoder synchronised
+second input decoder synchronised
+second packet decoder synchronised
 001000 fff000
+second channel decoder synchronised
 002000 ffe000
 004000 ffc000
 008000 ff8000
@@ -684,134 +721,127 @@ ea6d00 3e4800
 matcher sample rate = 44100 sync4 = 1
 matcher synchronised
 01b900 654300
-c64e00 655e00
-257600 7d5600
-f66900 51f300
-b61800 1d7600
-4dc100 db5e00
-40d900 9e0d00
-508a00 48dd00
-e3b300 0c9000
-afe600 419600
-667000 408100
-24db00 ebf900
-5a2100 75c400
-d09600 8de400
-8fb400 cfb500
-ea6d00 3e4800
-000000 000000
-000000 000000
-000000 000000
-000000 000000
-000000 000000
-000000 000000
-000000 000000
-000000 ffff00
-000100 ffff00
-000200 fffe00
-000400 fffc00
-000800 fff800
-001000 fff000
-002000 ffe000
-004000 ffc000
-008000 ff8000
-010000 ff0000
-020000 fe0000
-040000 fc0000
-080000 f80000
-100000 f00000
-200000 e00000
-400000 c00000
-800000 800000
-01b900 654300
-c64e00 655e00
-257600 7d5600
-f66900 51f300
-b61800 1d7600
-4dc100 db5e00
-40d900 9e0d00
-508a00 48dd00
-e3b300 0c9000
-afe600 419600
-667000 408100
-24db00 ebf900
-5a2100 75c400
-d09600 8de400
-8fb400 cfb500
-ea6d00 3e4800
-000000 000000
-000000 000000
-000000 000000
-000000 000000
-000000 000000
-000000 000000
-000000 000000
-000000 ffff00
-000100 ffff00
-000200 fffe00
-clock regenerator synchronised
-000400 fffc00
-channel encoder synchronised
-packet encoder synchronised
-000800 fff800
-output encoder synchronised
-second input decoder synchronised
-second packet decoder synchronised
-001000 fff000
-second channel decoder synchronised
-002000 ffe000
-004000 ffc000
-008000 ff8000
-010000 ff0000
-020000 fe0000
-040000 fc0000
-080000 f80000
-100000 f00000
-200000 e00000
-400000 c00000
-800000 800000
-01b900 654300
-c64e00 655e00
-257600 7d5600
-f66900 51f300
-b61800 1d7600
-4dc100 db5e00
-40d900 9e0d00
-508a00 48dd00
-e3b300 0c9000
-afe600 419600
-667000 408100
-24db00 ebf900
-5a2100 75c400
-d09600 8de400
-8fb400 cfb500
-ea6d00 3e4800
-000000 000000
-000000 000000
-000000 000000
-000000 000000
-000000 000000
-000000 000000
-000000 000000
-000000 ffff00
-000100 ffff00
-000200 fffe00
-000400 fffc00
-000800 fff800
-001000 fff000
-002000 ffe000
-004000 ffc000
-008000 ff8000
-010000 ff0000
-020000 fe0000
-040000 fc0000
-080000 f80000
-100000 f00000
-200000 e00000
-400000 c00000
-800000 800000
-01b900 654300
 second matcher synchronised
+c64e00 655e00
+257600 7d5600
+f66900 51f300
+b61800 1d7600
+4dc100 db5e00
+40d900 9e0d00
+508a00 48dd00
+e3b300 0c9000
+afe600 419600
+667000 408100
+24db00 ebf900
+5a2100 75c400
+d09600 8de400
+8fb400 cfb500
+ea6d00 3e4800
+000000 000000
+000000 000000
+000000 000000
+000000 000000
+000000 000000
+000000 000000
+000000 000000
+000000 ffff00
+000100 ffff00
+000200 fffe00
+000400 fffc00
+000800 fff800
+001000 fff000
+002000 ffe000
+004000 ffc000
+008000 ff8000
+010000 ff0000
+020000 fe0000
+040000 fc0000
+080000 f80000
+100000 f00000
+200000 e00000
+400000 c00000
+800000 800000
+01b900 654300
+c64e00 655e00
+257600 7d5600
+f66900 51f300
+b61800 1d7600
+4dc100 db5e00
+40d900 9e0d00
+508a00 48dd00
+e3b300 0c9000
+afe600 419600
+667000 408100
+24db00 ebf900
+5a2100 75c400
+d09600 8de400
+8fb400 cfb500
+ea6d00 3e4800
+000000 000000
+000000 000000
+000000 000000
+000000 000000
+000000 000000
+000000 000000
+000000 000000
+000000 ffff00
+000100 ffff00
+000200 fffe00
+000400 fffc00
+000800 fff800
+001000 fff000
+002000 ffe000
+004000 ffc000
+008000 ff8000
+010000 ff0000
+020000 fe0000
+040000 fc0000
+080000 f80000
+100000 f00000
+200000 e00000
+400000 c00000
+800000 800000
+01b900 654300
+c64e00 655e00
+257600 7d5600
+f66900 51f300
+b61800 1d7600
+4dc100 db5e00
+40d900 9e0d00
+508a00 48dd00
+e3b300 0c9000
+afe600 419600
+667000 408100
+24db00 ebf900
+5a2100 75c400
+d09600 8de400
+8fb400 cfb500
+ea6d00 3e4800
+000000 000000
+000000 000000
+000000 000000
+000000 000000
+000000 000000
+000000 000000
+000000 000000
+000000 ffff00
+000100 ffff00
+000200 fffe00
+000400 fffc00
+000800 fff800
+001000 fff000
+002000 ffe000
+004000 ffc000
+008000 ff8000
+010000 ff0000
+020000 fe0000
+040000 fc0000
+080000 f80000
+100000 f00000
+200000 e00000
+400000 c00000
+800000 800000
+01b900 654300
 c64e00 655e00
 257600 7d5600
 f66900 51f300
@@ -831,7 +861,7 @@ input decoder single time = 63
 packet decoder desynchronised
 channel decoder desynchronised
 matcher desynchronised
-regenerator r_clocks = 8832 clocks = 156340
+regenerator r_clocks = 24192 clocks = 428212
 clock regenerator desynchronised
 channel encoder desynchronised
 packet encoder desynchronised
