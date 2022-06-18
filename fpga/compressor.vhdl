@@ -12,6 +12,7 @@ entity compressor is
         data_out        : out std_logic_vector (15 downto 0) := (others => '0');
         left_strobe_out : out std_logic := '0';
         right_strobe_out : out std_logic := '0';
+        peak_level_out  : out std_logic_vector (23 downto 0) := (others => '0');
         sync_in         : in std_logic;
         sync_out        : out std_logic := '0';
         clock_in        : in std_logic
@@ -225,6 +226,8 @@ begin
         end process;
     end block peak;
 
+    peak_level_out <= peak_level;
+
     controller : process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
@@ -281,5 +284,8 @@ begin
             end if;
         end if;
     end process controller;
+
+    assert read_error = zero_bits_per_channel;
+    assert write_error = zero_bits_per_channel;
 
 end structural;
