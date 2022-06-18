@@ -26,7 +26,7 @@ architecture structural of compressor is
     constant audio_bits         : Natural := 2 ** audio_bits_log_2;
     constant peak_bits          : Natural := 24;
     constant fixed_point        : Natural := 1;
-    constant top_width          : Natural := audio_bits + peak_bits;
+    constant top_width          : Natural := audio_bits + peak_bits - fixed_point;
     constant bottom_width       : Natural := peak_bits;
     constant num_channels       : Natural := 2;
 
@@ -36,7 +36,7 @@ architecture structural of compressor is
     type t_data_per_channel is array (Natural range 0 to num_channels - 1) of t_data;
     subtype t_peak_level is std_logic_vector (peak_bits - 1 downto 0);
 
-    type t_state is (INIT, FILLING, START,
+    type t_state is (INIT, FILLING, START, FIFO_POP,
                      DIVIDE_AUDIO, WAIT_FOR_AUDIO,
                      DIVIDE_PEAK, WAIT_FOR_PEAK);
 
@@ -176,12 +176,12 @@ begin
 
     -- Peak level register
     peak : block
-        constant peak_audio_high    : Natural := peak_bits - fixed_point - 1;
-        constant peak_audio_low     : Natural := peak_audio_high - audio_bits + 2;
+        constant peak_audio_high    : Natural := peak_bits - fixed_point;
+        constant peak_audio_low     : Natural := peak_audio_high - audio_bits + 1;
         constant zero_pad           : std_logic_vector (fixed_point - 1 downto 0) := (others => '0');
         signal set_maximum_peak     : std_logic := '0';
         signal set_minimum_peak     : std_logic := '0';
-        signal abs_data_in          : std_logic_vector (audio_bits - 2 downto 0) := (others => '0');
+        signal abs_data_in          : std_logic_vector (audio_bits - 1 downto 0) := (others => '0');
     begin
         process (clock_in)
         begin
@@ -191,8 +191,8 @@ begin
                     peak_level <= peak_minimum;
 
                 elsif set_maximum_peak = '1' then
-                    -- New 15-bit peak level loaded (reduce amplification)
-                    peak_level <= peak_minimum;
+                    -- New 16-bit peak level loaded (reduce amplification)
+                    peak_level <= (others => '0');
                     peak_level (peak_audio_high downto peak_audio_low) <= abs_data_in;
 
                 elsif (divider_finish = '1') and (state = WAIT_FOR_PEAK) then
@@ -200,19 +200,18 @@ begin
                     peak_level <= divider_result (peak_bits - 1 downto 0);
                 end if;
 
-                -- store 15-bit absolute value of incoming audio data
+                -- store 16-bit absolute value of incoming audio data
                 if strobe_in /= zero_bits_per_channel then
                     if data_in (data_in'Left) = '0' then
-                        abs_data_in <= data_in (data_in'Left - 1 downto 0);
+                        abs_data_in <= std_logic_vector (signed (data_in) + 1);
                     else
-                        -- note: off by 1 error for negative values - this is not significant
-                        abs_data_in <= not data_in (data_in'Left - 1 downto 0);
+                        abs_data_in <= std_logic_vector (0 - signed (data_in));
                     end if;
                 end if;
 
                 -- Compare to data input (setting new maximum)
                 set_maximum_peak <= '0';
-                if peak_level (peak_bits - 1 downto peak_audio_low) < (zero_pad & abs_data_in) then
+                if peak_level (peak_bits - 1 downto peak_audio_low) <= (zero_pad & abs_data_in) then
                     set_maximum_peak <= '1';
                 end if;
 
@@ -231,7 +230,7 @@ begin
     controller : process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
-            read_delayed <= (others => '0');
+            read_delayed <= zero_bits_per_channel;
 
             case state is
                 when INIT =>
@@ -251,8 +250,11 @@ begin
                     if strobe_in (current_channel) = '1' then
                         read_delayed (current_channel) <= '1';
                         sync_out <= '1';
-                        state <= DIVIDE_AUDIO;
+                        state <= FIFO_POP;
                     end if;
+                when FIFO_POP =>
+                    -- Data removed from FIFO
+                    state <= DIVIDE_AUDIO;
                 when DIVIDE_AUDIO =>
                     -- Division begins
                     state <= WAIT_FOR_AUDIO;

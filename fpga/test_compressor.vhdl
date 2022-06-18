@@ -28,7 +28,7 @@ architecture test of test_compressor is
 
     signal clock            : std_logic := '0';
     signal done             : std_logic := '0';
-    signal data_in          : std_logic_vector (15 downto 0);
+    signal data_in          : std_logic_vector (15 downto 0) := (others => '0');
     signal left_strobe_in   : std_logic := '0';
     signal right_strobe_in  : std_logic := '0';
     signal data_out         : std_logic_vector (15 downto 0) := (others => '0');
@@ -73,6 +73,7 @@ begin
         -- Audio data arriving at 50kHz sample rate (one sample per channel every 20 microseconds)
         left_strobe_in <= '0';
         right_strobe_in <= '0';
+        wait for clock_period;
         while done /= '1' loop
             left_strobe_in <= '1';
             wait for clock_period;
@@ -89,11 +90,10 @@ begin
     process
     begin
         -- Square wave generated, frequency 1kHz (one cycle every millisecond)
-        data_in <= (others => '0');
         while done /= '1' loop
-            data_in <= x"7000";
+            data_in <= x"7fff";
             wait for (square_wave_period / 2.0);
-            data_in <= x"9000";
+            data_in <= x"8000";
             wait for (square_wave_period / 2.0);
         end loop;
         wait;
@@ -138,18 +138,21 @@ begin
             -- Wait for output data
             counter := 0;
             counter2 := 0;
-            previous := (others => '0');
+            previous := x"1234";
             while counter < Natural (1e9) and counter2 < 10 loop
                 wait until clock'event and clock = '1';
                 if left_strobe_out = '1' then
                     if data_out /= previous then
                         write (l, String'("Data out changed to "));
-                        write (l, to_integer (unsigned (data_out)));
+                        write (l, to_integer (signed (data_out)));
                         write (l, String'(" at time "));
                         write (l, counter);
+                        write (l, String'(" peak level "));
+                        write (l, Real (to_integer (unsigned (peak_level_out))) / 256.0);
                         writeline (output, l);
                         previous := data_out;
                         counter2 := counter2 + 1;
+                        -- counter := 0;
                     end if;
                 end if;
                 counter := counter + 1;
