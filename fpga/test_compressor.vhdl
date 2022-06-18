@@ -20,6 +20,7 @@ architecture test of test_compressor is
             left_strobe_out : out std_logic := '0';
             right_strobe_out : out std_logic := '0';
             peak_level_out  : out std_logic_vector (23 downto 0) := (others => '0');
+            reveal          : in std_logic;
             sync_in         : in std_logic;
             sync_out        : out std_logic := '0';
             clock_in        : in std_logic
@@ -38,6 +39,7 @@ architecture test of test_compressor is
     signal peak_level_out   : std_logic_vector (23 downto 0) := (others => '0');
     signal sync_in          : std_logic := '0';
     signal sync_out         : std_logic := '0';
+    signal reveal           : std_logic := '0';
     signal sample_counter   : Natural := 0;
     signal clock_counter    : Natural := 0;
 
@@ -55,6 +57,7 @@ begin
             left_strobe_out => left_strobe_out,
             right_strobe_out => right_strobe_out,
             peak_level_out => peak_level_out,
+            reveal => reveal,
             sync_in => sync_in,
             sync_out => sync_out,
             clock_in => clock);
@@ -154,6 +157,7 @@ begin
             -- Check sample values and square wave period
             wait until left_strobe_out'event and left_strobe_out = '1' and signed (data_out) < 16#7ffe#;
             start := sample_counter;
+            reveal <= '1';
             assert signed (data_out) <= -16#7ffe#;
             wait until left_strobe_out'event and left_strobe_out = '1' and signed (data_out) > -16#7ffe#;
             assert signed (data_out) >= 16#7ffe#;
@@ -166,7 +170,8 @@ begin
             sync_in <= '0';
             out_1 <= x"c000";
             out_2 <= x"3fff";
-            wait until sync_out = '0';
+            wait until sync_out'event and sync_out = '0';
+            wait until data_in /= x"7fff" and data_in /= x"8000";
             wait for 1 us;
             -- refill
             sync_in <= '1';
@@ -176,6 +181,7 @@ begin
             write (l, sample_counter - start);
             write (l, String'(" samples"));
             writeline (output, l);
+            reveal <= '1';
 
             wait until left_strobe_out'event and left_strobe_out = '1';
             wait until left_strobe_out'event and left_strobe_out = '1';

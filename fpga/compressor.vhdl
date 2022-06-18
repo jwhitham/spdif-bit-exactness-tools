@@ -15,6 +15,7 @@ entity compressor is
         left_strobe_out : out std_logic := '0';
         right_strobe_out : out std_logic := '0';
         peak_level_out  : out std_logic_vector (23 downto 0) := (others => '0');
+        reveal          : in std_logic;
         sync_in         : in std_logic;
         sync_out        : out std_logic := '0';
         clock_in        : in std_logic
@@ -177,7 +178,7 @@ begin
             if clock_in'event and clock_in = '1' then
                 if (divider_finish = '1') and (state = WAIT_FOR_AUDIO) then
                     -- The higher bits of the division result should all be zero - otherwise, it's an overflow
-                    if divider_result (top_width - 1 downto audio_bits) /= zero then
+                    if (divider_result (top_width - 1 downto audio_bits) /= zero) or reveal = '1' then
                         write (l, String'("divider result = "));
                         write (l, to_integer (unsigned (divider_result)));
                         write (l, String'(" top = "));
@@ -185,8 +186,8 @@ begin
                         write (l, String'(" bottom = "));
                         write (l, to_integer (unsigned (peak_level)));
                         writeline (output, l);
-                        assert False;
                     end if;
+                    assert (divider_result (top_width - 1 downto audio_bits) = zero);
                 end if;
             end if;
         end process;
