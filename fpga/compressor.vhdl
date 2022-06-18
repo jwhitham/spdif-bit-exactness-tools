@@ -4,6 +4,8 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use ieee.math_real.all;
 
+use std.textio.all;
+
 entity compressor is
     port (
         data_in         : in std_logic_vector (15 downto 0);
@@ -57,6 +59,7 @@ architecture structural of compressor is
     constant sample_rate        : Natural := 44100; -- assumed
     constant peak_divisor       : t_peak_level := convert_to_bits (decibel (1.0 / Real (sample_rate)));
     constant peak_minimum       : t_peak_level := convert_to_bits (decibel (-40.0));
+    constant peak_maximum       : t_peak_level := convert_to_bits (1.0);
 
     constant zero_bits_per_channel : t_bit_per_channel := (others => '0');
     constant one_bits_per_channel : t_bit_per_channel := (others => '1');
@@ -166,6 +169,29 @@ begin
                 finish_out => divider_finish,
                 result_out => divider_result,
                 clock_in => clock_in);
+
+        process (clock_in)
+            variable l : line;
+            constant zero : std_logic_vector (top_width - 1 downto audio_bits) := (others => '0');
+        begin
+            if clock_in'event and clock_in = '1' then
+                if (divider_finish = '1') and (state = WAIT_FOR_AUDIO) then
+                    -- The higher bits of the division result should all be zero - otherwise, it's an overflow
+                    if divider_result (top_width - 1 downto audio_bits) /= zero then
+                        write (l, String'("divider result = "));
+                        write (l, to_integer (unsigned (divider_result)));
+                        write (l, String'(" top = "));
+                        write (l, to_integer (unsigned (delay_out (current_channel))));
+                        write (l, String'(" bottom = "));
+                        write (l, to_integer (unsigned (peak_level)));
+                        writeline (output, l);
+                        assert False;
+                    end if;
+                end if;
+            end if;
+        end process;
+
+
     end block division;
 
     -- Output
@@ -205,7 +231,7 @@ begin
                     if data_in (data_in'Left) = '0' then
                         abs_data_in <= std_logic_vector (signed (data_in) + 1);
                     else
-                        abs_data_in <= std_logic_vector (0 - signed (data_in));
+                        abs_data_in <= std_logic_vector (1 - signed (data_in));
                     end if;
                 end if;
 
@@ -249,7 +275,6 @@ begin
                     -- in order to maintain the FIFO level
                     if strobe_in (current_channel) = '1' then
                         read_delayed (current_channel) <= '1';
-                        sync_out <= '1';
                         state <= FIFO_POP;
                     end if;
                 when FIFO_POP =>
@@ -276,6 +301,7 @@ begin
                     -- Wait for division to finish
                     if divider_finish = '1' then
                         state <= START;
+                        sync_out <= '1';
                     end if;
             end case;
 

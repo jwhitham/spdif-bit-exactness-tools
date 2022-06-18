@@ -32,6 +32,7 @@ architecture test of test_compressor is
     signal left_strobe_in   : std_logic := '0';
     signal right_strobe_in  : std_logic := '0';
     signal data_out         : std_logic_vector (15 downto 0) := (others => '0');
+    signal out_1, out_2     : std_logic_vector (15 downto 0) := (others => '0');
     signal left_strobe_out  : std_logic := '0';
     signal right_strobe_out : std_logic := '0';
     signal peak_level_out   : std_logic_vector (23 downto 0) := (others => '0');
@@ -96,10 +97,11 @@ begin
     process
     begin
         -- Square wave generated, frequency 1kHz (one cycle every millisecond)
+        wait for clock_period;
         while done /= '1' loop
-            data_in <= x"7fff";
+            data_in <= out_1;
             wait for (square_wave_period / 2.0);
-            data_in <= x"8000";
+            data_in <= out_2;
             wait for (square_wave_period / 2.0);
         end loop;
         wait;
@@ -115,6 +117,8 @@ begin
         all_proc : for step in 1 to 1 loop
             -- reset stage
             sync_in <= '0';
+            out_1 <= x"7fff";
+            out_2 <= x"8000";
             wait for 1 us;
             -- filling stage: leave reset
             sync_in <= '1';
@@ -130,11 +134,11 @@ begin
             
             -- Synchronisation is expected after around 500 samples
             assert (sample_counter - start) >= 500;
-            assert (sample_counter - start) < 512;
+            assert (sample_counter - start) <= 510;
 
             -- Wait for output data
             wait until left_strobe_out'event and left_strobe_out = '1';
-            assert data_out = x"7fff" or data_out = x"8000";
+            assert abs (signed (data_out)) >= 16#7ffe#;
 
             -- Check period of left output strobe
             start := clock_counter;
@@ -148,14 +152,40 @@ begin
             assert (clock_counter - start) = ((sample_period / 2.0) / clock_period);
 
             -- Check sample values and square wave period
-            wait until left_strobe_out'event and left_strobe_out = '1' and data_out /= x"7fff";
+            wait until left_strobe_out'event and left_strobe_out = '1' and signed (data_out) < 16#7ffe#;
             start := sample_counter;
-            assert data_out = x"8000";
-            wait until left_strobe_out'event and left_strobe_out = '1' and data_out /= x"8000";
-            assert data_out = x"7fff";
-            wait until left_strobe_out'event and left_strobe_out = '1' and data_out /= x"7fff";
-            assert data_out = x"8000";
+            assert signed (data_out) <= -16#7ffe#;
+            wait until left_strobe_out'event and left_strobe_out = '1' and signed (data_out) > -16#7ffe#;
+            assert signed (data_out) >= 16#7ffe#;
+            wait until left_strobe_out'event and left_strobe_out = '1' and signed (data_out) < 16#7ffe#;
+            assert signed (data_out) <= -16#7ffe#;
             assert (sample_counter - start) = (square_wave_period / sample_period);
+            assert peak_level_out = x"800000";
+
+            -- Reset - test again with 0.5 amplitude
+            sync_in <= '0';
+            out_1 <= x"c000";
+            out_2 <= x"3fff";
+            wait until sync_out = '0';
+            wait for 1 us;
+            -- refill
+            sync_in <= '1';
+            start := sample_counter;
+            wait until sync_out = '1';
+            write (l, String'("Synchronised after "));
+            write (l, sample_counter - start);
+            write (l, String'(" samples"));
+            writeline (output, l);
+
+            wait until left_strobe_out'event and left_strobe_out = '1';
+            wait until left_strobe_out'event and left_strobe_out = '1';
+
+            write (l, String'("Data value "));
+            write (l, to_integer (signed (data_out)));
+            writeline (output, l);
+            write (l, String'("Peak level register value "));
+            write (l, to_integer (unsigned (peak_level_out)));
+            writeline (output, l);
 
 
         end loop all_proc;
