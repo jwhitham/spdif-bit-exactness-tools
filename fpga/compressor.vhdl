@@ -228,7 +228,9 @@ begin
                 end if;
 
                 -- store 16-bit absolute value of incoming audio data
-                if strobe_in /= zero_bits_per_channel then
+                if reset = '1' then
+                    abs_data_in <= (others => '0');
+                elsif strobe_in /= zero_bits_per_channel then
                     if data_in (data_in'Left) = '0' then
                         abs_data_in <= std_logic_vector (signed (data_in) + 1);
                     else

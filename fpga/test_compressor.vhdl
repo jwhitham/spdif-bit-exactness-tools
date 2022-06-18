@@ -27,13 +27,15 @@ architecture test of test_compressor is
         );
     end component compressor;
 
+    subtype t_data is std_logic_vector (15 downto 0);
+
     signal clock            : std_logic := '0';
     signal done             : std_logic := '0';
-    signal data_in          : std_logic_vector (15 downto 0) := (others => '0');
+    signal data_in          : t_data := (others => '0');
     signal left_strobe_in   : std_logic := '0';
     signal right_strobe_in  : std_logic := '0';
-    signal data_out         : std_logic_vector (15 downto 0) := (others => '0');
-    signal out_1, out_2     : std_logic_vector (15 downto 0) := (others => '0');
+    signal data_out         : t_data := (others => '0');
+    signal set_amplitude    : t_data := (others => '0');
     signal left_strobe_out  : std_logic := '0';
     signal right_strobe_out : std_logic := '0';
     signal peak_level_out   : std_logic_vector (23 downto 0) := (others => '0');
@@ -42,6 +44,7 @@ architecture test of test_compressor is
     signal reveal           : std_logic := '0';
     signal sample_counter   : Natural := 0;
     signal clock_counter    : Natural := 0;
+    signal square_wave_divider : Natural := 0;
 
     constant clock_period   : Time := 10.0 ns;
     constant sample_period  : Time := 20.0 us;
@@ -97,32 +100,70 @@ begin
         wait;
     end process;
 
-    process
+--    process
+--    begin
+--        -- Square wave generated, frequency 1kHz (one cycle every millisecond)
+--        wait for clock_period;
+--        while done /= '1' loop
+--            data_in <= std_logic_vector (signed (set_amplitude));
+--            wait for (square_wave_period / 2.0);
+--            data_in <= std_logic_vector (-1 - signed (set_amplitude));
+--            wait for (square_wave_period / 2.0);
+--        end loop;
+--        wait;
+--    end process;
+--
+--    
+    process (clock)
     begin
         -- Square wave generated, frequency 1kHz (one cycle every millisecond)
-        wait for clock_period;
-        while done /= '1' loop
-            data_in <= out_1;
-            wait for (square_wave_period / 2.0);
-            data_in <= out_2;
-            wait for (square_wave_period / 2.0);
-        end loop;
-        wait;
+        if clock'event and clock = '1' then
+            if square_wave_divider = 0 then
+                if data_in (data_in'Left) = '0' then
+                    data_in <= std_logic_vector (-1 - signed (set_amplitude));
+                else
+                    data_in <= std_logic_vector (signed (set_amplitude));
+                end if;
+                square_wave_divider <= Natural ((square_wave_period / clock_period) / 2);
+            else
+                square_wave_divider <= square_wave_divider - 1;
+            end if;
+        end if;
     end process;
 
     process
         variable l          : line;
         variable start      : Natural := 0;
-        variable counter2   : Natural := 0;
-        variable previous   : std_logic_vector (15 downto 0) := (others => '0');
+
+        type t_test_table is array (Natural range <>) of Natural;
+
+        constant epsilon    : Natural := 1;
+        constant test_table : t_test_table := (16#7fff#, 16#3fff#);
+        variable amplitude_in  : Natural := 0;
+        constant amplitude_out : Natural := 16#7fff#;
     begin
         done <= '0';
-        all_proc : for step in 1 to 1 loop
+
+        -- Begin by testing the steady state of the compressor
+        for test_index in test_table'Range loop
+            write (l, String'("Test steady state amplitude "));
+            write (l, test_table (test_index));
+            writeline (output, l);
+
             -- reset stage
             sync_in <= '0';
-            out_1 <= x"7fff";
-            out_2 <= x"8000";
+            amplitude_in := test_table (test_index);
+            set_amplitude <= std_logic_vector (to_unsigned (amplitude_in, t_data'Length));
             wait for 1 us;
+            wait until data_in'event;
+
+            -- check output
+            assert abs (to_integer (signed (data_in))) >= (amplitude_in - epsilon);
+            assert abs (to_integer (signed (data_in))) <= (amplitude_in + epsilon);
+            write (l, String'("Peak level register value "));
+            write (l, to_integer (unsigned (peak_level_out)));
+            writeline (output, l);
+
             -- filling stage: leave reset
             sync_in <= '1';
             start := sample_counter;
@@ -141,7 +182,8 @@ begin
 
             -- Wait for output data
             wait until left_strobe_out'event and left_strobe_out = '1';
-            assert abs (signed (data_out)) >= 16#7ffe#;
+            assert abs (to_integer (signed (data_out))) >= (amplitude_out - epsilon);
+            assert abs (to_integer (signed (data_out))) <= (amplitude_out + epsilon);
 
             -- Check period of left output strobe
             start := clock_counter;
@@ -155,46 +197,28 @@ begin
             assert (clock_counter - start) = ((sample_period / 2.0) / clock_period);
 
             -- Check sample values and square wave period
-            wait until left_strobe_out'event and left_strobe_out = '1' and signed (data_out) < 16#7ffe#;
+            -- Wait for the negative side of the cycle
+            wait until left_strobe_out'event and left_strobe_out = '1'
+                    and to_integer (signed (data_out)) < (amplitude_out - epsilon);
             start := sample_counter;
-            reveal <= '1';
-            assert signed (data_out) <= -16#7ffe#;
-            wait until left_strobe_out'event and left_strobe_out = '1' and signed (data_out) > -16#7ffe#;
-            assert signed (data_out) >= 16#7ffe#;
-            wait until left_strobe_out'event and left_strobe_out = '1' and signed (data_out) < 16#7ffe#;
-            assert signed (data_out) <= -16#7ffe#;
+            assert to_integer (signed (data_out)) >= (- amplitude_out - epsilon);
+            assert to_integer (signed (data_out)) <= (- amplitude_out + epsilon);
+
+            -- Wait for the positive side of the cycle
+            wait until left_strobe_out'event and left_strobe_out = '1'
+                    and to_integer (signed (data_out)) > (- amplitude_out + epsilon);
+            assert to_integer (signed (data_out)) >= (amplitude_out - epsilon);
+            assert to_integer (signed (data_out)) <= (amplitude_out + epsilon);
+
+            -- Wait for the negative side of the cycle again
+            wait until left_strobe_out'event and left_strobe_out = '1'
+                    and to_integer (signed (data_out)) < (amplitude_out - epsilon);
+            assert to_integer (signed (data_out)) >= (- amplitude_out - epsilon);
+            assert to_integer (signed (data_out)) <= (- amplitude_out + epsilon);
+
+            -- Check the period
             assert (sample_counter - start) = (square_wave_period / sample_period);
-            assert peak_level_out = x"800000";
-
-            -- Reset - test again with 0.5 amplitude
-            sync_in <= '0';
-            out_1 <= x"c000";
-            out_2 <= x"3fff";
-            wait until sync_out'event and sync_out = '0';
-            wait until data_in /= x"7fff" and data_in /= x"8000";
-            wait for 1 us;
-            -- refill
-            sync_in <= '1';
-            start := sample_counter;
-            wait until sync_out = '1';
-            write (l, String'("Synchronised after "));
-            write (l, sample_counter - start);
-            write (l, String'(" samples"));
-            writeline (output, l);
-            reveal <= '1';
-
-            wait until left_strobe_out'event and left_strobe_out = '1';
-            wait until left_strobe_out'event and left_strobe_out = '1';
-
-            write (l, String'("Data value "));
-            write (l, to_integer (signed (data_out)));
-            writeline (output, l);
-            write (l, String'("Peak level register value "));
-            write (l, to_integer (unsigned (peak_level_out)));
-            writeline (output, l);
-
-
-        end loop all_proc;
+        end loop;
         done <= '1';
         wait;
     end process;
