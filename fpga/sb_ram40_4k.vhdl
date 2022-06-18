@@ -10,7 +10,7 @@ entity sb_ram40_4k is
         read_mode : Integer;
         write_mode : Integer);
     port (
-        rdata       : out std_logic_vector (15 downto 0);
+        rdata       : out std_logic_vector (15 downto 0) := (others => '0');
         raddr       : in std_logic_vector (7 downto 0);
         waddr       : in std_logic_vector (7 downto 0);
         mask        : in std_logic_vector (15 downto 0);
