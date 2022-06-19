@@ -28,7 +28,7 @@ architecture structural of compressor is
     constant audio_bits_log_2   : Natural := 4;
     constant audio_bits         : Natural := 2 ** audio_bits_log_2;
     constant peak_bits          : Natural := 24;
-    constant fixed_point        : Natural := 1;
+    constant fixed_point        : Natural := 2;
     constant top_width          : Natural := audio_bits + peak_bits - fixed_point;
     constant bottom_width       : Natural := peak_bits;
     constant num_channels       : Natural := 2;
@@ -45,7 +45,8 @@ architecture structural of compressor is
 
     -- Generate control values for the compressor
     -- The peak level is a fixed-point value. The width is peak_bits.
-    -- The range of values that can be represented is [0.0, 2.0 ** fixed_point)
+    -- The range of values that can be represented is [-2.0, 2.0 ** fixed_point)
+    -- though only positive numbers are used, and rarely larger than 1.0.
     function decibel (db : Real) return Real is
     begin
         return 10.0 ** (db / 10.0);
@@ -100,7 +101,8 @@ architecture structural of compressor is
     component divider is
         generic (
             top_width    : Natural;
-            bottom_width : Natural);
+            bottom_width : Natural;
+            is_unsigned  : Boolean);
         port (
             top_value_in    : in std_logic_vector (top_width - 1 downto 0);
             bottom_value_in : in std_logic_vector (bottom_width - 1 downto 0);
@@ -162,7 +164,8 @@ begin
         end process;
 
         div : divider
-            generic map (top_width => top_width, bottom_width => bottom_width)
+            generic map (top_width => top_width, bottom_width => bottom_width,
+                         is_unsigned => False)
             port map (
                 top_value_in => divider_top_mux,
                 bottom_value_in => divider_bottom_mux,
@@ -173,21 +176,32 @@ begin
 
         process (clock_in)
             variable l : line;
-            constant zero : std_logic_vector (top_width - 1 downto audio_bits) := (others => '0');
+            variable match : std_logic_vector (top_width - 1 downto audio_bits) := (others => '0');
         begin
             if clock_in'event and clock_in = '1' then
                 if (divider_finish = '1') and (state = WAIT_FOR_AUDIO) then
-                    -- The higher bits of the division result should all be zero - otherwise, it's an overflow
-                    if (divider_result (top_width - 1 downto audio_bits) /= zero) or reveal = '1' then
+                    -- The higher bits of the division result = sign extension
+                    match := (others => divider_result (audio_bits - 1));
+                    if (divider_result (top_width - 1 downto audio_bits) /= match) or reveal = '1' then
                         write (l, String'("divider result = "));
-                        write (l, to_integer (unsigned (divider_result)));
+                        write (l, to_integer (signed (divider_result)));
+                        write (l, String'(" out = "));
+                        write (l, to_integer (signed (divider_result (audio_bits - 1 downto 0))));
+                        write (l, String'(" "));
+                        for j in 15 downto 0 loop
+                            if divider_result (j) = '1' then
+                                write (l, 1);
+                            else
+                                write (l, 0);
+                            end if;
+                        end loop;
                         write (l, String'(" top = "));
-                        write (l, to_integer (unsigned (delay_out (current_channel))));
+                        write (l, to_integer (signed (delay_out (current_channel))));
                         write (l, String'(" bottom = "));
-                        write (l, to_integer (unsigned (peak_level)));
+                        write (l, to_integer (signed (peak_level)));
                         writeline (output, l);
                     end if;
-                    assert (divider_result (top_width - 1 downto audio_bits) = zero);
+                    assert (divider_result (top_width - 1 downto audio_bits) = match);
                 end if;
             end if;
         end process;
@@ -220,6 +234,7 @@ begin
                 elsif set_maximum_peak = '1' then
                     -- New 16-bit peak level loaded (reduce amplification)
                     peak_level <= (others => '0');
+                    peak_level (peak_audio_low - 1 downto 0) <= (others => '1');
                     peak_level (peak_audio_high downto peak_audio_low) <= abs_data_in;
 
                 elsif (divider_finish = '1') and (state = WAIT_FOR_PEAK) then
@@ -232,9 +247,9 @@ begin
                     abs_data_in <= (others => '0');
                 elsif strobe_in /= zero_bits_per_channel then
                     if data_in (data_in'Left) = '0' then
-                        abs_data_in <= std_logic_vector (signed (data_in) + 1);
+                        abs_data_in <= std_logic_vector (signed (data_in));
                     else
-                        abs_data_in <= std_logic_vector (1 - signed (data_in));
+                        abs_data_in <= std_logic_vector (0 - signed (data_in));
                     end if;
                 end if;
 
