@@ -140,21 +140,19 @@ begin
 
         type t_test is record
             amplitude_in    : Integer;
+            amplitude_out   : Integer;
             epsilon         : Natural;
         end record;
 
         type t_test_table is array (Natural range <>) of t_test;
 
         constant test_table : t_test_table :=
-            ((16#7fff#, 1),
-             (16#3fff#, 5),
-             (16#1fff#, 10),
-             (16#0fff#, 20),
-             (16#07ff#, 40),
-             (16#03ff#, 80),
-             (16#01ff#, 80));
+            ((16#7fff#, 16#7fff#, 1),
+             (16#3fff#, 16#7ffe#, 0),
+             (16#03ff#, 16#7fe0#, 0),
+             (16#01ff#, 16#7fc0#, 0),
+             (16#00ff#, 16#7f80#, 0));
         variable t : t_test;
-        constant amplitude_out : Natural := 16#7fff#;
     begin
         done <= '0';
 
@@ -184,8 +182,8 @@ begin
             writeline (output, l);
 
             -- check output
-            assert abs (to_integer (signed (data_in))) >= (t.amplitude_in - t.epsilon);
-            assert abs (to_integer (signed (data_in))) <= (t.amplitude_in + t.epsilon);
+            assert abs (to_integer (signed (data_in))) >= (t.amplitude_in - 1);
+            assert abs (to_integer (signed (data_in))) <= (t.amplitude_in + 1);
             write (l, String'("Peak level register value "));
             write (l, to_integer (unsigned (peak_level_out)));
             writeline (output, l);
@@ -208,8 +206,8 @@ begin
 
             -- Wait for output data
             wait until clock'event and clock = '1' and left_strobe_out = '1';
-            assert abs (to_integer (signed (data_out))) >= (amplitude_out - t.epsilon);
-            assert abs (to_integer (signed (data_out))) <= (amplitude_out + t.epsilon);
+            assert abs (to_integer (signed (data_out))) >= (t.amplitude_out - t.epsilon);
+            assert abs (to_integer (signed (data_out))) <= (t.amplitude_out + t.epsilon);
 
             -- Check period of left output strobe
             start := clock_counter;
@@ -225,18 +223,15 @@ begin
             -- Check sample values and square wave period
             -- Wait for the negative side of the cycle
             wait until clock'event and clock = '1' and left_strobe_out = '1'
-                    and to_integer (signed (data_out)) < (amplitude_out - t.epsilon);
-            assert to_integer (signed (data_out)) >= (- amplitude_out - t.epsilon);
-            assert to_integer (signed (data_out)) <= (- amplitude_out + t.epsilon);
-            write (l, String'("Low value "));
-            write (l, to_integer (signed (data_out)));
-            writeline (output, l);
+                    and to_integer (signed (data_out)) < (t.amplitude_out - t.epsilon);
+            assert to_integer (signed (data_out)) >= (- t.amplitude_out - t.epsilon);
+            assert to_integer (signed (data_out)) <= (- t.amplitude_out + t.epsilon);
 
             -- Wait for the positive side of the cycle
             wait until clock'event and clock = '1' and left_strobe_out = '1'
-                    and to_integer (signed (data_out)) > (- amplitude_out + t.epsilon);
-            assert to_integer (signed (data_out)) >= (amplitude_out - t.epsilon);
-            assert to_integer (signed (data_out)) <= (amplitude_out + t.epsilon);
+                    and to_integer (signed (data_out)) > (- t.amplitude_out + t.epsilon);
+            assert to_integer (signed (data_out)) >= (t.amplitude_out - t.epsilon);
+            assert to_integer (signed (data_out)) <= (t.amplitude_out + t.epsilon);
             start := sample_counter;
             write (l, String'("High value "));
             write (l, to_integer (signed (data_out)));
@@ -244,9 +239,9 @@ begin
 
             -- Wait for the negative side of the cycle again
             wait until clock'event and clock = '1' and left_strobe_out = '1'
-                    and to_integer (signed (data_out)) < (amplitude_out - t.epsilon);
-            assert to_integer (signed (data_out)) >= (- amplitude_out - t.epsilon);
-            assert to_integer (signed (data_out)) <= (- amplitude_out + t.epsilon);
+                    and to_integer (signed (data_out)) < (t.amplitude_out - t.epsilon);
+            assert to_integer (signed (data_out)) >= (- t.amplitude_out - t.epsilon);
+            assert to_integer (signed (data_out)) <= (- t.amplitude_out + t.epsilon);
             write (l, String'("Low value "));
             write (l, to_integer (signed (data_out)));
             writeline (output, l);
