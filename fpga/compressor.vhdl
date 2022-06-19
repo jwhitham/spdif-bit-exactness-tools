@@ -29,7 +29,7 @@ architecture structural of compressor is
     constant audio_bits         : Natural := 2 ** audio_bits_log_2;
     constant peak_bits          : Natural := 24;
     constant fixed_point        : Natural := 2;
-    constant top_width          : Natural := audio_bits + peak_bits - fixed_point;
+    constant top_width          : Natural := (peak_bits * 2) - fixed_point;
     constant bottom_width       : Natural := peak_bits;
     constant num_channels       : Natural := 2;
 
@@ -118,6 +118,7 @@ begin
     strobe_in (0) <= left_strobe_in;
     strobe_in (1) <= right_strobe_in;
     assert data_in'Length = audio_bits;
+    assert peak_bits > audio_bits;
 
     -- Delay lines, one per channel
     channel : for channel_num in 0 to num_channels - 1 generate
@@ -147,7 +148,12 @@ begin
         process (read_delayed, peak_level, delay_out, current_channel, state)
         begin
             divider_top_mux <= (others => '0');
-            divider_top_mux (top_width - 1 downto top_width - audio_bits) <= delay_out (current_channel);
+            divider_top_mux
+                (top_width - 1 downto peak_bits - fixed_point)
+                    <= (others => delay_out (current_channel) (audio_bits - 1));
+            divider_top_mux
+                (peak_bits + audio_bits - 1 - fixed_point downto peak_bits - fixed_point)
+                    <= delay_out (current_channel);
             divider_bottom_mux <= peak_level;
             divider_start <= '0';
 
@@ -155,7 +161,10 @@ begin
                 when DIVIDE_AUDIO =>
                     divider_start <= '1';
                 when DIVIDE_PEAK =>
-                    divider_top_mux (top_width - 1 downto top_width - peak_bits) <= peak_level;
+                    divider_top_mux <= (others => '0');
+                    divider_top_mux
+                        (peak_bits + peak_bits - 1 - fixed_point downto peak_bits - fixed_point)
+                            <= peak_level;
                     divider_bottom_mux <= peak_divisor;
                     divider_start <= '1';
                 when others =>
@@ -225,8 +234,6 @@ begin
         signal abs_data_in          : std_logic_vector (audio_bits - 1 downto 0) := (others => '0');
     begin
         process (clock_in)
-            variable l : line;
-            variable v_peak_level : t_peak_level;
         begin
             if clock_in'event and clock_in = '1' then
                 if reset = '1' or set_minimum_peak = '1' then
@@ -238,19 +245,10 @@ begin
                     peak_level <= (others => '0');
                     peak_level (peak_audio_low - 1 downto 0) <= (others => '1');
                     peak_level (peak_audio_high downto peak_audio_low) <= abs_data_in;
-                    v_peak_level := (others => '0');
-                    v_peak_level (peak_audio_low - 1 downto 0) := (others => '1');
-                    v_peak_level (peak_audio_high downto peak_audio_low) := abs_data_in;
-                    write (l, String'("new maximum peak "));
-                    write (l, to_integer (unsigned (v_peak_level)));
-                    writeline (output, l);
 
                 elsif (divider_finish = '1') and (state = WAIT_FOR_PEAK) then
                     -- Peak decays towards minimum value (maximum amplification)
-                    null; -- peak_level <= divider_result (peak_bits - 1 downto 0);
-                    --write (l, String'("decay peak to" ));
-                    --write (l, to_integer (unsigned (divider_result (peak_bits - 1 downto 0))));
-                    --writeline (output, l);
+                    peak_level <= divider_result (peak_bits - 1 downto 0);
                 end if;
 
                 -- store 16-bit absolute value of incoming audio data
@@ -267,15 +265,8 @@ begin
                 -- Compare to data input (setting new maximum)
                 set_maximum_peak <= '0';
                 if unsigned (peak_level (peak_bits - 1 downto peak_audio_low))
-                            < unsigned (abs_data_in) then
+                            <= unsigned (abs_data_in) then
                     set_maximum_peak <= '1';
-                    write (l, String'("set maximum peak as level "));
-                    write (l, to_integer (unsigned (peak_level (peak_bits - 1 downto peak_audio_low))));
-                    write (l, String'(" <= "));
-                    write (l, to_integer (unsigned (abs_data_in)));
-                    write (l, String'(" overall "));
-                    write (l, to_integer (unsigned (peak_level)));
-                    writeline (output, l);
                 end if;
 
                 -- Compare to minimum
