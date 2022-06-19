@@ -156,6 +156,8 @@ begin
                     start <= '1';
                     wait for 1 us;
 
+                    top_value <= (others => '0');
+                    bottom_value <= (others => '0');
                     start <= '0';
                     assert finish = '0';
                     while finish = '0' loop
