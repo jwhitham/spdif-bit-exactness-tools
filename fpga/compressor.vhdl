@@ -262,17 +262,16 @@ begin
                     end if;
                 end if;
 
-                -- Compare to data input (setting new maximum)
                 set_maximum_peak <= '0';
+                set_minimum_peak <= '0';
+
+                -- Compare to data input (setting new maximum)
                 if unsigned (peak_level (peak_bits - 1 downto peak_audio_low))
                             <= unsigned (abs_data_in) then
                     set_maximum_peak <= '1';
-                end if;
-
                 -- Compare to minimum
-                set_minimum_peak <= '0';
-                if peak_level (peak_bits - 1 downto peak_audio_low) <
-                        peak_minimum (peak_bits - 1 downto peak_audio_low) then
+                elsif unsigned (peak_level (peak_bits - 1 downto peak_audio_low))
+                            <= unsigned (peak_minimum (peak_bits - 1 downto peak_audio_low)) then
                     set_minimum_peak <= '1';
                 end if;
             end if;

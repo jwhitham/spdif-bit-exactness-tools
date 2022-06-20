@@ -149,13 +149,16 @@ begin
         type t_test_table is array (Natural range <>) of t_test;
 
         constant test_table : t_test_table :=
-            ((16#7fff#, 16#7fff#, 1),
+            ((16#0000#, 16#0000#, 0),
+             (16#7fff#, 16#7fff#, 1),
              (16#3fff#, 16#7ffe#, 0),
              (16#03ff#, 16#7fe0#, 0),
              (16#01ff#, 16#7fc0#, 0),
              (16#00ff#, 16#7f80#, 0),
-             (16#007f#, 16361, 14),  -- below maximum amplification (21.1dB)
-             (16#0001#, 128, 1)      -- also below maximum amplification
+             (16#00fe#, 16#7f80#, 0),   -- amplitude does not quite get maximum amplification (21.1dB)
+             (16#00fd#, 16#7f50#, 0),   -- amplitude gets maximum amplification
+             (16#007f#, 16#3fe8#, 0),
+             (16#0001#, 128, 0)         -- minimum non-zero amplitude
             );  
         variable t : t_test;
     begin
@@ -174,24 +177,17 @@ begin
             sync_in <= '0';
             set_amplitude_p <= std_logic_vector (to_signed (t.amplitude_in, t_data'Length));
             if t.amplitude_in = 16#7fff# then
-                set_amplitude_n <= std_logic_vector (to_signed (- 1 - t.amplitude_in, t_data'Length));
+                -- negative is very slightly louder
+                set_amplitude_n <= x"8000";
             else
                 set_amplitude_n <= std_logic_vector (to_signed (- t.amplitude_in, t_data'Length));
             end if;
-            wait for 1 us;
-            wait until data_in'event;
-            write (l, String'("Check "));
-            write (l, to_integer (signed (set_amplitude_p)));
-            write (l, String'(" "));
-            write (l, to_integer (signed (set_amplitude_n)));
-            writeline (output, l);
+            wait until square_wave_negative'event;
+            wait until clock'event and clock = '1' and left_strobe_in = '1';
 
-            -- check output
-            assert abs (to_integer (signed (data_in))) >= (t.amplitude_in - 1);
-            assert abs (to_integer (signed (data_in))) <= (t.amplitude_in + 1);
-            write (l, String'("Peak level register value "));
-            write (l, to_integer (unsigned (peak_level_out)));
-            writeline (output, l);
+            -- check input
+            assert abs (to_integer (signed (data_in))) >= (t.amplitude_in - t.epsilon);
+            assert abs (to_integer (signed (data_in))) <= (t.amplitude_in + t.epsilon);
 
             -- filling stage: leave reset
             sync_in <= '1';
@@ -214,45 +210,55 @@ begin
             assert abs (to_integer (signed (data_out))) >= (t.amplitude_out - t.epsilon);
             assert abs (to_integer (signed (data_out))) <= (t.amplitude_out + t.epsilon);
 
-            -- Check period of left output strobe
-            start := clock_counter;
-            wait until clock'event and clock = '1' and left_strobe_out = '1';
-            assert (clock_counter - start) = (sample_period / clock_period);
+            if t.amplitude_out = 0 then
+                -- Expect 0 steady state to be maintained
+                for i in 1 to Natural (8 * square_wave_period / sample_period) loop
+                    wait until clock'event and clock = '1' and left_strobe_out = '1';
+                    assert data_out = x"0000";
+                    wait until clock'event and clock = '1' and right_strobe_out = '1';
+                    assert data_out = x"0000";
+                end loop;
+            else
+                -- Check period of left output strobe
+                start := clock_counter;
+                wait until clock'event and clock = '1' and left_strobe_out = '1';
+                assert (clock_counter - start) = (sample_period / clock_period);
 
-            -- Wait for right channel data and check that right strobe
-            -- occurs 180 degrees out of phase with the left strobe
-            start := clock_counter;
-            wait until clock'event and clock = '1' and right_strobe_out = '1';
-            assert (clock_counter - start) = ((sample_period / 2.0) / clock_period);
+                -- Wait for right channel data and check that right strobe
+                -- occurs 180 degrees out of phase with the left strobe
+                start := clock_counter;
+                wait until clock'event and clock = '1' and right_strobe_out = '1';
+                assert (clock_counter - start) = ((sample_period / 2.0) / clock_period);
 
-            -- Check sample values and square wave period
-            -- Wait for the negative side of the cycle
-            wait until clock'event and clock = '1' and left_strobe_out = '1'
-                    and to_integer (signed (data_out)) < (t.amplitude_out - t.epsilon);
-            assert to_integer (signed (data_out)) >= (- t.amplitude_out - t.epsilon);
-            assert to_integer (signed (data_out)) <= (- t.amplitude_out + t.epsilon);
+                -- Check sample values and square wave period
+                -- Wait for the negative side of the cycle
+                wait until clock'event and clock = '1' and left_strobe_out = '1'
+                        and to_integer (signed (data_out)) < (t.amplitude_out - t.epsilon);
+                assert to_integer (signed (data_out)) >= (- t.amplitude_out - t.epsilon);
+                assert to_integer (signed (data_out)) <= (- t.amplitude_out + t.epsilon);
 
-            -- Wait for the positive side of the cycle
-            wait until clock'event and clock = '1' and left_strobe_out = '1'
-                    and to_integer (signed (data_out)) > (- t.amplitude_out + t.epsilon);
-            assert to_integer (signed (data_out)) >= (t.amplitude_out - t.epsilon);
-            assert to_integer (signed (data_out)) <= (t.amplitude_out + t.epsilon);
-            start := sample_counter;
-            write (l, String'("High value "));
-            write (l, to_integer (signed (data_out)));
-            writeline (output, l);
+                -- Wait for the positive side of the cycle
+                wait until clock'event and clock = '1' and left_strobe_out = '1'
+                        and to_integer (signed (data_out)) > (- t.amplitude_out + t.epsilon);
+                assert to_integer (signed (data_out)) >= (t.amplitude_out - t.epsilon);
+                assert to_integer (signed (data_out)) <= (t.amplitude_out + t.epsilon);
+                start := sample_counter;
+                write (l, String'("High value "));
+                write (l, to_integer (signed (data_out)));
+                writeline (output, l);
 
-            -- Wait for the negative side of the cycle again
-            wait until clock'event and clock = '1' and left_strobe_out = '1'
-                    and to_integer (signed (data_out)) < (t.amplitude_out - t.epsilon);
-            assert to_integer (signed (data_out)) >= (- t.amplitude_out - t.epsilon);
-            assert to_integer (signed (data_out)) <= (- t.amplitude_out + t.epsilon);
-            write (l, String'("Low value "));
-            write (l, to_integer (signed (data_out)));
-            writeline (output, l);
+                -- Wait for the negative side of the cycle again
+                wait until clock'event and clock = '1' and left_strobe_out = '1'
+                        and to_integer (signed (data_out)) < (t.amplitude_out - t.epsilon);
+                assert to_integer (signed (data_out)) >= (- t.amplitude_out - t.epsilon);
+                assert to_integer (signed (data_out)) <= (- t.amplitude_out + t.epsilon);
+                write (l, String'("Low value "));
+                write (l, to_integer (signed (data_out)));
+                writeline (output, l);
 
-            -- Check the period
-            assert (sample_counter - start) = ((square_wave_period / sample_period) / 2);
+                -- Check the period
+                assert (sample_counter - start) = ((square_wave_period / sample_period) / 2);
+            end if;
         end loop;
         done <= '1';
         wait;
