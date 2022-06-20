@@ -7,6 +7,7 @@ use ieee.math_real.all;
 use std.textio.all;
 
 entity compressor is
+    generic (max_amplification : Real := 21.1);
     port (
         data_in         : in std_logic_vector (15 downto 0);
         left_strobe_in  : in std_logic;
@@ -60,8 +61,7 @@ architecture structural of compressor is
 
     constant sample_rate        : Natural := 44100; -- assumed
     constant peak_divisor       : t_peak_level := convert_to_bits (decibel (1.0 / Real (sample_rate)));
-    constant peak_minimum       : t_peak_level := convert_to_bits (decibel (-21.1));
-    constant peak_maximum       : t_peak_level := convert_to_bits (1.0);
+    constant peak_minimum       : t_peak_level := convert_to_bits (decibel (- max_amplification));
 
     constant zero_bits_per_channel : t_bit_per_channel := (others => '0');
     constant one_bits_per_channel : t_bit_per_channel := (others => '1');

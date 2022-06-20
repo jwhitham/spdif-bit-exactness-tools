@@ -12,6 +12,7 @@ end test_compressor;
 architecture test of test_compressor is
 
     component compressor is
+        generic (max_amplification : Real);
         port (
             data_in         : in std_logic_vector (15 downto 0);
             left_strobe_in  : in std_logic;
@@ -54,6 +55,7 @@ architecture test of test_compressor is
 
 begin
     dut : compressor
+        generic map (max_amplification => 21.1)
         port map (
             data_in => data_in,
             left_strobe_in => left_strobe_in,
@@ -151,7 +153,10 @@ begin
              (16#3fff#, 16#7ffe#, 0),
              (16#03ff#, 16#7fe0#, 0),
              (16#01ff#, 16#7fc0#, 0),
-             (16#00ff#, 16#7f80#, 0));
+             (16#00ff#, 16#7f80#, 0),
+             (16#007f#, 16361, 14),  -- below maximum amplification (21.1dB)
+             (16#0001#, 128, 1)      -- also below maximum amplification
+            );  
         variable t : t_test;
     begin
         done <= '0';
