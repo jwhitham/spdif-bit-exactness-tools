@@ -136,7 +136,7 @@ begin
         end if;
     end process;
 
-    process
+    steady_state_test : process
         variable l          : line;
         variable start      : Natural := 0;
 
@@ -161,10 +161,76 @@ begin
              (16#0001#, 128, 0)         -- minimum non-zero amplitude
             );  
         variable t : t_test;
+
+        constant initial : Integer := 10000;
+        constant boost   : Integer := 11000;
+
+        variable loud, reduced : Integer := 0;
+
+        constant delay_length : Natural := 508;
+        constant near_maximum : Natural := 16#7ff8#;
     begin
         done <= '0';
 
-        -- Begin by testing the steady state of the compressor
+        write (l, String'("Test changing amplitude"));
+        writeline (output, l);
+
+        -- reset stage
+        sync_in <= '0';
+        set_amplitude_p <= std_logic_vector (to_signed (initial, t_data'Length));
+        set_amplitude_n <= std_logic_vector (to_signed (-initial, t_data'Length));
+        wait until square_wave_negative'event;
+        wait until square_wave_negative'event;
+        wait until clock'event and clock = '1' and left_strobe_in = '1';
+        assert abs (to_integer (signed (data_in))) = initial;
+
+        write (l, String'("end reset"));
+        writeline (output, l);
+
+        -- filling stage
+        sync_in <= '1';
+        wait until sync_out = '1';
+
+        write (l, String'("end fill"));
+        writeline (output, l);
+        -- check amplitude
+        wait until clock'event and clock = '1' and left_strobe_out = '1';
+        loud := abs (to_integer (signed (data_out)));
+        assert loud >= near_maximum;
+
+        -- make input 10% louder
+        set_amplitude_p <= std_logic_vector (to_signed (boost, t_data'Length));
+        set_amplitude_n <= std_logic_vector (to_signed (-boost, t_data'Length));
+        wait until square_wave_negative'event;
+
+        -- The next sample is the same high amplitude
+        wait until clock'event and clock = '1' and left_strobe_out = '1';
+        assert abs (to_integer (signed (data_out))) = loud;
+
+        -- The sample after that is 10% quieter: the peak level has changed
+        -- but the input samples are still at the initial level
+        wait until clock'event and clock = '1' and left_strobe_out = '1';
+        reduced := (loud * initial) / boost;
+        assert abs (to_integer (signed (data_out))) < loud;
+        assert abs (to_integer (signed (data_out))) >= (reduced - 1);
+        assert abs (to_integer (signed (data_out))) <= (reduced + 1);
+
+        -- Wait for the delay to empty
+        for i in 1 to (delay_length - 3) loop
+            wait until clock'event and clock = '1' and left_strobe_out = '1';
+            assert abs (to_integer (signed (data_out))) >= (reduced - 1);
+            assert abs (to_integer (signed (data_out))) <= (reduced + 1);
+        end loop;
+
+        -- Now we expect the amplitude to increase to maximum again
+        -- Allow 4 samples for transition
+        for i in 1 to 4 loop
+            wait until clock'event and clock = '1' and left_strobe_out = '1';
+        end loop;
+        
+        -- Back to the maximum level
+        assert abs (to_integer (signed (data_out))) >= near_maximum;
+
         for test_index in test_table'Range loop
             write (l, String'(""));
             writeline (output, l);
@@ -202,8 +268,8 @@ begin
             writeline (output, l);
             
             -- Synchronisation is expected after around 500 samples
-            assert (sample_counter - start) >= 500;
-            assert (sample_counter - start) <= 510;
+            assert (sample_counter - start) >= (delay_length - 2);
+            assert (sample_counter - start) <= (delay_length + 2);
 
             -- Wait for output data
             wait until clock'event and clock = '1' and left_strobe_out = '1';
@@ -262,7 +328,6 @@ begin
         end loop;
         done <= '1';
         wait;
-    end process;
-
+    end process steady_state_test;
 
 end test;
