@@ -59,8 +59,12 @@ architecture structural of compressor is
             Natural (amplitude * (2.0 ** Real (peak_bits - fixed_point))), peak_bits));
     end convert_to_bits;
 
-    constant sample_rate        : Natural := 44100; -- assumed
+    -- These control how quickly the volume is increased, if the sound suddenly becomes quieter.
+    -- The rate is 1 decibel per second.
+    constant sample_rate        : Natural := 48000; -- assumed
     constant peak_divisor       : t_peak_level := convert_to_bits (decibel (1.0 / Real (sample_rate)));
+
+    -- This is the minimum sound level that will be amplified to the maximum level
     constant peak_minimum       : t_peak_level := convert_to_bits (decibel (- max_amplification));
 
     constant zero_bits_per_channel : t_bit_per_channel := (others => '0');
@@ -77,6 +81,7 @@ architecture structural of compressor is
     signal read_error           : t_bit_per_channel := zero_bits_per_channel;
     signal write_error          : t_bit_per_channel := zero_bits_per_channel;
     signal read_delayed         : t_bit_per_channel := zero_bits_per_channel;
+    signal delay_out_ready      : t_bit_per_channel := zero_bits_per_channel;
     signal delay_out            : t_data_per_channel := (others => (others => '0'));
     signal reset                : std_logic := '0';
     signal divider_finish       : std_logic := '0';
@@ -194,10 +199,16 @@ begin
                     if (divider_result (top_width - 1 downto audio_bits) /= match) or reveal = '1' then
                         write (l, String'("divider result = "));
                         write (l, to_integer (signed (divider_result)));
+                        if divider_result (top_width - 1 downto audio_bits) /= match then
+                            write (l, String'(" (overflow)"));
+                        end if;
                         write (l, String'(" out = "));
                         write (l, to_integer (signed (divider_result (audio_bits - 1 downto 0))));
                         write (l, String'(" "));
-                        for j in 15 downto 0 loop
+                        for j in top_width - 1 downto 0 loop
+                            if j = audio_bits - 1 then
+                                write (l, String'(" "));
+                            end if;
                             if divider_result (j) = '1' then
                                 write (l, 1);
                             else
@@ -229,50 +240,54 @@ begin
         constant peak_audio_high    : Natural := peak_bits - fixed_point;
         constant peak_audio_low     : Natural := peak_audio_high - audio_bits + 1;
         constant zero_pad           : std_logic_vector (fixed_point - 1 downto 0) := (others => '0');
-        signal set_maximum_peak     : std_logic := '0';
-        signal set_minimum_peak     : std_logic := '0';
-        signal abs_data_in          : std_logic_vector (audio_bits - 1 downto 0) := (others => '0');
+        signal input_valid          : std_logic := '0';
+        signal input_audio          : std_logic_vector (audio_bits - 1 downto 0) := (others => '0');
+        signal abs_audio            : std_logic_vector (audio_bits - 1 downto 0) := (others => '0');
     begin
         process (clock_in)
         begin
             if clock_in'event and clock_in = '1' then
-                if reset = '1' or set_minimum_peak = '1' then
+                -- stage 1: receive new audio data from the beginning or end of the delay line
+                -- read_delayed is always 1 clock cycle after strobe_in 
+                input_valid <= '0';
+                for i in 0 to num_channels - 1 loop
+                    if delay_out_ready (i) = '1' then
+                        input_audio <= delay_out (i);
+                        input_valid <= '1';
+                    end if;
+                end loop;
+                if strobe_in /= zero_bits_per_channel then
+                    input_audio <= data_in;
+                    input_valid <= '1';
+                end if;
+
+                -- stage 2: store 16-bit absolute value of incoming audio data
+                abs_audio <= (others => '0');
+                if input_valid = '1' then
+                    if input_audio (input_audio'Left) = '0' then
+                        abs_audio <= std_logic_vector (signed (input_audio));
+                    else
+                        abs_audio <= std_logic_vector (0 - signed (input_audio));
+                    end if;
+                end if;
+
+                -- stage 3: compare and apply new levels
+                if reset = '1'
+                        or unsigned (peak_level (peak_bits - 1 downto peak_audio_low))
+                                < unsigned (peak_minimum (peak_bits - 1 downto peak_audio_low)) then
                     -- Peak is at the minimum value (maximum amplification)
                     peak_level <= peak_minimum;
 
-                elsif set_maximum_peak = '1' then
+                elsif unsigned (peak_level (peak_bits - 1 downto peak_audio_low))
+                                <= unsigned (abs_audio) then
                     -- New 16-bit peak level loaded (reduce amplification)
                     peak_level <= (others => '0');
                     peak_level (peak_audio_low - 1 downto 0) <= (others => '1');
-                    peak_level (peak_audio_high downto peak_audio_low) <= abs_data_in;
+                    peak_level (peak_audio_high downto peak_audio_low) <= abs_audio;
 
                 elsif (divider_finish = '1') and (state = WAIT_FOR_PEAK) then
                     -- Peak decays towards minimum value (maximum amplification)
                     peak_level <= divider_result (peak_bits - 1 downto 0);
-                end if;
-
-                -- store 16-bit absolute value of incoming audio data
-                if reset = '1' then
-                    abs_data_in <= (others => '0');
-                elsif strobe_in /= zero_bits_per_channel then
-                    if data_in (data_in'Left) = '0' then
-                        abs_data_in <= std_logic_vector (signed (data_in));
-                    else
-                        abs_data_in <= std_logic_vector (0 - signed (data_in));
-                    end if;
-                end if;
-
-                set_maximum_peak <= '0';
-                set_minimum_peak <= '0';
-
-                -- Compare to data input (setting new maximum)
-                if unsigned (peak_level (peak_bits - 1 downto peak_audio_low))
-                            <= unsigned (abs_data_in) then
-                    set_maximum_peak <= '1';
-                -- Compare to minimum
-                elsif unsigned (peak_level (peak_bits - 1 downto peak_audio_low))
-                            <= unsigned (peak_minimum (peak_bits - 1 downto peak_audio_low)) then
-                    set_minimum_peak <= '1';
                 end if;
             end if;
         end process;
@@ -306,6 +321,7 @@ begin
                     end if;
                 when FIFO_POP =>
                     -- Data removed from FIFO
+                    delay_out_ready <= read_delayed;
                     state <= DIVIDE_AUDIO;
                 when DIVIDE_AUDIO =>
                     -- Division begins

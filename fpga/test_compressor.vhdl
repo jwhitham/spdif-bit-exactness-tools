@@ -199,6 +199,8 @@ begin
         assert loud >= near_maximum;
 
         -- make input 10% louder
+        write (l, String'("louder samples"));
+        writeline (output, l);
         set_amplitude_p <= std_logic_vector (to_signed (boost, t_data'Length));
         set_amplitude_n <= std_logic_vector (to_signed (-boost, t_data'Length));
         wait until square_wave_negative'event;
@@ -229,7 +231,42 @@ begin
         end loop;
         
         -- Back to the maximum level
-        assert abs (to_integer (signed (data_out))) >= near_maximum;
+        loud := abs (to_integer (signed (data_out)));
+        assert loud >= near_maximum;
+
+        -- Drop input 10%
+        write (l, String'("quieter samples"));
+        writeline (output, l);
+        set_amplitude_p <= std_logic_vector (to_signed (initial, t_data'Length));
+        set_amplitude_n <= std_logic_vector (to_signed (-initial, t_data'Length));
+        wait until square_wave_negative'event;
+
+        -- Wait for the quieter samples to come through the delay;
+        -- during this time, the amplitude may gradually increase
+        for i in 1 to (delay_length - 2) loop
+            wait until clock'event and clock = '1' and left_strobe_out = '1';
+            assert abs (to_integer (signed (data_out))) = loud;
+            write (l, String'("delay "));
+            write (l, i);
+            write (l, String'(" peak "));
+            write (l, to_integer (unsigned (peak_level_out)));
+            write (l, String'(" data out "));
+            write (l, to_integer (signed (data_out)));
+            writeline (output, l);
+        end loop;
+
+        -- Allow 4 samples for transition to quieter samples
+        for i in 1 to 4 loop
+            write (l, String'("reaching end of delay"));
+            writeline (output, l);
+            wait until clock'event and clock = '1' and left_strobe_out = '1';
+        end loop;
+        
+        -- Now the samples are quieter again
+        assert abs (to_integer (signed (data_out))) < loud;
+        assert abs (to_integer (signed (data_out))) >= (reduced - 1);
+        assert abs (to_integer (signed (data_out))) <= (reduced + 1);
+
 
         for test_index in test_table'Range loop
             write (l, String'(""));
