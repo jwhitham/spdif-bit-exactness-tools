@@ -7,7 +7,9 @@ use ieee.math_real.all;
 use std.textio.all;
 
 entity compressor is
-    generic (max_amplification : Real := 21.1);
+    generic (max_amplification : Real := 21.1;
+             delay_threshold_level : Real := 0.99;
+             delay_size_log_2  : Natural := 9);
     port (
         data_in         : in std_logic_vector (15 downto 0);
         left_strobe_in  : in std_logic;
@@ -130,7 +132,9 @@ begin
     channel : for channel_num in 0 to num_channels - 1 generate
     begin
         delay : fifo
-            generic map (data_size_log_2 => audio_bits_log_2, addr_size => 9, threshold_level => 0.99)
+            generic map (data_size_log_2 => audio_bits_log_2,
+                         addr_size => delay_size_log_2,
+                         threshold_level => delay_threshold_level)
             port map (
                 data_in => data_in,
                 data_out => delay_out (channel_num),

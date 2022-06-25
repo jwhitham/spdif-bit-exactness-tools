@@ -12,7 +12,9 @@ end test_compressor;
 architecture test of test_compressor is
 
     component compressor is
-        generic (max_amplification : Real);
+        generic (max_amplification : Real := 21.1;
+                 delay_threshold_level : Real := 0.99;
+                 delay_size_log_2  : Natural := 9);
         port (
             data_in         : in std_logic_vector (15 downto 0);
             left_strobe_in  : in std_logic;
@@ -53,9 +55,17 @@ architecture test of test_compressor is
     constant sample_period  : Time := 20.0 us;
     constant square_wave_period  : Time := 1.0 ms;
 
+    constant delay_size_log_2      : Natural := 5;
+    constant delay_threshold_level : Real := 0.5;
+
+    constant max_samples_in_delay  : Natural := 
+            2 + Natural (Real (2 ** delay_size_log_2) * delay_threshold_level);
+
 begin
     dut : compressor
-        generic map (max_amplification => 21.1)
+        generic map (max_amplification => 21.1,
+                     delay_threshold_level => delay_threshold_level,
+                     delay_size_log_2 => delay_size_log_2)
         port map (
             data_in => data_in,
             left_strobe_in => left_strobe_in,
@@ -167,7 +177,6 @@ begin
 
         variable loud, reduced : Integer := 0;
 
-        constant delay_length : Natural := 508;
         constant near_maximum : Natural := 16#7ff8#;
     begin
         done <= '0';
@@ -221,19 +230,14 @@ begin
             assert abs (to_integer (signed (data_out))) <= (reduced + 1);
 
             -- Wait for the delay to empty
-            for i in 1 to (delay_length - 3) loop
+            for i in 1 to max_samples_in_delay - 2 loop
                 wait until clock'event and clock = '1' and left_strobe_out = '1';
                 assert abs (to_integer (signed (data_out))) >= (reduced - 1);
                 assert abs (to_integer (signed (data_out))) <= (reduced + 1);
             end loop;
 
             -- Now we expect the amplitude to increase to maximum again
-            -- Allow 4 samples for transition
-            for i in 1 to 4 loop
-                wait until clock'event and clock = '1' and left_strobe_out = '1';
-            end loop;
-            
-            -- Back to the maximum level
+            wait until clock'event and clock = '1' and left_strobe_out = '1';
             loud := abs (to_integer (signed (data_out)));
             assert loud >= near_maximum;
 
@@ -244,25 +248,17 @@ begin
             set_amplitude_n <= std_logic_vector (to_signed (-initial, t_data'Length));
             wait until square_wave_negative'event;
 
-            -- Wait for the quieter samples to come through the delay;
-            -- during this time, the amplitude may gradually increase
-            for i in 1 to (delay_length - 2) loop
+            -- Wait for the quieter samples to come through the delay
+            for i in 1 to max_samples_in_delay loop
                 wait until clock'event and clock = '1' and left_strobe_out = '1';
                 assert abs (to_integer (signed (data_out))) = loud;
-                write (l, String'("delay "));
-                write (l, i);
-                write (l, String'(" peak "));
-                write (l, to_integer (unsigned (peak_level_out)));
-                write (l, String'(" data out "));
-                write (l, to_integer (signed (data_out)));
-                writeline (output, l);
             end loop;
 
-            -- Allow 4 samples for transition to quieter samples
-            for i in 1 to 4 loop
-                write (l, String'("reaching end of delay"));
-                writeline (output, l);
+            for i in 1 to 1 loop
                 wait until clock'event and clock = '1' and left_strobe_out = '1';
+                write (l, String'("reaching end of delay: "));
+                write (l, to_integer (signed (data_out)));
+                writeline (output, l);
             end loop;
             
             -- Now the samples are quieter again
@@ -308,8 +304,8 @@ begin
             writeline (output, l);
             
             -- Synchronisation is expected after around 500 samples
-            assert (sample_counter - start) >= (delay_length - 2);
-            assert (sample_counter - start) <= (delay_length + 2);
+            assert (sample_counter - start) >= (max_samples_in_delay - 2);
+            assert (sample_counter - start) <= (max_samples_in_delay + 2);
 
             -- Wait for output data
             wait until clock'event and clock = '1' and left_strobe_out = '1';
