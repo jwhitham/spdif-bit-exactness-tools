@@ -280,11 +280,6 @@ begin
                                 < unsigned (peak_minimum (peak_bits - 1 downto peak_audio_low)) then
                     -- Peak is at the minimum value (maximum amplification)
                     peak_level <= peak_minimum;
-                    if peak_minimum /= peak_level then
-                        write (l, String'("set peak level (min) = "));
-                        write (l, to_integer (unsigned (peak_minimum)));
-                        writeline (output, l);
-                    end if;
 
                 elsif unsigned (peak_level (peak_bits - 1 downto peak_audio_low))
                                 <= unsigned (abs_audio) then
@@ -292,21 +287,10 @@ begin
                     peak_level <= (others => '0');
                     peak_level (peak_audio_low - 1 downto 0) <= (others => '1');
                     peak_level (peak_audio_high downto peak_audio_low) <= abs_audio;
-                    pl := (others => '0');
-                    pl (peak_audio_low - 1 downto 0) := (others => '1');
-                    pl (peak_audio_high downto peak_audio_low) := abs_audio;
-                    if pl /= peak_level then
-                        write (l, String'("set peak level (max) = "));
-                        write (l, to_integer (unsigned (pl)));
-                        writeline (output, l);
-                    end if;
 
                 elsif (divider_finish = '1') and (state = WAIT_FOR_PEAK) then
                     -- Peak decays towards minimum value (maximum amplification)
                     peak_level <= divider_result (peak_bits - 1 downto 0);
-                    write (l, String'("set peak level (decay) = "));
-                    write (l, to_integer (unsigned (divider_result (peak_bits - 1 downto 0))));
-                    writeline (output, l);
                 end if;
             end if;
         end process;

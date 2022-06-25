@@ -149,15 +149,15 @@ begin
         type t_test_table is array (Natural range <>) of t_test;
 
         constant test_table : t_test_table :=
-            (--(16#0000#, 16#0000#, 0),
-             --(16#7fff#, 16#7fff#, 1),
+            ((16#0000#, 16#0000#, 0),
+             (16#7fff#, 16#7fff#, 1),
              (16#3fff#, 16#7ffe#, 1),
              (16#03ff#, 16#7fe0#, 1),
-             --(16#01ff#, 16#7fc0#, 1),
-             --(16#00ff#, 16#7f80#, 1),
-             --(16#00fe#, 16#7f80#, 1),   -- amplitude does not quite get maximum amplification (21.1dB)
-             --(16#00fd#, 16#7f50#, 1),   -- amplitude gets maximum amplification
-             --(16#007f#, 16#3fe8#, 1),
+             (16#01ff#, 16#7fc0#, 1),
+             (16#00ff#, 16#7f80#, 1),
+             (16#00fe#, 16#7f80#, 1),   -- amplitude does not quite get maximum amplification (21.1dB)
+             (16#00fd#, 16#7f50#, 1),   -- amplitude gets maximum amplification
+             (16#007f#, 16#3fe8#, 1),
              (16#0001#, 128, 0)         -- minimum non-zero amplitude
             );  
         variable t : t_test;
