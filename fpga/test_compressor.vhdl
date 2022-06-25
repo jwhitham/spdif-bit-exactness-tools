@@ -184,6 +184,8 @@ begin
             wait until square_wave_negative'event;
             wait until clock'event and clock = '1' and left_strobe_in = '1';
             assert abs (to_integer (signed (data_in))) = initial;
+            wait until clock'event and clock = '1' and left_strobe_in = '1';
+            assert abs (to_integer (signed (data_in))) = initial;
 
             write (l, String'("end reset"));
             writeline (output, l);

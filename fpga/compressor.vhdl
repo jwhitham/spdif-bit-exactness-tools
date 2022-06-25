@@ -81,6 +81,7 @@ architecture structural of compressor is
     signal read_error           : t_bit_per_channel := zero_bits_per_channel;
     signal write_error          : t_bit_per_channel := zero_bits_per_channel;
     signal read_delayed         : t_bit_per_channel := zero_bits_per_channel;
+    signal empty_out            : t_bit_per_channel := zero_bits_per_channel;
     signal delay_out_ready      : t_bit_per_channel := zero_bits_per_channel;
     signal delay_out            : t_data_per_channel := (others => (others => '0'));
     signal reset                : std_logic := '0';
@@ -133,7 +134,7 @@ begin
             port map (
                 data_in => data_in,
                 data_out => delay_out (channel_num),
-                empty_out => open,
+                empty_out => empty_out (channel_num),
                 full_out => open,
                 thresh_out => thresh_reached (channel_num),
                 write_error => write_error (channel_num),
@@ -317,6 +318,7 @@ begin
     begin
         if clock_in'event and clock_in = '1' then
             read_delayed <= zero_bits_per_channel;
+            delay_out_ready <= zero_bits_per_channel;
 
             case state is
                 when INIT =>
