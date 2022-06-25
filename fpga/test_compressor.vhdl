@@ -136,7 +136,7 @@ begin
         end if;
     end process;
 
-    steady_state_test : process
+    all_tests : process
         variable l          : line;
         variable start      : Natural := 0;
 
@@ -172,7 +172,7 @@ begin
     begin
         done <= '0';
 
-        if False then
+        if true then
             write (l, String'("Test changing amplitude"));
             writeline (output, l);
 
@@ -378,6 +378,6 @@ begin
         end loop;
         done <= '1';
         wait;
-    end process steady_state_test;
+    end process all_tests;
 
 end test;

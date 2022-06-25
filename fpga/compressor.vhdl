@@ -244,6 +244,7 @@ begin
         signal input_valid          : std_logic := '0';
         signal input_audio          : std_logic_vector (audio_bits - 1 downto 0) := (others => '0');
         signal abs_audio            : std_logic_vector (audio_bits - 1 downto 0) := (others => '0');
+        signal minimum_flag         : std_logic := '0';
     begin
         process (clock_in)
             variable l : line;
@@ -280,6 +281,7 @@ begin
                                 < unsigned (peak_minimum (peak_bits - 1 downto peak_audio_low)) then
                     -- Peak is at the minimum value (maximum amplification)
                     peak_level <= peak_minimum;
+                    minimum_flag <= '1';
 
                 elsif unsigned (peak_level (peak_bits - 1 downto peak_audio_low))
                                 <= unsigned (abs_audio) then
@@ -287,8 +289,10 @@ begin
                     peak_level <= (others => '0');
                     peak_level (peak_audio_low - 1 downto 0) <= (others => '1');
                     peak_level (peak_audio_high downto peak_audio_low) <= abs_audio;
+                    minimum_flag <= '0';
 
-                elsif (divider_finish = '1') and (state = WAIT_FOR_PEAK) then
+                elsif (divider_finish = '1') and (state = WAIT_FOR_PEAK) and
+                                (minimum_flag = '0') then
                     -- Peak decays towards minimum value (maximum amplification)
                     peak_level <= divider_result (peak_bits - 1 downto 0);
                 end if;
