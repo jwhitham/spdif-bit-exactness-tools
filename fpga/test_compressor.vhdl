@@ -12,9 +12,11 @@ end test_compressor;
 architecture test of test_compressor is
 
     component compressor is
-        generic (max_amplification : Real := 21.1;
-                 delay_threshold_level : Real := 0.99;
-                 delay_size_log_2  : Natural := 9);
+    generic (max_amplification      : Real := 21.1;         -- dB
+             sample_rate            : Natural := 48000;     -- Hz
+             decay_rate             : Real := 1.0;          -- dB
+             delay_threshold_level  : Real := 0.99;
+             delay_size_log_2       : Natural := 9);
         port (
             data_in         : in std_logic_vector (15 downto 0);
             left_strobe_in  : in std_logic;
@@ -51,12 +53,15 @@ architecture test of test_compressor is
     signal square_wave_divider : Natural := 0;
     signal square_wave_negative : std_logic := '0';
 
-    constant clock_period   : Time := 10.0 ns;
-    constant sample_period  : Time := 20.0 us;
-    constant square_wave_period  : Time := 1.0 ms;
+    constant sample_rate    : Natural := 1000;
+
+    constant sample_period  : Time := 1000 ms / sample_rate;
+    constant clock_period   : Time := sample_period / 1000;
+    constant square_wave_period  : Time := sample_period * 10;
 
     constant delay_size_log_2      : Natural := 5;
     constant delay_threshold_level : Real := 0.5;
+    constant decay_rate            : Real := 0.6;
 
     constant max_samples_in_delay  : Natural := 
             2 + Natural (Real (2 ** delay_size_log_2) * delay_threshold_level);
@@ -64,6 +69,8 @@ architecture test of test_compressor is
 begin
     dut : compressor
         generic map (max_amplification => 21.1,
+                     sample_rate => sample_rate,
+                     decay_rate => decay_rate,
                      delay_threshold_level => delay_threshold_level,
                      delay_size_log_2 => delay_size_log_2)
         port map (
@@ -176,6 +183,7 @@ begin
         constant boost   : Integer := 11000;
 
         variable loud, reduced : Integer := 0;
+        variable reduced_plus_1_db : Integer := 0;
 
         constant near_maximum : Natural := 16#7ff8#;
     begin
@@ -189,11 +197,21 @@ begin
             sync_in <= '0';
             set_amplitude_p <= std_logic_vector (to_signed (initial, t_data'Length));
             set_amplitude_n <= std_logic_vector (to_signed (-initial, t_data'Length));
+            write (l, String'("a"));
+            writeline (output, l);
             wait until square_wave_negative'event;
+            write (l, String'("a"));
+            writeline (output, l);
             wait until square_wave_negative'event;
+            write (l, String'("a"));
+            writeline (output, l);
             wait until clock'event and clock = '1' and left_strobe_in = '1';
+            write (l, String'("a"));
+            writeline (output, l);
             assert abs (to_integer (signed (data_in))) = initial;
             wait until clock'event and clock = '1' and left_strobe_in = '1';
+            write (l, String'("a"));
+            writeline (output, l);
             assert abs (to_integer (signed (data_in))) = initial;
 
             write (l, String'("end reset"));
@@ -254,17 +272,35 @@ begin
                 assert abs (to_integer (signed (data_out))) = loud;
             end loop;
 
-            for i in 1 to 1 loop
-                wait until clock'event and clock = '1' and left_strobe_out = '1';
-                write (l, String'("reaching end of delay: "));
-                write (l, to_integer (signed (data_out)));
-                writeline (output, l);
-            end loop;
+            wait until clock'event and clock = '1' and left_strobe_out = '1';
+            write (l, String'("reaching end of delay: "));
+            write (l, to_integer (signed (data_out)));
+            writeline (output, l);
             
             -- Now the samples are quieter again
             assert abs (to_integer (signed (data_out))) < loud;
             assert abs (to_integer (signed (data_out))) >= (reduced - 1);
             assert abs (to_integer (signed (data_out))) <= (reduced + 1);
+
+            -- Wait for the gradual recovery of the original volume
+            -- After one simulated second, the volume should have grown by
+            -- approximately decay_rate decibels.
+            for i in 1 to sample_rate loop
+                wait until clock'event and clock = '1' and left_strobe_out = '1';
+            end loop;
+
+            reduced_plus_1_db := Integer (Real (reduced) * (10.0 ** (decay_rate / 10.0)));
+            assert abs (to_integer (signed (data_out))) < loud;
+            assert abs (to_integer (signed (data_out))) >= (reduced_plus_1_db - 1);
+            assert abs (to_integer (signed (data_out))) <= (reduced_plus_1_db + 1);
+
+            write (l, String'("getting louder: "));
+            write (l, reduced);
+            write (l, String'(" -> "));
+            write (l, abs (to_integer (signed (data_out))));
+            write (l, String'(" expect "));
+            write (l, reduced_plus_1_db);
+            writeline (output, l);
         end if;
 
         for test_index in test_table'Range loop

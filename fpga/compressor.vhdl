@@ -7,9 +7,11 @@ use ieee.math_real.all;
 use std.textio.all;
 
 entity compressor is
-    generic (max_amplification : Real := 21.1;
-             delay_threshold_level : Real := 0.99;
-             delay_size_log_2  : Natural := 9);
+    generic (max_amplification      : Real := 21.1;         -- dB
+             sample_rate            : Natural := 48000;     -- Hz
+             decay_rate             : Real := 1.0;          -- dB
+             delay_threshold_level  : Real := 0.99;
+             delay_size_log_2       : Natural := 9);
     port (
         data_in         : in std_logic_vector (15 downto 0);
         left_strobe_in  : in std_logic;
@@ -62,9 +64,8 @@ architecture structural of compressor is
     end convert_to_bits;
 
     -- These control how quickly the volume is increased, if the sound suddenly becomes quieter.
-    -- The rate is 1 decibel per second.
-    constant sample_rate        : Natural := 48000; -- assumed
-    constant peak_divisor       : t_peak_level := convert_to_bits (decibel (1.0 / Real (sample_rate)));
+    -- decay_rate is (by default) 1 decibel per second, based on the given sample rate.
+    constant peak_divisor       : t_peak_level := convert_to_bits (decibel (decay_rate / Real (sample_rate)));
 
     -- This is the minimum sound level that will be amplified to the maximum level
     constant peak_minimum       : t_peak_level := convert_to_bits (decibel (- max_amplification));
