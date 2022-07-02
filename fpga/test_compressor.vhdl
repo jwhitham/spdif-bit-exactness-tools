@@ -189,7 +189,7 @@ begin
     begin
         done <= '0';
 
-        if true then
+        if false then
             write (l, String'("Test changing amplitude"));
             writeline (output, l);
 
