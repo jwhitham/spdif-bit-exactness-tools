@@ -62,10 +62,10 @@ architecture test of test_compressor is
 
     constant delay_size_log_2      : Natural := 5;
     constant delay_threshold_level : Real := 0.5;
-    constant decay_rate            : Real := 0.6;
+    constant decay_rate            : Real := 0.1;
 
     constant max_samples_in_delay  : Natural := 
-            2 + Natural (Real (2 ** delay_size_log_2) * delay_threshold_level);
+            1 + Natural (Real (2 ** delay_size_log_2) * delay_threshold_level);
 
 begin
     dut : compressor
@@ -74,7 +74,7 @@ begin
                      decay_rate => decay_rate,
                      delay_threshold_level => delay_threshold_level,
                      delay_size_log_2 => delay_size_log_2,
-                     debug => false)
+                     debug => true)
         port map (
             data_in => data_in,
             left_strobe_in => left_strobe_in,
@@ -192,7 +192,7 @@ begin
     begin
         done <= '0';
 
-        if false then
+        if true then
             write (l, String'("Test changing amplitude"));
             writeline (output, l);
 
@@ -200,21 +200,11 @@ begin
             sync_in <= '0';
             set_amplitude_p <= std_logic_vector (to_signed (initial, t_data'Length));
             set_amplitude_n <= std_logic_vector (to_signed (-initial, t_data'Length));
-            write (l, String'("a"));
-            writeline (output, l);
             wait until square_wave_negative'event;
-            write (l, String'("a"));
-            writeline (output, l);
             wait until square_wave_negative'event;
-            write (l, String'("a"));
-            writeline (output, l);
             wait until clock'event and clock = '1' and left_strobe_in = '1';
-            write (l, String'("a"));
-            writeline (output, l);
             assert abs (to_integer (signed (data_in))) = initial;
             wait until clock'event and clock = '1' and left_strobe_in = '1';
-            write (l, String'("a"));
-            writeline (output, l);
             assert abs (to_integer (signed (data_in))) = initial;
 
             write (l, String'("end reset"));
@@ -232,17 +222,15 @@ begin
             assert loud >= near_maximum;
 
             -- make input 10% louder
+            writeline (output, l);
             write (l, String'("louder samples"));
+            writeline (output, l);
             writeline (output, l);
             set_amplitude_p <= std_logic_vector (to_signed (boost, t_data'Length));
             set_amplitude_n <= std_logic_vector (to_signed (-boost, t_data'Length));
             wait until square_wave_negative'event;
 
-            -- The next sample is the same high amplitude
-            wait until clock'event and clock = '1' and left_strobe_out = '1';
-            assert abs (to_integer (signed (data_out))) = loud;
-
-            -- The sample after that is 10% quieter: the peak level has changed
+            -- The next sample is 10% quieter: the peak level has changed
             -- but the input samples are still at the initial level
             wait until clock'event and clock = '1' and left_strobe_out = '1';
             reduced := (loud * initial) / boost;
@@ -251,7 +239,7 @@ begin
             assert abs (to_integer (signed (data_out))) <= (reduced + 1);
 
             -- Wait for the delay to empty
-            for i in 1 to max_samples_in_delay - 2 loop
+            for i in 1 to max_samples_in_delay - 1 loop
                 wait until clock'event and clock = '1' and left_strobe_out = '1';
                 assert abs (to_integer (signed (data_out))) >= (reduced - 1);
                 assert abs (to_integer (signed (data_out))) <= (reduced + 1);
@@ -263,7 +251,9 @@ begin
             assert loud >= near_maximum;
 
             -- Drop input 10%
+            writeline (output, l);
             write (l, String'("quieter samples"));
+            writeline (output, l);
             writeline (output, l);
             set_amplitude_p <= std_logic_vector (to_signed (initial, t_data'Length));
             set_amplitude_n <= std_logic_vector (to_signed (-initial, t_data'Length));
@@ -276,33 +266,43 @@ begin
             end loop;
 
             wait until clock'event and clock = '1' and left_strobe_out = '1';
+            writeline (output, l);
             write (l, String'("reaching end of delay: "));
             write (l, to_integer (signed (data_out)));
+            write (l, String'(" expect "));
+            write (l, reduced);
+            writeline (output, l);
             writeline (output, l);
             
-            -- Now the samples are quieter again
+            -- Now the samples are quieter again; though the volume has grown while
+            -- they were in the delay
             assert abs (to_integer (signed (data_out))) < loud;
-            assert abs (to_integer (signed (data_out))) >= (reduced - 1);
-            assert abs (to_integer (signed (data_out))) <= (reduced + 1);
+            assert abs (to_integer (signed (data_out))) > reduced;
 
             -- Wait for the gradual recovery of the original volume
             -- After one simulated second, the volume should have grown by
-            -- approximately decay_rate decibels.
-            for i in 1 to sample_rate loop
+            -- approximately decay_rate decibels. (Though not exactly, due to rounding errors.)
+            for i in 1 to sample_rate - max_samples_in_delay loop
                 wait until clock'event and clock = '1' and left_strobe_out = '1';
             end loop;
 
-            reduced_plus_1_db := Integer (Real (reduced) * (10.0 ** (decay_rate / 10.0)));
             assert abs (to_integer (signed (data_out))) < loud;
-            assert abs (to_integer (signed (data_out))) >= (reduced_plus_1_db - 1);
-            assert abs (to_integer (signed (data_out))) <= (reduced_plus_1_db + 1);
 
+            reduced_plus_1_db := Integer (Real (reduced) * (10.0 ** (decay_rate / 10.0)));
+            -- note: Ensure decay_rate is chosen so that the volume gain over 1 second does not exceed
+            -- the maximum amplification
+            assert reduced_plus_1_db < (loud - 10);
+            assert abs (to_integer (signed (data_out))) >= (reduced_plus_1_db - 10);
+            assert abs (to_integer (signed (data_out))) <= (reduced_plus_1_db + 10);
+
+            writeline (output, l);
             write (l, String'("getting louder: "));
             write (l, reduced);
             write (l, String'(" -> "));
             write (l, abs (to_integer (signed (data_out))));
             write (l, String'(" expect "));
             write (l, reduced_plus_1_db);
+            writeline (output, l);
             writeline (output, l);
         end if;
 

@@ -377,7 +377,7 @@ begin
                             minimum_flag <= '0';
                         end if;
                     end if;
-                when AWAIT_AUDIO_DIVISION =>
+                when AWAIT_PEAK_LEVEL_DIVISION =>
                     -- Set to new divider output
                     -- Peak decays towards minimum value (maximum amplification)
                     if minimum_flag = '0' and peak_divider_finish = '1' then
