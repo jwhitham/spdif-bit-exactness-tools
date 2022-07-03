@@ -13,12 +13,12 @@ architecture test of test_divider is
     component divider is
         generic (
             top_width    : Natural;
-            bottom_width : Natural;
-            is_unsigned  : Boolean);
+            bottom_width : Natural);
         port (
             top_value_in    : in std_logic_vector (top_width - 1 downto 0);
             bottom_value_in : in std_logic_vector (bottom_width - 1 downto 0);
             start_in        : in std_logic;
+            unsigned_in     : in std_logic;
             finish_out      : out std_logic := '0';
             result_out      : out std_logic_vector (top_width - 1 downto 0);
             clock_in        : in std_logic
@@ -117,15 +117,18 @@ begin
         signal start            : std_logic := '0';
         signal finish           : std_logic := '0';
         signal result           : std_logic_vector (top_width - 1 downto 0);
+        signal unsigned_div     : std_logic := '0';
 
     begin
+        unsigned_div <= '1' when test_table (part).is_unsigned else '0';
+
         d : divider
             generic map (top_width => top_width,
-                         bottom_width => bottom_width,
-                         is_unsigned => is_unsigned)
+                         bottom_width => bottom_width)
             port map (
                 top_value_in => top_value,
                 bottom_value_in => bottom_value,
+                unsigned_in => unsigned_div,
                 start_in => start,
                 finish_out => finish,
                 result_out => result,
@@ -172,7 +175,7 @@ begin
                     if expect = (top_finish + 1) then
                         -- Result overflow; in this case, the behaviour is undefined.
                         undefined := true;
-                        assert not is_unsigned;
+                        assert unsigned_div = '0';
                         assert top = top_start;
                         assert bottom = -1;
                     else
