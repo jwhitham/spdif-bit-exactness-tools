@@ -74,7 +74,7 @@ begin
                      decay_rate => decay_rate,
                      delay_threshold_level => delay_threshold_level,
                      delay_size_log_2 => delay_size_log_2,
-                     debug => true)
+                     debug => false)
         port map (
             data_in => data_in,
             left_strobe_in => left_strobe_in,
@@ -184,9 +184,11 @@ begin
 
         constant initial : Integer := 10000;
         constant boost   : Integer := 11000;
+        constant epsilon : Real := 0.001;
 
         variable loud, reduced : Integer := 0;
         variable reduced_plus_1_db : Integer := 0;
+        variable reduced_plus_x_db : Integer := 0;
 
         constant near_maximum : Natural := 16#7ff8#;
     begin
@@ -222,9 +224,7 @@ begin
             assert loud >= near_maximum;
 
             -- make input 10% louder
-            writeline (output, l);
             write (l, String'("louder samples"));
-            writeline (output, l);
             writeline (output, l);
             set_amplitude_p <= std_logic_vector (to_signed (boost, t_data'Length));
             set_amplitude_n <= std_logic_vector (to_signed (-boost, t_data'Length));
@@ -251,9 +251,7 @@ begin
             assert loud >= near_maximum;
 
             -- Drop input 10%
-            writeline (output, l);
             write (l, String'("quieter samples"));
-            writeline (output, l);
             writeline (output, l);
             set_amplitude_p <= std_logic_vector (to_signed (initial, t_data'Length));
             set_amplitude_n <= std_logic_vector (to_signed (-initial, t_data'Length));
@@ -266,12 +264,10 @@ begin
             end loop;
 
             wait until clock'event and clock = '1' and left_strobe_out = '1';
-            writeline (output, l);
             write (l, String'("reaching end of delay: "));
             write (l, to_integer (signed (data_out)));
             write (l, String'(" expect "));
             write (l, reduced);
-            writeline (output, l);
             writeline (output, l);
             
             -- Now the samples are quieter again; though the volume has grown while
@@ -281,7 +277,7 @@ begin
 
             -- Wait for the gradual recovery of the original volume
             -- After one simulated second, the volume should have grown by
-            -- approximately decay_rate decibels. (Though not exactly, due to rounding errors.)
+            -- approximately decay_rate decibels (within 1% is permitted due to rounding errors).
             for i in 1 to sample_rate - max_samples_in_delay loop
                 wait until clock'event and clock = '1' and left_strobe_out = '1';
             end loop;
@@ -292,10 +288,9 @@ begin
             -- note: Ensure decay_rate is chosen so that the volume gain over 1 second does not exceed
             -- the maximum amplification
             assert reduced_plus_1_db < (loud - 10);
-            assert abs (to_integer (signed (data_out))) >= (reduced_plus_1_db - 10);
-            assert abs (to_integer (signed (data_out))) <= (reduced_plus_1_db + 10);
+            assert Real (abs (to_integer (signed (data_out)))) >= Real (reduced_plus_1_db) * (1.0 - epsilon);
+            assert Real (abs (to_integer (signed (data_out)))) <= Real (reduced_plus_1_db) * (1.0 + epsilon);
 
-            writeline (output, l);
             write (l, String'("getting louder: "));
             write (l, reduced);
             write (l, String'(" -> "));
@@ -303,7 +298,33 @@ begin
             write (l, String'(" expect "));
             write (l, reduced_plus_1_db);
             writeline (output, l);
-            writeline (output, l);
+
+            -- Expect the peak level to eventually return to the loud level
+            for j in 1 to 10 loop
+                reduced := abs (to_integer (signed (data_out)));
+
+                for i in 1 to sample_rate loop
+                    wait until clock'event and clock = '1' and left_strobe_out = '1';
+                end loop;
+
+                reduced_plus_x_db := Integer (Real (reduced) * (10.0 ** (decay_rate / 10.0)));
+                if reduced_plus_x_db >= loud then
+                    reduced_plus_x_db := loud;
+                end if;
+                assert Real (abs (to_integer (signed (data_out)))) >= Real (reduced_plus_x_db) * (1.0 - epsilon);
+                assert Real (abs (to_integer (signed (data_out)))) <= Real (reduced_plus_x_db) * (1.0 + epsilon);
+
+                write (l, String'("getting louder again: "));
+                write (l, reduced);
+                write (l, String'(" -> "));
+                write (l, abs (to_integer (signed (data_out))));
+                write (l, String'(" expect "));
+                write (l, reduced_plus_x_db);
+                writeline (output, l);
+
+                exit when reduced_plus_x_db >= loud;
+            end loop;
+            assert reduced_plus_x_db >= loud;
         end if;
 
         for test_index in test_table'Range loop
