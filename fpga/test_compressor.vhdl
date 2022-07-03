@@ -16,7 +16,8 @@ architecture test of test_compressor is
              sample_rate            : Natural := 48000;     -- Hz
              decay_rate             : Real := 1.0;          -- dB
              delay_threshold_level  : Real := 0.99;
-             delay_size_log_2       : Natural := 9);
+             delay_size_log_2       : Natural := 9;
+             debug                  : Boolean := false);
         port (
             data_in         : in std_logic_vector (15 downto 0);
             left_strobe_in  : in std_logic;
@@ -72,7 +73,8 @@ begin
                      sample_rate => sample_rate,
                      decay_rate => decay_rate,
                      delay_threshold_level => delay_threshold_level,
-                     delay_size_log_2 => delay_size_log_2)
+                     delay_size_log_2 => delay_size_log_2,
+                     debug => false)
         port map (
             data_in => data_in,
             left_strobe_in => left_strobe_in,
@@ -168,14 +170,15 @@ begin
         constant test_table : t_test_table :=
             ((16#0000#, 16#0000#, 0),
              (16#7fff#, 16#7fff#, 1),
-             (16#3fff#, 16#7ffe#, 1),
-             (16#03ff#, 16#7fe0#, 1),
-             (16#01ff#, 16#7fc0#, 1),
-             (16#00ff#, 16#7f80#, 1),
-             (16#00fe#, 16#7f80#, 1),   -- amplitude does not quite get maximum amplification (21.1dB)
-             (16#00fd#, 16#7f50#, 1),   -- amplitude gets maximum amplification
-             (16#007f#, 16#3fe8#, 1),
-             (16#0001#, 128, 0)         -- minimum non-zero amplitude
+             (16#3fff#, 16#7ffe#, 0),
+             (16#03ff#, 16#7fe0#, 0),
+             (16#01ff#, 16#7fc0#, 0),
+             (16#00ff#, 16#7f80#, 0),
+             (16#00fe#, 16#7f80#, 0),   -- amplitude does not quite get maximum amplification (21.1dB)
+             (16#00fd#, 16#7eff#, 1),   -- amplitude gets maximum amplification
+             (16#00fc#, 16#7e7e#, 1), 
+             (16#007f#, 16#3fbf#, 1),
+             (16#0001#, 16#0080#, 0)    -- minimum non-zero amplitude
             );  
         variable t : t_test;
 

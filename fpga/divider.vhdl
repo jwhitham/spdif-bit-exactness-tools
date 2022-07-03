@@ -16,12 +16,13 @@ use ieee.numeric_std.all;
 entity divider is
     generic (
         top_width    : Natural;
-        bottom_width : Natural);
+        bottom_width : Natural;
+        is_unsigned  : Boolean);
     port (
         top_value_in    : in std_logic_vector (top_width - 1 downto 0);
         bottom_value_in : in std_logic_vector (bottom_width - 1 downto 0);
         start_in        : in std_logic;
-        unsigned_in     : in std_logic;
+        reset_in        : in std_logic;
         finish_out      : out std_logic := '0';
         result_out      : out std_logic_vector (top_width - 1 downto 0);
         clock_in        : in std_logic
@@ -40,7 +41,6 @@ architecture structural of divider is
     signal result       : std_logic_vector (top_width - 1 downto 0) := (others => '0');
     signal state        : t_state := IDLE;
     signal invert       : std_logic := '0';
-    signal unsigned_div : std_logic := '1';
     signal steps_to_do  : t_steps_to_do := top_width - 1;
 
 begin
@@ -59,9 +59,8 @@ begin
                     -- Load new inputs
                     top (top_width - 1 downto 0) <= unsigned (top_value_in);
                     bottom (bottom'Left - 1 downto top_width - 1) <= unsigned (bottom_value_in);
-                    unsigned_div <= unsigned_in;
 
-                    if unsigned_in = '1' then
+                    if is_unsigned then
                         invert <= '0';
                     else
                         invert <= (top_value_in (top_width - 1) xor
@@ -70,7 +69,7 @@ begin
                     steps_to_do <= top_width - 1;
 
                     if start_in = '1' then
-                        if unsigned_in = '1' or (top_value_in (top_width - 1) = '0'
+                        if is_unsigned or (top_value_in (top_width - 1) = '0'
                                 and bottom_value_in (bottom_width - 1) = '0') then
                             -- input values are positive
                             state <= SHIFT;
@@ -81,6 +80,7 @@ begin
                     end if;
                 when INVERT_INPUTS =>
                     -- Get positive values for inputs
+                    assert not is_unsigned;
                     if top (top_width - 1) = '1' then
                         top (top_width - 1 downto 0) <=
                             unsigned (0 - signed (top (top_width - 1 downto 0)));
@@ -105,7 +105,7 @@ begin
                     end if;
                     if steps_to_do = 0 then
                         -- Finished?
-                        if invert = '0' or unsigned_div = '1' then
+                        if invert = '0' or is_unsigned then
                             state <= FINISH_POSITIVE;
                         else
                             state <= FINISH_NEGATIVE;
@@ -115,6 +115,7 @@ begin
                     end if;
                 when FINISH_NEGATIVE =>
                     -- Invert result
+                    assert not is_unsigned;
                     assert invert = '1';
                     result <= std_logic_vector (unsigned (0 - signed (result)));
                     finish_out <= '1';
@@ -125,6 +126,10 @@ begin
                     finish_out <= '1';
                     state <= IDLE;
             end case;
+
+            if reset_in = '1' then
+                state <= IDLE;
+            end if;
         end if;
     end process;
 
