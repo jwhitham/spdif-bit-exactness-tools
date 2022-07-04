@@ -51,8 +51,10 @@ architecture test of test_compressor is
     signal reveal           : std_logic := '0';
     signal sample_counter   : Natural := 0;
     signal clock_counter    : Natural := 0;
-    signal square_wave_divider : Natural := 0;
+    signal square_wave_divider  : Natural := 0;
     signal square_wave_negative : std_logic := '0';
+    signal sample_divider       : Natural := 0;
+    signal sample_left          : std_logic := '1';
 
     constant sample_rate    : Natural := 1000;
 
@@ -65,7 +67,7 @@ architecture test of test_compressor is
     constant decay_rate            : Real := 0.1;
 
     constant max_samples_in_delay  : Natural := 
-            1 + Natural (Real (2 ** delay_size_log_2) * delay_threshold_level);
+            2 + Natural (Real (2 ** delay_size_log_2) * delay_threshold_level);
 
 begin
     dut : compressor
@@ -90,7 +92,7 @@ begin
 
     process
     begin
-        -- 100MHz clock (one clock every 10 nanoseconds)
+        -- 1MHz clock (one clock every microsecond)
         clock_counter <= 0;
         while done /= '1' loop
             clock <= '1';
@@ -102,44 +104,30 @@ begin
         wait;
     end process;
 
-    process
-    begin
-        -- Audio data arriving at 50kHz sample rate (one sample per channel every 20 microseconds)
-        left_strobe_in <= '0';
-        right_strobe_in <= '0';
-        sample_counter <= 0;
-        wait for clock_period;
-        while done /= '1' loop
-            left_strobe_in <= '1';
-            sample_counter <= sample_counter + 1;
-            wait for clock_period;
-            left_strobe_in <= '0';
-            wait for ((sample_period / 2.0) - clock_period);
-            right_strobe_in <= '1';
-            wait for clock_period;
-            right_strobe_in <= '0';
-            wait for ((sample_period / 2.0) - clock_period);
-        end loop;
-        wait;
-    end process;
-
---    process
---    begin
---        -- Square wave generated, frequency 1kHz (one cycle every millisecond)
---        wait for clock_period;
---        while done /= '1' loop
---            data_in <= std_logic_vector (signed (set_amplitude));
---            wait for (square_wave_period / 2.0);
---            data_in <= std_logic_vector (-1 - signed (set_amplitude));
---            wait for (square_wave_period / 2.0);
---        end loop;
---        wait;
---    end process;
---
---    
     process (clock)
     begin
-        -- Square wave generated, frequency 1kHz (one cycle every millisecond)
+        -- Samples generated, frequency 1kHz (one sample per channel every millisecond)
+        if clock'event and clock = '1' then
+            left_strobe_in <= '0';
+            right_strobe_in <= '0';
+            if sample_divider = 0 then
+                if sample_left = '1' then
+                    left_strobe_in <= '1';
+                    sample_counter <= sample_counter + 1;
+                else
+                    right_strobe_in <= '1';
+                end if;
+                sample_left <= not sample_left;
+                sample_divider <= Natural ((sample_period / clock_period) / 2);
+            else
+                sample_divider <= sample_divider - 1;
+            end if;
+        end if;
+    end process;
+
+    process (clock)
+    begin
+        -- Square wave generated, frequency 100Hz (one cycle every 10 milliseconds)
         if clock'event and clock = '1' then
             if square_wave_divider = 0 then
                 if square_wave_negative = '1' then
@@ -363,7 +351,7 @@ begin
             write (l, to_integer (unsigned (peak_level_out)));
             writeline (output, l);
             
-            -- Synchronisation is expected after around 500 samples
+            -- Synchronisation is expected after filling the delay
             assert (sample_counter - start) >= (max_samples_in_delay - 2);
             assert (sample_counter - start) <= (max_samples_in_delay + 2);
 
