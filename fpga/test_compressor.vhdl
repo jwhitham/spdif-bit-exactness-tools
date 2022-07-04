@@ -136,7 +136,7 @@ begin
                     data_in <= set_amplitude_p;
                 end if;
                 square_wave_negative <= not square_wave_negative;
-                square_wave_divider <= Natural ((square_wave_period / clock_period) / 2);
+                square_wave_divider <= Natural ((square_wave_period / clock_period) / 2) - 1;
             else
                 square_wave_divider <= square_wave_divider - 1;
             end if;
@@ -218,10 +218,6 @@ begin
             set_amplitude_n <= std_logic_vector (to_signed (-boost, t_data'Length));
             wait until square_wave_negative'event;
 
-            -- One more loud sample before anything changes
-            wait until clock'event and clock = '1' and left_strobe_out = '1';
-            assert abs (to_integer (signed (data_out))) = loud;
-
             -- The next sample is 10% quieter: the peak level has changed
             -- but the input samples are still at the initial level
             wait until clock'event and clock = '1' and left_strobe_out = '1';
@@ -231,7 +227,7 @@ begin
             assert abs (to_integer (signed (data_out))) <= (reduced + 1);
 
             -- Wait for the delay to empty
-            for i in 1 to max_samples_in_delay - 2 loop
+            for i in 1 to max_samples_in_delay - 1 loop
                 wait until clock'event and clock = '1' and left_strobe_out = '1';
                 assert abs (to_integer (signed (data_out))) >= (reduced - 1);
                 assert abs (to_integer (signed (data_out))) <= (reduced + 1);
