@@ -69,12 +69,11 @@ begin
                     steps_to_do <= top_width - 1;
 
                     if start_in = '1' then
-                        if is_unsigned or (top_value_in (top_width - 1) = '0'
-                                and bottom_value_in (bottom_width - 1) = '0') then
-                            -- input values are positive
+                        if is_unsigned then
+                            -- input values are always positive
                             state <= SHIFT;
                         else
-                            -- at least one input value is negative
+                            -- input values might not be positive
                             state <= INVERT_INPUTS;
                         end if;
                     end if;
