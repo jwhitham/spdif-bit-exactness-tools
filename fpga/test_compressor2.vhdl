@@ -42,7 +42,6 @@ architecture test of test_compressor2 is
     constant sample_rate            : Natural := 1000;
     constant sample_period          : Time := 1000 ms / sample_rate;
     constant clock_period           : Time := sample_period / 1000;
-    constant square_wave_period     : Time := sample_period * 10;
     constant left_amplitude         : Integer := 20000;
     constant right_amplitude        : Integer := 5000;
     constant near_maximum           : Integer := 16#7ff0#;
@@ -72,6 +71,7 @@ begin
         process (clock)
         begin
             -- Samples generated, frequency 1kHz (one sample per channel every millisecond)
+            -- 500 Hz square wave is generated.
             if clock'event and clock = '1' then
                 left_strobe_in <= '0';
                 right_strobe_in <= '0';
