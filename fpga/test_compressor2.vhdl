@@ -88,9 +88,9 @@ begin
                     else
                         right_strobe_in <= '1';
                         if sample_phase = '1' then
-                            data_in <= std_logic_vector (to_signed (right_amplitude, t_data'Length));
-                        else
                             data_in <= std_logic_vector (to_signed (-right_amplitude, t_data'Length));
+                        else
+                            data_in <= std_logic_vector (to_signed (right_amplitude, t_data'Length));
                         end if;
                         sample_phase <= not sample_phase;
                     end if;
@@ -134,8 +134,9 @@ begin
                 clock_in => clock);
 
         run_test : process
-            variable l : line;
+            variable l           : line;
             variable left, right : Integer := 0;
+            variable old_right   : Integer := 0;
         begin
             sync_in <= '0';
             done (incremental) <= '0';
@@ -175,16 +176,11 @@ begin
                 left := to_integer (signed (data_out));
                 assert abs (left) >= near_maximum;
                 assert abs (left) <= true_maximum;
-                write (l, left);
-                writeline (output, l);
 
                 wait until clock'event and clock = '1' and right_strobe_out = '1';
                 right := to_integer (signed (data_out));
                 assert abs (right) >= ((near_maximum * right_amplitude) / left_amplitude);
                 assert abs (right) <= ((true_maximum * right_amplitude) / left_amplitude);
-                write (l, String'("stereo right = "));
-                write (l, right);
-                writeline (output, l);
 
                 -- check phase is the same
                 if left > 0 then
@@ -192,6 +188,17 @@ begin
                 else
                     assert right < 0;
                 end if;
+
+                -- check phase is the opposite to last time
+                if i > 0 then
+                    if right > 0 then
+                        assert old_right < 0;
+                    else
+                        assert old_right > 0;
+                    end if;
+                end if;
+
+                old_right := right;
             end loop;
 
             -- check input signals again
