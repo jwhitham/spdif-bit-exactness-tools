@@ -11,10 +11,12 @@ for F in \
             fifo \
             divider \
             compressor \
-            test_compressor
+            test_compressor \
+            test_compressor2
 do
     ghdl -a $F.vhdl
     ghdl -e $F
 done
+ghdl -r test_compressor2
 ghdl -r test_compressor
 

@@ -20,8 +20,6 @@ entity compressor is
         data_out        : out std_logic_vector (15 downto 0) := (others => '0');
         left_strobe_out : out std_logic := '0';
         right_strobe_out : out std_logic := '0';
-        peak_level_out  : out std_logic_vector (23 downto 0) := (others => '0');
-        reveal          : in std_logic;
         sync_in         : in std_logic;
         sync_out        : out std_logic := '0';
         clock_in        : in std_logic
@@ -389,8 +387,6 @@ begin
         end if;
     end process;
 
-    peak_level_out <= peak_level;
-
     -- Controller state machine
     controller : process (clock_in)
         variable l : line;
@@ -399,8 +395,8 @@ begin
             case state is
                 when INIT =>
                     -- Reset state
-                    -- (wait for synchronisation and a left input)
-                    if sync_in = '1' and left_strobe_in = '1' then
+                    -- (wait for synchronisation and a right input)
+                    if sync_in = '1' and right_strobe_in = '1' then
                         state <= FILLING;
                     end if;
                     sync_out <= '0';

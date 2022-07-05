@@ -25,8 +25,6 @@ architecture test of test_compressor is
             data_out        : out std_logic_vector (15 downto 0) := (others => '0');
             left_strobe_out : out std_logic := '0';
             right_strobe_out : out std_logic := '0';
-            peak_level_out  : out std_logic_vector (23 downto 0) := (others => '0');
-            reveal          : in std_logic;
             sync_in         : in std_logic;
             sync_out        : out std_logic := '0';
             clock_in        : in std_logic
@@ -35,41 +33,34 @@ architecture test of test_compressor is
 
     subtype t_data is std_logic_vector (15 downto 0);
 
-    signal clock            : std_logic := '0';
-    signal done             : std_logic := '0';
-    signal data_in          : t_data := (others => '0');
-    signal left_strobe_in   : std_logic := '0';
-    signal right_strobe_in  : std_logic := '0';
-    signal data_out         : t_data := (others => '0');
-    signal set_amplitude_p  : t_data := (others => '0');
-    signal set_amplitude_n  : t_data := (others => '0');
-    signal left_strobe_out  : std_logic := '0';
-    signal right_strobe_out : std_logic := '0';
-    signal peak_level_out   : std_logic_vector (23 downto 0) := (others => '0');
-    signal sync_in          : std_logic := '0';
-    signal sync_out         : std_logic := '0';
-    signal reveal           : std_logic := '0';
-    signal sample_counter   : Natural := 0;
-    signal clock_counter    : Natural := 0;
-    signal square_wave_divider  : Natural := 0;
-    signal square_wave_negative : std_logic := '0';
-    signal square_wave_out      : t_data := (others => '0');
-    signal sample_divider       : Natural := 0;
-    signal sample_left          : std_logic := '1';
-    signal stereo               : std_logic := '0';
+    signal clock                    : std_logic := '0';
+    signal done                     : std_logic := '0';
+    signal data_in                  : t_data := (others => '0');
+    signal left_strobe_in           : std_logic := '0';
+    signal right_strobe_in          : std_logic := '0';
+    signal data_out                 : t_data := (others => '0');
+    signal set_amplitude_p          : t_data := (others => '0');
+    signal set_amplitude_n          : t_data := (others => '0');
+    signal left_strobe_out          : std_logic := '0';
+    signal right_strobe_out         : std_logic := '0';
+    signal sync_in                  : std_logic := '0';
+    signal sync_out                 : std_logic := '0';
+    signal sample_counter           : Natural := 0;
+    signal clock_counter            : Natural := 0;
+    signal square_wave_negative     : std_logic := '0';
 
-    constant sample_rate    : Natural := 1000;
+    constant sample_rate            : Natural := 1000;
 
-    constant sample_period  : Time := 1000 ms / sample_rate;
-    constant clock_period   : Time := sample_period / 1000;
-    constant square_wave_period  : Time := sample_period * 10;
+    constant sample_period          : Time := 1000 ms / sample_rate;
+    constant clock_period           : Time := sample_period / 1000;
+    constant square_wave_period     : Time := sample_period * 10;
 
-    constant delay_size_log_2      : Natural := 5;
-    constant delay_threshold_level : Real := 0.5;
-    constant decay_rate            : Real := 0.1;
+    constant delay_size_log_2       : Natural := 5;
+    constant delay_threshold_level  : Real := 0.5;
+    constant decay_rate             : Real := 0.1;
 
-    constant max_samples_in_delay  : Natural := 
-            2 + Natural (Real (2 ** delay_size_log_2) * delay_threshold_level);
+    constant max_samples_in_delay   : Natural := 
+            1 + Natural (Real (2 ** delay_size_log_2) * delay_threshold_level);
 
 begin
     dut : compressor
@@ -86,8 +77,6 @@ begin
             data_out => data_out,
             left_strobe_out => left_strobe_out,
             right_strobe_out => right_strobe_out,
-            peak_level_out => peak_level_out,
-            reveal => reveal,
             sync_in => sync_in,
             sync_out => sync_out,
             clock_in => clock);
@@ -106,52 +95,57 @@ begin
         wait;
     end process;
 
-    process (clock)
+    signal_generator : block
+        signal square_wave_divider  : Natural := 0;
+        signal square_wave_out      : t_data := (others => '0');
+        signal sample_divider       : Natural := 0;
+        signal sample_left          : std_logic := '1';
     begin
-        -- Samples generated, frequency 1kHz (one sample per channel every millisecond)
-        if clock'event and clock = '1' then
-            left_strobe_in <= '0';
-            right_strobe_in <= '0';
+        process (clock)
+        begin
+            -- Samples generated, frequency 1kHz (one sample per channel every millisecond)
+            if clock'event and clock = '1' then
+                left_strobe_in <= '0';
+                right_strobe_in <= '0';
 
-            if sample_divider = 0 then
-                if sample_left = '1' then
-                    left_strobe_in <= '1';
-                    sample_counter <= sample_counter + 1;
+                if sample_divider = 0 then
+                    if sample_left = '1' then
+                        left_strobe_in <= '1';
+                        sample_counter <= sample_counter + 1;
+                    else
+                        right_strobe_in <= '1';
+                    end if;
+
+                    sample_left <= not sample_left;
+                    sample_divider <= Natural ((sample_period / clock_period) / 2) - 1;
                 else
-                    right_strobe_in <= '1';
+                    sample_divider <= sample_divider - 1;
                 end if;
-
-                sample_left <= not sample_left;
-                sample_divider <= Natural ((sample_period / clock_period) / 2) - 1;
-            else
-                sample_divider <= sample_divider - 1;
             end if;
-        end if;
-    end process;
+        end process;
 
-    data_in <= square_wave_out when left_strobe_in = '1'
-               else square_wave_out when (right_strobe_in and not stereo) = '1'
-               else square_wave_out (square_wave_out'Left) & square_wave_out (square_wave_out'Left)
-                   & square_wave_out (square_wave_out'Left downto 4) when right_strobe_in = '1'
-               else (others => '1');
+        data_in <= square_wave_out when left_strobe_in = '1'
+                   else square_wave_out when right_strobe_in = '1'
+                   else (others => '1');
 
-    process (clock)
-    begin
-        -- Square wave generated, frequency 100Hz (one cycle every 10 milliseconds)
-        if clock'event and clock = '1' then
-            if square_wave_divider = 0 then
-                if square_wave_negative = '1' then
-                    square_wave_out <= set_amplitude_n;
+        process (clock)
+        begin
+            -- Square wave generated, frequency 100Hz (one cycle every 10 milliseconds)
+            if clock'event and clock = '1' then
+                if square_wave_divider = 0 then
+                    if square_wave_negative = '1' then
+                        square_wave_out <= set_amplitude_n;
+                    else
+                        square_wave_out <= set_amplitude_p;
+                    end if;
+                    square_wave_negative <= not square_wave_negative;
+                    square_wave_divider <= Natural ((square_wave_period / clock_period) / 2) - 1;
                 else
-                    square_wave_out <= set_amplitude_p;
+                    square_wave_divider <= square_wave_divider - 1;
                 end if;
-                square_wave_negative <= not square_wave_negative;
-                square_wave_divider <= Natural ((square_wave_period / clock_period) / 2) - 1;
-            else
-                square_wave_divider <= square_wave_divider - 1;
             end if;
-        end if;
-    end process;
+        end process;
+    end block signal_generator;
 
     all_tests : process
         variable l          : line;
@@ -357,9 +351,6 @@ begin
             write (l, String'("Synchronised after "));
             write (l, sample_counter - start);
             write (l, String'(" samples"));
-            writeline (output, l);
-            write (l, String'("Peak level register value "));
-            write (l, to_integer (unsigned (peak_level_out)));
             writeline (output, l);
             
             -- Synchronisation is expected after filling the delay
