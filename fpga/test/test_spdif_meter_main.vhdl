@@ -5,10 +5,10 @@ use ieee.numeric_std.all;
 
 use std.textio.all;
 
-entity test_fpga_main is
-end test_fpga_main;
+entity test_spdif_meter_main is
+end test_spdif_meter_main;
 
-architecture structural of test_fpga_main is
+architecture structural of test_spdif_meter_main is
 
     signal clock           : std_logic := '0';
     signal raw_data        : std_logic := '0';
@@ -17,7 +17,7 @@ architecture structural of test_fpga_main is
     signal lrows           : std_logic_vector (7 downto 0) := (others => '0');
     signal one             : std_logic := '1';
 
-    component fpga_main is
+    component spdif_meter_main is
         port (
             clock_in        : in std_logic;
             clock_out       : out std_logic;
@@ -30,7 +30,7 @@ architecture structural of test_fpga_main is
             lcols_out       : out std_logic_vector (3 downto 0) := "0000";
             lrows_out       : out std_logic_vector (7 downto 0) := "00000000"
         );
-    end component fpga_main;
+    end component spdif_meter_main;
 
     component test_signal_generator is
         port (
@@ -44,7 +44,7 @@ begin
     test_signal_gen : test_signal_generator
         port map (raw_data_out => raw_data, done_out => done, clock_out => clock);
 
-    t : fpga_main
+    t : spdif_meter_main
         port map (
             clock_in => clock,
             raw_data_in => raw_data,

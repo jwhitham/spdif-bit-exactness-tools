@@ -3,7 +3,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity fpga_main is
+entity spdif_meter_main is
     port (
         clock_in        : in std_logic;
         raw_data_in     : in std_logic;
@@ -16,9 +16,9 @@ entity fpga_main is
         lrows_out       : out std_logic_vector (7 downto 0) := "00000000";
         clock_out       : out std_logic := '0'
     );
-end fpga_main;
+end spdif_meter_main;
 
-architecture structural of fpga_main is
+architecture structural of spdif_meter_main is
 
     constant num_syncs : Natural := 8;
 

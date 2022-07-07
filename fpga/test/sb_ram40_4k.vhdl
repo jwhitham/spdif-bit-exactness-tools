@@ -1,3 +1,6 @@
+-- This component is intended to match the block RAM
+-- in Lattice ICE40 devices, for simulation purposes.
+-- See Lattice technical note TN1250.
 
 library ieee;
 use ieee.std_logic_1164.all;

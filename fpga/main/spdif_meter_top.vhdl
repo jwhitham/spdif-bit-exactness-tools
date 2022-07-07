@@ -2,7 +2,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-entity spdif_meter is
+entity spdif_meter_top is
     port (
         clk12MHz        : in std_logic;
         raw_data_in     : in std_logic;
@@ -26,15 +26,15 @@ entity spdif_meter is
         led7            : out std_logic := '0';
         led8            : out std_logic := '0' 
     );
-end spdif_meter;
+end spdif_meter_top;
 
-architecture structural of spdif_meter is
+architecture structural of spdif_meter_top is
 
     signal lcols       : std_logic_vector (3 downto 0) := "0000";
     signal lrows       : std_logic_vector (7 downto 0) := "00000000";
     signal clock       : std_logic := '0';
 
-    component fpga_main is
+    component spdif_meter_main is
         port (
             clock_in        : in std_logic;
             raw_data_in     : in std_logic;
@@ -47,7 +47,7 @@ architecture structural of spdif_meter is
             lrows_out       : out std_logic_vector (7 downto 0) := "00000000";
             clock_out       : out std_logic := '0'
         );
-    end component fpga_main;
+    end component spdif_meter_main;
 
     component spdif_meter_pll is
         port(
@@ -65,7 +65,7 @@ begin
               RESET => '1',
               PLLOUTCORE => open,
               PLLOUTGLOBAL => clock);
-    fp : fpga_main
+    fp : spdif_meter_main
         port map (
             clock_in => clock,
             raw_data_in => raw_data_in,

@@ -180,7 +180,7 @@ output encoder desynchronised
 second input decoder desynchronised
 second packet decoder desynchronised
 second channel decoder desynchronised
-Start of test_44100_data with quality = Quality.EXACT_24
+Start of test/test_44100_data with quality = Quality.EXACT_24
 input decoder single time = 27
 input decoder single time = 9
 input decoder synchronised
@@ -410,7 +410,7 @@ second input decoder desynchronised
 second packet decoder desynchronised
 second channel decoder desynchronised
 second matcher desynchronised
-Start of test_44100_data with quality = Quality.EXACT_16
+Start of test/test_44100_data with quality = Quality.EXACT_16
 input decoder single time = 27
 input decoder single time = 9
 input decoder synchronised
@@ -640,7 +640,7 @@ second input decoder desynchronised
 second packet decoder desynchronised
 second channel decoder desynchronised
 second matcher desynchronised
-Start of test_44100_data with quality = Quality.ROUND_16
+Start of test/test_44100_data with quality = Quality.ROUND_16
 input decoder single time = 27
 input decoder single time = 9
 input decoder synchronised

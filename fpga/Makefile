@@ -1,9 +1,12 @@
 
+RFLAGS = --assert-level=note
+
 VHDL =  app/compressor/compressor.vhdl \
 		app/matcher/match_rom.vhdl \
 		app/matcher/matcher.vhdl \
 		app/vu_meter/vu_meter.vhdl \
-		fpga_main.vhdl \
+		main/spdif_meter_main.vhdl \
+		main/spdif_meter_top.vhdl \
 		lib/divider.vhdl \
 		lib/fifo.vhdl \
 		lib/led_scan.vhdl \
@@ -13,8 +16,7 @@ VHDL =  app/compressor/compressor.vhdl \
 		spdif/input_decoder.vhdl \
 		spdif/output_encoder.vhdl \
 		spdif/packet_decoder.vhdl \
-		spdif/packet_encoder.vhdl \
-		spdif_meter.vhdl
+		spdif/packet_encoder.vhdl
 
 TEST_VHDL = \
 		test/sb_ram40_4k.vhdl \
@@ -23,7 +25,7 @@ TEST_VHDL = \
 		test/test_compressor2.vhdl \
 		test/test_divider.vhdl \
 		test/test_fifo.vhdl \
-		test/test_fpga_main.vhdl \
+		test/test_spdif_meter_main.vhdl \
 		test/test_top_level.vhdl
 
 all: run_tests
@@ -35,10 +37,11 @@ run_tests:
 	ghdl --remove
 	python test/make_test_bench.py
 	ghdl -a $(VHDL) $(TEST_VHDL)
-	ghdl -r test_fifo
-	ghdl -r test_divider
-	ghdl -r test_compressor
-	ghdl -r test_compressor2
-	ghdl -r test_fpga_main
-	ghdl -r test_top_level > tmp.txt
-	diff tmp.txt test/test_top_level_out.txt
+	ghdl -r test_fifo $(RFLAGS)
+	ghdl -r test_divider $(RFLAGS)
+	ghdl -r test_compressor $(RFLAGS)
+	ghdl -r test_compressor2 $(RFLAGS)
+	ghdl -r test_spdif_meter_main $(RFLAGS)
+	ghdl -r test_top_level $(RFLAGS) > tmp.txt
+	diff -q tmp.txt test/test_top_level_out.txt
+	echo "tests ok"
