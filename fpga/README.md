@@ -64,20 +64,20 @@ a 96MHz clock).
 Components
 ----------
 
-The [input decoder](input_decoder.vhdl) component decodes the incoming
+The [input decoder](spdif/input_decoder.vhdl) component decodes the incoming
 "biphase mark code" signals, identifying single, double and triple-length
 pulses in the S/PDIF data stream.
 The single and double pulses represent binary data, while triple
 pulses are used for synchronisation at the beginning of each packet.
 
-The [packet decoder](packet_decoder.vhdl) component recognises the
+The [packet decoder](spdif/packet_decoder.vhdl) component recognises the
 start codes at the beginning of each packet. It asserts a start signal
 at the beginning of the packet and a data signal for each bit.
 
-The [channel decoder](channel_decoder.vhdl) component gathers the
+The [channel decoder](spdif/channel_decoder.vhdl) component gathers the
 data for each audio channel into a shift register and checks the parity.
 
-The [matcher](matcher.vhdl) component compares the audio data to
+The [matcher](app/matcher/matcher.vhdl) component compares the audio data to
 the expected test pattern.
 
 All four components have their own notion of what it means to be
