@@ -138,7 +138,7 @@ def csv_to_test_data(fd: typing.IO, csv_file_name: str) -> None:
 
 def main() -> None:
     # generate test bench
-    with open("test_signal_generator.vhdl", "wt") as fd:
+    with open("test/generated/test_signal_generator.vhdl", "wt") as fd:
         fd.write(f"""
 library ieee;
 use ieee.std_logic_1164.all;
@@ -185,9 +185,9 @@ begin
         csv_to_test_data(fd, "../examples/20220502-48k.csv")
         csv_to_test_data(fd, "../examples/test_48000_24_bit.csv")
         csv_to_test_data(fd, "../examples/test_44100_24_bit.csv")
-        wav_to_test_data(fd, "test_44100_data", Quality.EXACT_24)
-        wav_to_test_data(fd, "test_44100_data", Quality.EXACT_16)
-        wav_to_test_data(fd, "test_44100_data", Quality.ROUND_16)
+        wav_to_test_data(fd, "test/test_44100_data", Quality.EXACT_24)
+        wav_to_test_data(fd, "test/test_44100_data", Quality.EXACT_16)
+        wav_to_test_data(fd, "test/test_44100_data", Quality.ROUND_16)
 
         fd.write("""
         done <= '1';
