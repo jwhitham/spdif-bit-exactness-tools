@@ -1,8 +1,9 @@
 
+library work;
+use work.all;
+
 library ieee;
 use ieee.std_logic_1164.all;
-
-use std.textio.all;
 
 entity output_encoder is
     generic (addr_size : Natural := 11; threshold_level : Real := 0.5);
@@ -40,25 +41,9 @@ architecture structural of output_encoder is
     signal fifo_write_error : std_logic := '0';
     signal data_gen         : std_logic := '0';
 
-    component fifo is
-        generic (addr_size : Natural; data_size_log_2 : Natural; threshold_level : Real);
-        port (
-            data_in     : in std_logic_vector ((2 ** data_size_log_2) - 1 downto 0);
-            data_out    : out std_logic_vector ((2 ** data_size_log_2) - 1 downto 0) := (others => '0');
-            empty_out   : out std_logic := '1';
-            full_out    : out std_logic := '0';
-            thresh_out  : out std_logic := '0';
-            write_error : out std_logic := '0';
-            read_error  : out std_logic := '0';
-            reset_in    : in std_logic;
-            clock_in    : in std_logic;
-            write_in    : in std_logic;
-            read_in     : in std_logic);
-    end component fifo;
-
 
 begin
-    f : fifo
+    f : entity fifo
         generic map (addr_size => addr_size, data_size_log_2 => 1,
                      threshold_level => threshold_level)
         port map (

@@ -6,8 +6,6 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-use std.textio.all;
-
 entity sb_ram40_4k is
     generic (
         read_mode : Integer;
@@ -33,7 +31,6 @@ architecture behavioural of sb_ram40_4k is
     signal storage : t_storage := (others => (others => '0'));
 begin
     process (wclk)
-        variable l : line;
     begin
         if wclk'event and wclk = '1' then
             if wclke = '1' and we = '1' then
@@ -47,7 +44,6 @@ begin
     end process;
 
     process (rclk)
-        variable l : line;
     begin
         if rclk'event and rclk = '1' then
             if rclke = '1' and re = '1' then

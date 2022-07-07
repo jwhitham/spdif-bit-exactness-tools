@@ -1,4 +1,7 @@
 
+library work;
+use work.all;
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -56,129 +59,13 @@ architecture structural of spdif_meter_main is
     signal sync_counter    : t_sync_counters := (others => (others => '0'));
     constant max_counter   : t_sync_counter := (others => '1');
 
-    component input_decoder is
-        port (
-            data_in          : in std_logic;
-            pulse_length_out : out std_logic_vector (1 downto 0);
-            single_time_out  : out std_logic_vector (7 downto 0);
-            sync_out         : out std_logic;
-            clock_in         : in std_logic
-        );
-    end component input_decoder;
-
-    component packet_decoder is
-        port (
-            pulse_length_in : in std_logic_vector (1 downto 0);
-            sync_in         : in std_logic;
-            data_out        : out std_logic;
-            shift_out       : out std_logic;
-            start_out       : out std_logic;
-            sync_out        : out std_logic;
-            clock           : in std_logic
-        );
-    end component packet_decoder;
-
-    component channel_decoder is
-        port (
-            data_in         : in std_logic;
-            shift_in        : in std_logic;
-            start_in        : in std_logic;
-            sync_in         : in std_logic;
-            data_out        : out std_logic_vector (31 downto 0);
-            left_strobe_out : out std_logic;
-            right_strobe_out: out std_logic;
-            sync_out        : out std_logic;
-            clock           : in std_logic
-        );
-    end component channel_decoder;
-
-    component led_scan is
-        port (
-            leds1_in        : in std_logic_vector (7 downto 0);
-            leds2_in        : in std_logic_vector (7 downto 0);
-            leds3_in        : in std_logic_vector (7 downto 0);
-            leds4_in        : in std_logic_vector (7 downto 0);
-            lcols_out       : out std_logic_vector (3 downto 0) := "0000";
-            lrows_out       : out std_logic_vector (7 downto 0) := "00000000";
-            clock           : in std_logic);
-    end component led_scan;
-
-    component vu_meter
-        port (
-            data_in         : in std_logic_vector (8 downto 0);
-            strobe_in       : in std_logic;
-            meter_out       : out std_logic_vector (7 downto 0) := "00000000";
-            clock           : in std_logic);
-    end component vu_meter;
-
-    component matcher is
-        port (
-            data_in         : in std_logic_vector (31 downto 0);
-            left_strobe_in  : in std_logic;
-            right_strobe_in : in std_logic;
-            sync_in         : in std_logic;
-            sync_out        : out std_logic_vector (1 downto 0) := "00";
-            sample_rate_out : out std_logic_vector (15 downto 0) := (others => '0');
-            clock           : in std_logic
-        );
-    end component matcher;
-
-    component clock_regenerator is
-        port (
-            pulse_length_in  : in std_logic_vector (1 downto 0) := "00";
-            sync_in          : in std_logic;
-            sync_out         : out std_logic := '0';
-            clock_in         : in std_logic;
-            strobe_out       : out std_logic := '0'
-        );
-    end component clock_regenerator;
-
-    component output_encoder is
-        generic (addr_size : Natural := 11; threshold_level : Real := 0.5);
-        port (
-            pulse_length_in : in std_logic_vector (1 downto 0);
-            sync_in         : in std_logic;
-            data_out        : out std_logic := '0';
-            error_out       : out std_logic := '0';
-            sync_out        : out std_logic := '0';
-            strobe_in       : in std_logic;
-            clock_in        : in std_logic
-        );
-    end component output_encoder;
-
-    component channel_encoder is
-        port (
-            data_out        : out std_logic;
-            shift_out       : out std_logic;
-            start_out       : out std_logic;
-            sync_out        : out std_logic;
-            data_in         : in std_logic_vector (31 downto 0);
-            preemph_in      : in std_logic;
-            left_strobe_in  : in std_logic;
-            right_strobe_in : in std_logic;
-            sync_in         : in std_logic;
-            clock           : in std_logic
-        );
-    end component channel_encoder;
-
-    component packet_encoder is
-        port (
-            pulse_length_out : out std_logic_vector (1 downto 0);
-            sync_out         : out std_logic;
-            data_in          : in std_logic;
-            shift_in         : in std_logic;
-            start_in         : in std_logic;
-            sync_in          : in std_logic;
-            clock            : in std_logic
-        );
-    end component packet_encoder;
 begin
-    dec1 : input_decoder
+    dec1 : entity input_decoder
         port map (clock_in => clock_in, data_in => raw_data_in,
                   sync_out => sync (1), single_time_out => single_time,
                   pulse_length_out => pulse_length);
 
-    dec2 : packet_decoder
+    dec2 : entity packet_decoder
         port map (clock => clock_in,
                   pulse_length_in => pulse_length,
                   sync_in => sync (1),
@@ -187,7 +74,7 @@ begin
                   start_out => packet_start,
                   shift_out => packet_shift);
 
-    dec3 : channel_decoder 
+    dec3 : entity channel_decoder 
         port map (clock => clock_in,
                   data_in => packet_data,
                   shift_in => packet_shift,
@@ -197,7 +84,7 @@ begin
                   data_out => data,
                   left_strobe_out => left_strobe,
                   right_strobe_out => right_strobe);
-    m : matcher
+    m : entity matcher
         port map (data_in => data,
                   left_strobe_in => left_strobe,
                   right_strobe_in => right_strobe,
@@ -206,14 +93,14 @@ begin
                   sample_rate_out => sample_rate,
                   clock => clock_in);
 
-    rg : clock_regenerator
+    rg : entity clock_regenerator
         port map (clock_in => clock_in,
                   pulse_length_in => pulse_length,
                   sync_in => sync (3),
                   sync_out => sync (5),
                   strobe_out => rg_strobe);
 
-    ce : channel_encoder
+    ce : entity channel_encoder
         port map (clock => clock_in,
                   sync_in => sync (5),
                   sync_out => sync (6),
@@ -238,7 +125,7 @@ begin
     end process;
 
 
-    pe : packet_encoder
+    pe : entity packet_encoder
         port map (clock => clock_in,
                   pulse_length_out => pe_pulse_length,
                   sync_in => sync (6),
@@ -247,7 +134,7 @@ begin
                   start_in => ce_packet_start,
                   shift_in => ce_packet_shift);
 
-    oe : output_encoder
+    oe : entity output_encoder
         port map (clock_in => clock_in,
                   pulse_length_in => pe_pulse_length,
                   sync_in => sync (7),
@@ -256,7 +143,7 @@ begin
                   strobe_in => rg_strobe,
                   data_out => oe_out);
 
-    leds : led_scan
+    leds : entity led_scan
         port map (clock => clock_in,
                   leds1_in => left_meter,
                   leds2_in => right_meter,
@@ -265,13 +152,13 @@ begin
                   lrows_out => lrows_out,
                   lcols_out => lcols_out);
 
-    left : vu_meter 
+    left : entity vu_meter 
         port map (clock => clock_in,
                   meter_out => left_meter,
                   strobe_in => left_strobe,
                   data_in => data (27 downto 19));
 
-    right : vu_meter 
+    right : entity vu_meter 
         port map (clock => clock_in,
                   meter_out => right_meter,
                   strobe_in => right_strobe,

@@ -1,4 +1,7 @@
 
+library work;
+use work.all;
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -17,34 +20,11 @@ architecture structural of test_spdif_meter_main is
     signal lrows           : std_logic_vector (7 downto 0) := (others => '0');
     signal one             : std_logic := '1';
 
-    component spdif_meter_main is
-        port (
-            clock_in        : in std_logic;
-            clock_out       : out std_logic;
-            raw_data_in     : in std_logic;
-            raw_data_out    : out std_logic;
-            btn_nw          : in std_logic;
-            btn_ne          : in std_logic;
-            btn_se          : in std_logic;
-            btn_sw          : in std_logic;
-            lcols_out       : out std_logic_vector (3 downto 0) := "0000";
-            lrows_out       : out std_logic_vector (7 downto 0) := "00000000"
-        );
-    end component spdif_meter_main;
-
-    component test_signal_generator is
-        port (
-            done_out        : out std_logic;
-            clock_out       : out std_logic;
-            raw_data_out    : out std_logic
-        );
-    end component test_signal_generator;
-
 begin
-    test_signal_gen : test_signal_generator
+    test_signal_gen : entity test_signal_generator
         port map (raw_data_out => raw_data, done_out => done, clock_out => clock);
 
-    t : spdif_meter_main
+    t : entity spdif_meter_main
         port map (
             clock_in => clock,
             raw_data_in => raw_data,

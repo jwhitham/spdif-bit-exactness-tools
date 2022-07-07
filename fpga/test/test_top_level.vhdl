@@ -1,4 +1,7 @@
 
+library work;
+use work.all;
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -49,121 +52,16 @@ architecture structural of test_top_level is
     signal start_of_r_sync : Integer := 0;
     signal count_r_clocks  : Integer := 0;
 
-    component test_signal_generator is
-        port (
-            done_out        : out std_logic;
-            clock_out       : out std_logic;
-            raw_data_out    : out std_logic
-        );
-    end component test_signal_generator;
-
-    component input_decoder is
-        port (
-            data_in          : in std_logic;
-            pulse_length_out : out std_logic_vector (1 downto 0);
-            single_time_out  : out std_logic_vector (7 downto 0);
-            sync_out         : out std_logic;
-            clock_in         : in std_logic
-        );
-    end component input_decoder;
-
-    component packet_decoder is
-        port (
-            pulse_length_in : in std_logic_vector (1 downto 0);
-            sync_in         : in std_logic;
-            data_out        : out std_logic;
-            shift_out       : out std_logic;
-            start_out       : out std_logic;
-            sync_out        : out std_logic;
-            clock           : in std_logic
-        );
-    end component packet_decoder;
-
-    component channel_decoder is
-        port (
-            data_in         : in std_logic;
-            shift_in        : in std_logic;
-            start_in        : in std_logic;
-            sync_in         : in std_logic;
-            data_out        : out std_logic_vector (31 downto 0);
-            left_strobe_out : out std_logic;
-            right_strobe_out: out std_logic;
-            sync_out        : out std_logic;
-            clock           : in std_logic
-        );
-    end component channel_decoder;
-
-    component matcher is
-        port (
-            data_in         : in std_logic_vector (31 downto 0);
-            left_strobe_in  : in std_logic;
-            right_strobe_in : in std_logic;
-            sync_in         : in std_logic;
-            sync_out        : out std_logic_vector (1 downto 0) := "00";
-            sample_rate_out : out std_logic_vector (15 downto 0) := (others => '0');
-            clock           : in std_logic
-        );
-    end component matcher;
-
-    component clock_regenerator is
-        port (
-            pulse_length_in  : in std_logic_vector (1 downto 0) := "00";
-            sync_in          : in std_logic;
-            sync_out         : out std_logic := '0';
-            clock_in         : in std_logic;
-            strobe_out       : out std_logic := '0'
-        );
-    end component clock_regenerator;
-
-    component output_encoder is
-        generic (addr_size : Natural := 11; threshold_level : Real := 0.5);
-        port (
-            pulse_length_in : in std_logic_vector (1 downto 0);
-            sync_in         : in std_logic;
-            data_out        : out std_logic := '0';
-            error_out       : out std_logic := '0';
-            sync_out        : out std_logic := '0';
-            strobe_in       : in std_logic;
-            clock_in        : in std_logic
-        );
-    end component output_encoder;
-
-    component packet_encoder is
-        port (
-            pulse_length_out : out std_logic_vector (1 downto 0);
-            sync_out         : out std_logic;
-            data_in          : in std_logic;
-            shift_in         : in std_logic;
-            start_in         : in std_logic;
-            sync_in          : in std_logic;
-            clock            : in std_logic
-        );
-    end component packet_encoder;
-
-    component channel_encoder is
-        port (
-            data_out        : out std_logic;
-            shift_out       : out std_logic;
-            start_out       : out std_logic;
-            sync_out        : out std_logic;
-            data_in         : in std_logic_vector (31 downto 0);
-            left_strobe_in  : in std_logic;
-            right_strobe_in : in std_logic;
-            preemph_in      : in std_logic;
-            sync_in         : in std_logic;
-            clock           : in std_logic
-        );
-    end component channel_encoder;
 begin
-    test_signal_gen : test_signal_generator
+    test_signal_gen : entity test_signal_generator
         port map (raw_data_out => raw_data, done_out => done, clock_out => clock);
 
-    dec1 : input_decoder
+    dec1 : entity input_decoder
         port map (clock_in => clock, data_in => raw_data,
                   sync_out => sync (1), single_time_out => single_time,
                   pulse_length_out => pulse_length);
 
-    dec2 : packet_decoder
+    dec2 : entity packet_decoder
         port map (clock => clock,
                   pulse_length_in => pulse_length,
                   sync_in => sync (1),
@@ -172,7 +70,7 @@ begin
                   start_out => packet_start,
                   shift_out => packet_shift);
 
-    dec3 : channel_decoder 
+    dec3 : entity channel_decoder 
         port map (clock => clock,
                   data_in => packet_data,
                   shift_in => packet_shift,
@@ -183,7 +81,7 @@ begin
                   left_strobe_out => left_strobe,
                   right_strobe_out => right_strobe);
 
-    m : matcher
+    m : entity matcher
         port map (data_in => data,
                   left_strobe_in => left_strobe,
                   right_strobe_in => right_strobe,
@@ -192,14 +90,14 @@ begin
                   sample_rate_out => sample_rate,
                   clock => clock);
 
-    rg : clock_regenerator
+    rg : entity clock_regenerator
         port map (clock_in => clock,
                   pulse_length_in => pulse_length,
                   sync_in => sync (3),
                   sync_out => sync (6),
                   strobe_out => rg_strobe);
 
-    ce : channel_encoder
+    ce : entity channel_encoder
         port map (clock => clock,
                   sync_in => sync (6),
                   sync_out => sync (7),
@@ -211,7 +109,7 @@ begin
                   right_strobe_in => right_strobe,
                   data_in => data);
 
-    pe : packet_encoder
+    pe : entity packet_encoder
         port map (clock => clock,
                   pulse_length_out => pe_pulse_length,
                   sync_in => sync (7),
@@ -220,7 +118,7 @@ begin
                   start_in => packet_start_2,
                   shift_in => packet_shift_2);
 
-    oe : output_encoder
+    oe : entity output_encoder
         generic map (addr_size => 7, threshold_level => 0.5)
         port map (clock_in => clock,
                   pulse_length_in => pe_pulse_length,
@@ -232,12 +130,12 @@ begin
 
     assert oe_error = '0';
 
-    dec4 : input_decoder
+    dec4 : entity input_decoder
         port map (clock_in => clock, data_in => oe_data,
                   sync_out => sync (10), single_time_out => open,
                   pulse_length_out => pulse_length_3);
 
-    dec5 : packet_decoder
+    dec5 : entity packet_decoder
         port map (clock => clock,
                   pulse_length_in => pulse_length_3,
                   sync_in => sync (10),
@@ -246,7 +144,7 @@ begin
                   start_out => packet_start_3,
                   shift_out => packet_shift_3);
 
-    dec6 : channel_decoder 
+    dec6 : entity channel_decoder 
         port map (clock => clock,
                   data_in => packet_data_3,
                   shift_in => packet_shift_3,
@@ -257,7 +155,7 @@ begin
                   left_strobe_out => left_strobe_3,
                   right_strobe_out => right_strobe_3);
 
-    m2 : matcher
+    m2 : entity matcher
         port map (data_in => data_3,
                   left_strobe_in => left_strobe_3,
                   right_strobe_in => right_strobe_3,

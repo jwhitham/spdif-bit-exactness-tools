@@ -1,5 +1,8 @@
 -- Test case for configurable FIFO
 
+library work;
+use work.all;
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -10,23 +13,6 @@ entity test_fifo is
 end test_fifo;
 
 architecture structural of test_fifo is
-
-    component fifo is
-        generic (addr_size : Natural; data_size_log_2 : Natural; threshold_level : Real);
-        port (
-            data_in     : in std_logic_vector ((2 ** data_size_log_2) - 1 downto 0);
-            data_out    : out std_logic_vector ((2 ** data_size_log_2) - 1 downto 0) := (others => '0');
-            empty_out   : out std_logic := '1';
-            full_out    : out std_logic := '0';
-            thresh_out  : out std_logic := '0';
-            write_error : out std_logic := '0';
-            read_error  : out std_logic := '0';
-            reset_in    : in std_logic;
-            clock_in    : in std_logic;
-            write_in    : in std_logic;
-            read_in     : in std_logic);
-    end component fifo;
-
 
     type t_test_spec is record
             addr_size       : Natural;
@@ -95,7 +81,7 @@ begin
         signal read_error  : std_logic := '0';
     begin
 
-        f : fifo
+        f : entity fifo
             generic map (addr_size => addr_size,
                          data_size_log_2 => data_size_log_2,
                          threshold_level => threshold_level)

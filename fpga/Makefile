@@ -1,22 +1,22 @@
 
 RFLAGS = --assert-level=note
 
-VHDL =  app/compressor/compressor.vhdl \
-		app/matcher/match_rom.vhdl \
-		app/matcher/matcher.vhdl \
-		app/vu_meter/vu_meter.vhdl \
-		projects/spdif_meter/spdif_meter_main.vhdl \
-		projects/spdif_meter/spdif_meter_top.vhdl \
+VHDL =  \
 		lib/divider.vhdl \
 		lib/fifo.vhdl \
 		lib/led_scan.vhdl \
+		app/compressor/compressor.vhdl \
+		app/matcher/match_rom.vhdl \
+		app/matcher/matcher.vhdl \
+		app/vu_meter/vu_meter.vhdl \
 		spdif/channel_decoder.vhdl \
 		spdif/channel_encoder.vhdl \
 		spdif/clock_regenerator.vhdl \
 		spdif/input_decoder.vhdl \
 		spdif/output_encoder.vhdl \
 		spdif/packet_decoder.vhdl \
-		spdif/packet_encoder.vhdl
+		spdif/packet_encoder.vhdl \
+		projects/spdif_meter/spdif_meter_main.vhdl \
 
 TEST_VHDL = \
 		test/sb_ram40_4k.vhdl \
@@ -37,7 +37,7 @@ run_tests:
 	ghdl --remove
 	python app/matcher/make_match_rom.py
 	python test/make_test_bench.py
-	ghdl -a $(VHDL) $(TEST_VHDL)
+	ghdl -a --work=work $(VHDL) $(TEST_VHDL)
 	ghdl -r test_fifo $(RFLAGS)
 	ghdl -r test_divider $(RFLAGS)
 	ghdl -r test_compressor $(RFLAGS)

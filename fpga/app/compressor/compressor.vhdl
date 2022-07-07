@@ -1,4 +1,7 @@
 
+library work;
+use work.all;
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -128,38 +131,6 @@ architecture structural of compressor is
     signal peak_divider_result  : std_logic_vector (peak_bits - 1 downto 0) := (others => '0');
     signal abs_compare          : t_data := (others => '0');
 
-    component fifo is
-        generic (addr_size : Natural := 12; data_size_log_2 : Natural := 0; threshold_level : Real := 0.5);
-        port (
-            data_in     : in std_logic_vector ((2 ** data_size_log_2) - 1 downto 0);
-            data_out    : out std_logic_vector ((2 ** data_size_log_2) - 1 downto 0) := (others => '0');
-            empty_out   : out std_logic := '1';
-            full_out    : out std_logic := '0';
-            thresh_out  : out std_logic := '0';
-            write_error : out std_logic := '0';
-            read_error  : out std_logic := '0';
-            reset_in    : in std_logic;
-            clock_in    : in std_logic;
-            write_in    : in std_logic;
-            read_in     : in std_logic);
-    end component fifo;
-
-    component divider is
-        generic (
-            top_width    : Natural;
-            bottom_width : Natural;
-            is_unsigned  : Boolean);
-        port (
-            top_value_in    : in std_logic_vector (top_width - 1 downto 0);
-            bottom_value_in : in std_logic_vector (bottom_width - 1 downto 0);
-            start_in        : in std_logic;
-            reset_in        : in std_logic;
-            finish_out      : out std_logic := '0';
-            result_out      : out std_logic_vector (top_width - 1 downto 0);
-            clock_in        : in std_logic
-        );
-    end component divider;
-
     procedure write_big_number (l : inout line; big_number : std_logic_vector) is
         constant num_bits : Natural := big_number'Length;
         constant nibbles  : Natural := num_bits / 4;
@@ -193,7 +164,7 @@ begin
     assert peak_bits > audio_bits;
 
     -- FIFO is shared by both channels
-    delay : fifo
+    delay : entity fifo
         generic map (data_size_log_2 => audio_bits_log_2,
                      addr_size => delay_size_log_2 + 1,
                      threshold_level => delay_threshold_level)
@@ -227,7 +198,7 @@ begin
         top_value (peak_bits - fixed_point - 1 downto 0) <= (others => '0');
         divider_start <= '1' when state = COMPRESS else '0';
 
-        div : divider
+        div : entity divider
             generic map (top_width => top_width,
                          bottom_width => peak_bits,
                          is_unsigned => False)
@@ -282,7 +253,7 @@ begin
         top_value (peak_bits - fixed_point - 1 downto 0) <= (others => '0');
         divider_start <= '1' when state = RAISE_VOLUME else '0';
 
-        div : divider
+        div : entity divider
             generic map (top_width => top_width,
                          bottom_width => peak_bits,
                          is_unsigned => True)

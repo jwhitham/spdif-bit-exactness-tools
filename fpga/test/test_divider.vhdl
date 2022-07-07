@@ -1,4 +1,7 @@
 
+library work;
+use work.all;
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -9,22 +12,6 @@ entity test_divider is
 end test_divider;
 
 architecture test of test_divider is
-
-    component divider is
-        generic (
-            top_width    : Natural;
-            bottom_width : Natural;
-            is_unsigned  : Boolean);
-        port (
-            top_value_in    : in std_logic_vector (top_width - 1 downto 0);
-            bottom_value_in : in std_logic_vector (bottom_width - 1 downto 0);
-            start_in        : in std_logic;
-            reset_in        : in std_logic;
-            finish_out      : out std_logic := '0';
-            result_out      : out std_logic_vector (top_width - 1 downto 0);
-            clock_in        : in std_logic
-        );
-    end component divider;
 
     type t_test is record
         top_width       : Natural;
@@ -121,7 +108,7 @@ begin
         signal result           : std_logic_vector (top_width - 1 downto 0);
 
     begin
-        d : divider
+        d : entity divider
             generic map (top_width => top_width,
                          bottom_width => bottom_width,
                          is_unsigned => is_unsigned)

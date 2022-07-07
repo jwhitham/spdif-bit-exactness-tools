@@ -1,4 +1,7 @@
 
+library work;
+use work.all;
+
 library ieee;
 use ieee.std_logic_1164.all;
 
@@ -34,38 +37,14 @@ architecture structural of spdif_meter_top is
     signal lrows       : std_logic_vector (7 downto 0) := "00000000";
     signal clock       : std_logic := '0';
 
-    component spdif_meter_main is
-        port (
-            clock_in        : in std_logic;
-            raw_data_in     : in std_logic;
-            raw_data_out    : out std_logic;
-            btn_nw          : in std_logic;
-            btn_ne          : in std_logic;
-            btn_se          : in std_logic;
-            btn_sw          : in std_logic;
-            lcols_out       : out std_logic_vector (3 downto 0) := "0000";
-            lrows_out       : out std_logic_vector (7 downto 0) := "00000000";
-            clock_out       : out std_logic := '0'
-        );
-    end component spdif_meter_main;
-
-    component spdif_meter_pll is
-        port(
-              REFERENCECLK: in std_logic;
-              RESET: in std_logic;
-              PLLOUTCORE: out std_logic;
-              PLLOUTGLOBAL: out std_logic
-            );
-    end component spdif_meter_pll;
-
 begin
-    pll : spdif_meter_pll
+    pll : entity spdif_meter_pll
         port map (
               REFERENCECLK => clk12MHz,
               RESET => '1',
               PLLOUTCORE => open,
               PLLOUTGLOBAL => clock);
-    fp : spdif_meter_main
+    fp : entity spdif_meter_main
         port map (
             clock_in => clock,
             raw_data_in => raw_data_in,

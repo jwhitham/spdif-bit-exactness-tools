@@ -1,4 +1,7 @@
 
+library work;
+use work.all;
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -10,26 +13,6 @@ entity test_compressor2 is
 end test_compressor2;
 
 architecture test of test_compressor2 is
-
-    component compressor is
-    generic (max_amplification      : Real := 21.1;         -- dB
-             sample_rate            : Natural := 48000;     -- Hz
-             decay_rate             : Real := 1.0;          -- dB
-             delay_threshold_level  : Real := 0.99;
-             delay_size_log_2       : Natural := 9;
-             debug                  : Boolean := false);
-        port (
-            data_in         : in std_logic_vector (15 downto 0);
-            left_strobe_in  : in std_logic;
-            right_strobe_in : in std_logic;
-            data_out        : out std_logic_vector (15 downto 0) := (others => '0');
-            left_strobe_out : out std_logic := '0';
-            right_strobe_out : out std_logic := '0';
-            sync_in         : in std_logic;
-            sync_out        : out std_logic := '0';
-            clock_in        : in std_logic
-        );
-    end component compressor;
 
     subtype t_data is std_logic_vector (15 downto 0);
 
@@ -115,7 +98,7 @@ begin
         signal sync_in          : std_logic := '0';
         signal sync_out         : std_logic := '0';
     begin
-        dut : compressor
+        dut : entity compressor
             generic map (max_amplification => 21.1,
                          sample_rate => sample_rate,
                          decay_rate => 0.1,

@@ -1,4 +1,7 @@
 
+library work;
+use work.all;
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -26,13 +29,6 @@ architecture structural of matcher is
     signal address      : t_address := (others => '0');
     signal data_match   : t_sample := (others => '0');
     signal audio_in     : t_sample := (others => '0');
-
-    component match_rom is
-        port (
-            address_in       : in std_logic_vector (6 downto 0) := (others => '0');
-            data_out         : out std_logic_vector (23 downto 0) := (others => '0');
-            clock            : in std_logic);
-    end component match_rom;
 
     type t_match is (EXACT_24, EXACT_16, ROUND_16, RESET);
     signal current_match : t_match := RESET;
@@ -71,7 +67,7 @@ architecture structural of matcher is
     end match_assessment;
 
 begin
-    mr : match_rom
+    mr : entity match_rom
         port map (
             address_in => std_logic_vector (address),
             data_out => data_match,
