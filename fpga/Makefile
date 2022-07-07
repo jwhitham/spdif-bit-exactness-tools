@@ -5,8 +5,8 @@ VHDL =  app/compressor/compressor.vhdl \
 		app/matcher/match_rom.vhdl \
 		app/matcher/matcher.vhdl \
 		app/vu_meter/vu_meter.vhdl \
-		main/spdif_meter_main.vhdl \
-		main/spdif_meter_top.vhdl \
+		projects/spdif_meter/spdif_meter_main.vhdl \
+		projects/spdif_meter/spdif_meter_top.vhdl \
 		lib/divider.vhdl \
 		lib/fifo.vhdl \
 		lib/led_scan.vhdl \
@@ -35,6 +35,7 @@ clean:
 
 run_tests:
 	ghdl --remove
+	python app/matcher/make_match_rom.py
 	python test/make_test_bench.py
 	ghdl -a $(VHDL) $(TEST_VHDL)
 	ghdl -r test_fifo $(RFLAGS)
