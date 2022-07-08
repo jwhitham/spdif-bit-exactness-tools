@@ -1,8 +1,7 @@
-spdif_out_pll_inst: spdif_out_pll
+compressor_pll_inst: compressor_pll
 port map(
           REFERENCECLK => ,
           PLLOUTCORE => ,
           PLLOUTGLOBAL => ,
-          RESET => ,
-          LOCK => 
+          RESET => 
         );

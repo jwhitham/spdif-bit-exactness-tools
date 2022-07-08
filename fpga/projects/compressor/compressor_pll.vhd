@@ -1,17 +1,16 @@
 library IEEE;
 use IEEE.std_logic_1164.all;
 
-entity spdif_out_pll is
+entity compressor_pll is
 port(
       REFERENCECLK: in std_logic;
       RESET: in std_logic;
       PLLOUTCORE: out std_logic;
-      PLLOUTGLOBAL: out std_logic;
-      LOCK: out std_logic
+      PLLOUTGLOBAL: out std_logic
     );
-end entity spdif_out_pll;
+end entity compressor_pll;
 
-architecture BEHAVIOR of spdif_out_pll is
+architecture BEHAVIOR of compressor_pll is
 signal openwire : std_logic;
 signal openwirebus : std_logic_vector (7 downto 0);
 component SB_PLL40_CORE
@@ -55,12 +54,12 @@ component SB_PLL40_CORE
        );
 end component;
 begin
-spdif_out_pll_inst: SB_PLL40_CORE
--- Fin=10, Fout=20
+compressor_pll_inst: SB_PLL40_CORE
+-- Fin=12, Fout=96
 generic map(
              DIVR => "0000",
              DIVF => "0111111",
-             DIVQ => "101",
+             DIVQ => "011",
              FILTER_RANGE => "001",
              FEEDBACK_PATH => "SIMPLE",
              DELAY_ADJUSTMENT_MODE_FEEDBACK => "FIXED",
@@ -80,7 +79,7 @@ port map(
           RESETB => RESET,
           BYPASS => '0',
           LATCHINPUTVALUE => openwire,
-          LOCK => LOCK,
+          LOCK => open,
           SDI => openwire,
           SDO => open,
           SCLK => openwire
@@ -90,11 +89,11 @@ end BEHAVIOR;
 
 --uiPll40ModuleData
 --PllType: SB_PLL40_CORE
---PllModuleName: spdif_out_pll
---PllInstanceName: spdif_out_pll_inst
+--PllModuleName: compressor_pll
+--PllInstanceName: compressor_pll_inst
 --DIVR: 0000
 --DIVF: 0111111
---DIVQ: 101
+--DIVQ: 011
 --FILTER_RANGE: 001
 --FEEDBACK_PATH: SIMPLE
 --EXTERNAL_DIVIDE_FACTOR: 1
@@ -113,6 +112,6 @@ end BEHAVIOR;
 --RESET: true
 --BYPASS: false
 --LATCHINPUTVALUE: false
---LOCK: true
---InputFrequency: 10
---OutputFrequency: 20
+--LOCK: false
+--InputFrequency: 12
+--OutputFrequency: 96
