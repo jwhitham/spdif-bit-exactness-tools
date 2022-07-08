@@ -4,7 +4,7 @@ Version=Lattice Semiconductor Corporation iCEcube - Release: 2020.12.27943 - Bui
 ProjectName=spdif_meter
 Vendor=SiliconBlue
 Synthesis=synplify
-ProjectVFiles=spdif_meter_pll.vhd=work,spdif_meter_main.vhdl,spdif_meter_top.vhdl,../../app/matcher/match_rom.vhdl,../../app/matcher/matcher.vhdl,../../app/vu_meter/vu_meter.vhdl,../../lib/fifo.vhdl,../../lib/led_scan.vhdl,../../spdif/channel_decoder.vhdl,../../spdif/channel_encoder.vhdl,../../spdif/clock_regenerator.vhdl,../../spdif/input_decoder.vhdl,../../spdif/output_encoder.vhdl,../../spdif/packet_decoder.vhdl,../../spdif/packet_encoder.vhdl
+ProjectVFiles=spdif_meter_pll.vhd=work,spdif_meter_main.vhdl=work,spdif_meter_top.vhdl=work,../../app/matcher/match_rom.vhdl=work,../../app/matcher/matcher.vhdl=work,../../app/vu_meter/vu_meter.vhdl=work,../../lib/fifo.vhdl=work,../../lib/led_scan.vhdl=work,../../spdif/channel_decoder.vhdl=work,../../spdif/channel_encoder.vhdl=work,../../spdif/clock_regenerator.vhdl=work,../../spdif/input_decoder.vhdl=work,../../spdif/output_encoder.vhdl=work,../../spdif/packet_decoder.vhdl=work,../../spdif/packet_encoder.vhdl=work
 ProjectCFiles=
 CurImplementation=spdif_meter_Implmnt
 Implementations=spdif_meter_Implmnt

@@ -112,18 +112,30 @@ begin
                   left_strobe_in => left_strobe,
                   right_strobe_in => right_strobe);
 
-    process (btn_se, btn_sw, btn_nw, btn_ne, data) is
+    -- The SW and SE buttons can divide the volume by 1, 2, 4, or 8.
+    process (btn_se, btn_sw, data) is
+        variable fade : std_logic_vector (1 downto 0);
     begin
+        fade (1) := not btn_sw;
+        fade (0) := not btn_se;
         data2 <= data;
-        if btn_sw = '0' then
-            data2 (19 downto 0) <= (others => data (27)); -- go 8 bit
-        end if;
-        if btn_se = '0' then
-            data2 (23 downto 0) <= (others => data (27)); -- go 4 bit
-        end if;
-        preemph <= not btn_nw;
+        case fade is
+            when "01" =>
+                data2 (27 downto 27) <= (others => data (27));
+                data2 (26 downto 4) <= data (27 downto 5);
+            when "10" =>
+                data2 (27 downto 26) <= (others => data (27));
+                data2 (25 downto 4) <= data (27 downto 6);
+            when "11" =>
+                data2 (27 downto 25) <= (others => data (27));
+                data2 (24 downto 4) <= data (27 downto 7);
+            when others =>
+                null;
+        end case;
     end process;
 
+    -- The NW button enables the pre-emphasis bit
+    preemph <= not btn_nw;
 
     pe : entity packet_encoder
         port map (clock => clock_in,
@@ -192,6 +204,7 @@ begin
             else
                 leds3 <= single_time;
             end if;
+            -- The NE button enables a direct passthrough.
             if btn_ne = '0' then
                 raw_data_out <= raw_data_in;
             else
