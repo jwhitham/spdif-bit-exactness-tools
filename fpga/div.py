@@ -13,33 +13,28 @@ def div(top_value, bottom_value, width):
     top_negative = (top_value < 0)
     bottom_negative = (bottom_value < 0)
     bottom_value = bottom_value << (width - 1)
+
+    if bottom_negative != top_negative:
+        bottom_value = -bottom_value
     out = 0
     for i in range(width):
         out = out << 1
         subtract = top_value - bottom_value
-        add = top_value + bottom_value
 
-        if bottom_negative and top_negative:
-            if subtract <= 0:
-                out |= 1
-                top_value = subtract
-        elif bottom_negative:
-            if add >= 0:
-                out |= 1
-                top_value = add
-        elif top_negative:
-            if add <= 0:
-                out |= 1
-                top_value = add
-        else:
-            if subtract >= 0:
-                out |= 1
-                top_value = subtract
+        if subtract == 0 or (top_negative == (subtract < 0)):
+            out |= 1
+            top_value = subtract
+
+        if bottom_negative != top_negative:
+            out ^= 1
 
         bottom_value = bottom_value >> 1
  
     if bottom_negative != top_negative:
-        out = -out
+        out += 1
+        out -= 1 << width
+
+    assert abs(out) < (1 << width)
     return out
 
 print("test")
