@@ -25,6 +25,7 @@ entity compressor is
         right_strobe_out : out std_logic := '0';
         sync_in         : in std_logic;
         sync_out        : out std_logic := '0';
+        ready_out       : out std_logic := '0';
         clock_in        : in std_logic
     );
 end compressor;
@@ -447,5 +448,7 @@ begin
             end if;
         end if;
     end process controller;
+
+    ready_out <= '1' when state = INIT or state = FILLING or state = START else '0';
 
 end structural;
