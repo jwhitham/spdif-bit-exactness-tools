@@ -16,15 +16,12 @@ architecture test of test_divider is
     type t_test is record
         top_width       : Natural;
         bottom_width    : Natural;
-        is_unsigned     : Boolean;
     end record;
 
     type t_test_table is array (Positive range <>) of t_test;
 
     constant test_table     : t_test_table :=
-        ((4, 8, true), (8, 4, true), (6, 6, true),
-         (4, 4, false), (8, 4, false), (4, 8, false),
-         (4, 1, false), (4, 1, true), (1, 4, false), (1, 4, true));
+        ((4, 8), (8, 4), (6, 6), (4, 4), (4, 1), (1, 4));
     constant num_tests      : Natural := test_table'Length;
     signal clock            : std_logic := '0';
     signal done             : std_logic_vector (0 to num_tests) := (others => '0');
@@ -49,55 +46,32 @@ begin
 
         constant top_width      : Natural := test_table (part).top_width;
         constant bottom_width   : Natural := test_table (part).bottom_width;
-        constant is_unsigned    : Boolean := test_table (part).is_unsigned;
 
         function top_start return Integer is
         begin
-            if is_unsigned then
-                return 0;
-            else
-                return - Integer (2 ** (top_width - 1));
-            end if;
+            return - Integer (2 ** (top_width - 1));
         end top_start;
 
         function bottom_start return Integer is
         begin
-            if is_unsigned then
-                return 0;
-            else
-                return - Integer (2 ** (bottom_width - 1));
-            end if;
+            return - Integer (2 ** (bottom_width - 1));
         end bottom_start;
 
         function top_finish return Integer is
         begin
-            if is_unsigned then
-                return Integer (2 ** top_width) - 1;
-            else
-                return Integer (2 ** (top_width - 1)) - 1;
-            end if;
+            return Integer (2 ** (top_width - 1)) - 1;
         end top_finish;
 
         function bottom_finish return Integer is
         begin
-            if is_unsigned then
-                return Integer (2 ** bottom_width) - 1;
-            else
-                return Integer (2 ** (bottom_width - 1)) - 1;
-            end if;
+            return Integer (2 ** (bottom_width - 1)) - 1;
         end bottom_finish;
 
         function convert (value : Integer; size : Natural) return std_logic_vector is
         begin
-            if is_unsigned then
-                assert 0 <= value;
-                assert value <= ((2 ** size) - 1);
-                return std_logic_vector (to_unsigned (Natural (value), size));
-            else
-                assert (- Integer (2 ** (size - 1))) <= value;
-                assert value <= ((2 ** (size - 1)) - 1);
-                return std_logic_vector (to_signed (value, size));
-            end if;
+            assert (- Integer (2 ** (size - 1))) <= value;
+            assert value <= ((2 ** (size - 1)) - 1);
+            return std_logic_vector (to_signed (value, size));
         end convert;
 
         signal top_value        : std_logic_vector (top_width - 1 downto 0);
@@ -110,8 +84,7 @@ begin
     begin
         d : entity divider
             generic map (top_width => top_width,
-                         bottom_width => bottom_width,
-                         is_unsigned => is_unsigned)
+                         bottom_width => bottom_width)
             port map (
                 top_value_in => top_value,
                 bottom_value_in => bottom_value,
@@ -162,7 +135,6 @@ begin
                     if expect = (top_finish + 1) then
                         -- Result overflow; in this case, the behaviour is undefined.
                         undefined := true;
-                        assert not is_unsigned;
                         assert top = top_start;
                         assert bottom = -1;
                     else

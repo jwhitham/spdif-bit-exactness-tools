@@ -16,8 +16,7 @@ use ieee.numeric_std.all;
 entity divider is
     generic (
         top_width    : Natural;
-        bottom_width : Natural;
-        is_unsigned  : Boolean);
+        bottom_width : Natural);
     port (
         top_value_in    : in std_logic_vector (top_width - 1 downto 0);
         bottom_value_in : in std_logic_vector (bottom_width - 1 downto 0);
@@ -30,6 +29,8 @@ entity divider is
 end divider;
 
 architecture structural of divider is
+
+    constant is_unsigned  : Boolean := false;
 
     subtype t_wide is unsigned (top_width + bottom_width - 1 downto 0);
     subtype t_steps_to_do is Natural range 0 to top_width - 1; 

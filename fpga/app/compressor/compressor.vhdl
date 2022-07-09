@@ -201,8 +201,7 @@ begin
 
         div : entity divider
             generic map (top_width => top_width,
-                         bottom_width => peak_bits,
-                         is_unsigned => False)
+                         bottom_width => peak_bits)
             port map (
                 top_value_in => top_value,
                 bottom_value_in => peak_level,
@@ -256,8 +255,7 @@ begin
 
         div : entity divider
             generic map (top_width => top_width,
-                         bottom_width => peak_bits,
-                         is_unsigned => True)
+                         bottom_width => peak_bits)
             port map (
                 top_value_in => top_value,
                 bottom_value_in => bottom_value,
