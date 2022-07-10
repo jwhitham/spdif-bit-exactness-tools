@@ -1,13 +1,12 @@
--- Signed / unsigned divider with configurable width:
+-- Divider with configurable width:
 --
 --   result = top / bottom
 --
--- The divider does not report an error in these conditions:
--- (a) If bottom = 0 the result is undefined.
--- (b) If top / bottom does not fit within top_width bits, the result is undefined.
---
--- (b) happens with signed division, when top = minimum and bottom = -1,
--- because the result is -minimum which can't be encoded.
+-- The divider does not report an error if bottom = 0, but the result is undefined.
+-- Division uses unsigned arithmetic but can track a "negative" flag associated with
+-- each input. This avoids the need to convert negative values to positive ones
+-- before/after division.
+
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -18,30 +17,31 @@ entity divider is
         top_width    : Natural;
         bottom_width : Natural);
     port (
-        top_value_in    : in std_logic_vector (top_width - 1 downto 0);
-        bottom_value_in : in std_logic_vector (bottom_width - 1 downto 0);
-        start_in        : in std_logic;
-        reset_in        : in std_logic;
-        finish_out      : out std_logic := '0';
-        result_out      : out std_logic_vector (top_width - 1 downto 0);
-        clock_in        : in std_logic
+        top_value_in        : in std_logic_vector (top_width - 1 downto 0);
+        bottom_value_in     : in std_logic_vector (bottom_width - 1 downto 0);
+        top_negative_in     : in std_logic;
+        bottom_negative_in  : in std_logic;
+        start_in            : in std_logic;
+        reset_in            : in std_logic;
+        finish_out          : out std_logic := '0';
+        result_out          : out std_logic_vector (top_width - 1 downto 0) := (others => '0');
+        result_negative_out : out std_logic := '0';
+        clock_in            : in std_logic
     );
 end divider;
 
 architecture structural of divider is
 
-    constant is_unsigned  : Boolean := false;
-
     subtype t_wide is unsigned (top_width + bottom_width - 1 downto 0);
     subtype t_steps_to_do is Natural range 0 to top_width - 1; 
-    type t_state is (IDLE, INVERT_INPUTS, SHIFT, FINISH_NEGATIVE, FINISH_POSITIVE);
+    type t_state is (IDLE, SHIFT);
 
     signal top          : t_wide := (others => '0');
     signal bottom       : t_wide := (others => '0');
+    signal negative     : std_logic := '0';
     signal subtracted   : t_wide := (others => '0');
     signal result       : std_logic_vector (top_width - 1 downto 0) := (others => '0');
     signal state        : t_state := IDLE;
-    signal invert       : std_logic := '0';
     signal steps_to_do  : t_steps_to_do := top_width - 1;
 
 begin
@@ -49,6 +49,7 @@ begin
     top (top'Left downto top_width) <= (others => '0');
     bottom (bottom'Left) <= '0';
     result_out <= result;
+    result_negative_out <= negative;
 
     process (clock_in)
     begin
@@ -61,35 +62,12 @@ begin
                     top (top_width - 1 downto 0) <= unsigned (top_value_in);
                     bottom (bottom'Left - 1 downto top_width - 1) <= unsigned (bottom_value_in);
 
-                    if is_unsigned then
-                        invert <= '0';
-                    else
-                        invert <= (top_value_in (top_width - 1) xor
-                                    bottom_value_in (bottom_width - 1));
-                    end if;
                     steps_to_do <= top_width - 1;
 
                     if start_in = '1' then
-                        if is_unsigned then
-                            -- input values are always positive
-                            state <= SHIFT;
-                        else
-                            -- input values might not be positive
-                            state <= INVERT_INPUTS;
-                        end if;
+                        negative <= top_negative_in xor bottom_negative_in;
+                        state <= SHIFT;
                     end if;
-                when INVERT_INPUTS =>
-                    -- Get positive values for inputs
-                    assert not is_unsigned;
-                    if top (top_width - 1) = '1' then
-                        top (top_width - 1 downto 0) <=
-                            unsigned (0 - signed (top (top_width - 1 downto 0)));
-                    end if;
-                    if bottom (bottom'Left - 1) = '1' then
-                        bottom (bottom'Left - 1 downto top_width - 1) <=
-                            unsigned (0 - signed (bottom (bottom'Left - 1 downto top_width - 1)));
-                    end if;
-                    state <= SHIFT;
                 when SHIFT =>
                     -- Perform unsigned division
                     result (result'Left downto 1) <= result (result'Left - 1 downto 0);
@@ -105,26 +83,11 @@ begin
                     end if;
                     if steps_to_do = 0 then
                         -- Finished?
-                        if invert = '0' or is_unsigned then
-                            state <= FINISH_POSITIVE;
-                        else
-                            state <= FINISH_NEGATIVE;
-                        end if;
+                        finish_out <= '1';
+                        state <= IDLE;
                     else
                         steps_to_do <= steps_to_do - 1;
                     end if;
-                when FINISH_NEGATIVE =>
-                    -- Invert result
-                    assert not is_unsigned;
-                    assert invert = '1';
-                    result <= std_logic_vector (unsigned (0 - signed (result)));
-                    finish_out <= '1';
-                    state <= IDLE;
-                when FINISH_POSITIVE =>
-                    -- Result is already positive
-                    assert invert = '0';
-                    finish_out <= '1';
-                    state <= IDLE;
             end case;
 
             if reset_in = '1' then

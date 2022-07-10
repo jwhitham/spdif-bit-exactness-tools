@@ -46,40 +46,26 @@ begin
 
         constant top_width      : Natural := test_table (part).top_width;
         constant bottom_width   : Natural := test_table (part).bottom_width;
+        constant top_start      : Natural := 0;
+        constant top_finish     : Natural := (2 ** top_width) - 1;
+        constant bottom_start   : Natural := 0;
+        constant bottom_finish  : Natural := (2 ** bottom_width) - 1;
 
-        function top_start return Integer is
+        function convert (value : Natural; size : Natural) return std_logic_vector is
         begin
-            return - Integer (2 ** (top_width - 1));
-        end top_start;
-
-        function bottom_start return Integer is
-        begin
-            return - Integer (2 ** (bottom_width - 1));
-        end bottom_start;
-
-        function top_finish return Integer is
-        begin
-            return Integer (2 ** (top_width - 1)) - 1;
-        end top_finish;
-
-        function bottom_finish return Integer is
-        begin
-            return Integer (2 ** (bottom_width - 1)) - 1;
-        end bottom_finish;
-
-        function convert (value : Integer; size : Natural) return std_logic_vector is
-        begin
-            assert (- Integer (2 ** (size - 1))) <= value;
-            assert value <= ((2 ** (size - 1)) - 1);
-            return std_logic_vector (to_signed (value, size));
+            assert value <= ((2 ** size) - 1);
+            return std_logic_vector (to_unsigned (value, size));
         end convert;
 
-        signal top_value        : std_logic_vector (top_width - 1 downto 0);
-        signal bottom_value     : std_logic_vector (bottom_width - 1 downto 0);
+        signal top_value        : std_logic_vector (top_width - 1 downto 0) := (others => '0');
+        signal bottom_value     : std_logic_vector (bottom_width - 1 downto 0) := (others => '0');
         signal start            : std_logic := '0';
         signal reset            : std_logic := '0';
         signal finish           : std_logic := '0';
-        signal result           : std_logic_vector (top_width - 1 downto 0);
+        signal top_negative     : std_logic := '0';
+        signal bottom_negative  : std_logic := '0';
+        signal result_negative  : std_logic := '0';
+        signal result           : std_logic_vector (top_width - 1 downto 0) := (others => '0');
 
     begin
         d : entity divider
@@ -88,10 +74,13 @@ begin
             port map (
                 top_value_in => top_value,
                 bottom_value_in => bottom_value,
+                top_negative_in => top_negative,
+                bottom_negative_in => bottom_negative,
                 start_in => start,
                 reset_in => reset,
                 finish_out => finish,
                 result_out => result,
+                result_negative_out => result_negative,
                 clock_in => clock);
 
         process
@@ -111,6 +100,16 @@ begin
                 for bottom in bottom_start to bottom_finish loop
                     top_value <= convert (top, top_width);
                     bottom_value <= convert (bottom, bottom_width);
+                    top_negative <= '0';
+                    bottom_negative <= '0';
+                    case part mod 4 is
+                        when 1 => top_negative <= '1';
+                        when 2 => bottom_negative <= '1';
+                        when 3 => bottom_negative <= '1';
+                                  top_negative <= '1';
+                        when others => null;
+                    end case;
+
                     expect := 0;
                     undefined := true;
 
@@ -132,25 +131,29 @@ begin
                         undefined := false;
                     end if;
 
-                    if expect = (top_finish + 1) then
-                        -- Result overflow; in this case, the behaviour is undefined.
-                        undefined := true;
-                        assert top = top_start;
-                        assert bottom = -1;
-                    else
-                        -- Expected result is in range
-                        assert ((top_start <= expect) and (expect <= top_finish));
-                    end if;
-
-                    if (not undefined) and result /= convert (expect, top_width) then
+                    if (not undefined) and
+                            (result /= convert (expect, top_width)
+                             or result_negative /= (top_negative xor bottom_negative)) then
                         write (l, String'("Division error. Dividing "));
+                        if top_negative = '1' then
+                            write (l, String'("-"));
+                        end if;
                         write (l, top);
                         write (l, String'(" by "));
+                        if bottom_negative = '1' then
+                            write (l, String'("-"));
+                        end if;
                         write (l, bottom);
                         write (l, String'(" should be "));
+                        if (top_negative xor bottom_negative) = '1' then
+                            write (l, String'("-"));
+                        end if;
                         write (l, expect);
                         write (l, String'(" got "));
-                        write (l, to_integer (signed (result)));
+                        if result_negative = '1' then
+                            write (l, String'("-"));
+                        end if;
+                        write (l, to_integer (unsigned (result)));
                         writeline (output, l);
                         assert False;
                         exit outer;
