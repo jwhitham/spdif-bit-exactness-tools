@@ -4,8 +4,8 @@ Version=Lattice Semiconductor Corporation iCEcube - Release: 2020.12.27943 - Bui
 ProjectName=compressor
 Vendor=SiliconBlue
 Synthesis=synplify
-ProjectVFiles=compressor_main.vhdl,compressor_pll.vhd,compressor_top.vhdl,../../app/compressor/compressor.vhdl,../../app/vu_meter/vu_meter.vhdl=work,../../lib/divider.vhdl,../../lib/fifo.vhdl=work,../../lib/led_scan.vhdl=work,../../spdif/channel_decoder.vhdl=work,../../spdif/channel_encoder.vhdl=work,../../spdif/clock_regenerator.vhdl=work,../../spdif/input_decoder.vhdl=work,../../spdif/output_encoder.vhdl=work,../../spdif/packet_decoder.vhdl=work,../../spdif/packet_encoder.vhdl=work
-ProjectCFiles=
+ProjectVFiles=compressor_main.vhdl=work,compressor_pll.vhd=work,compressor_top.vhdl=work,../../app/compressor/compressor.vhdl=work,../../app/vu_meter/vu_meter.vhdl=work,../../lib/divider.vhdl=work,../../lib/fifo.vhdl=work,../../lib/led_scan.vhdl=work,../../spdif/channel_decoder.vhdl=work,../../spdif/channel_encoder.vhdl=work,../../spdif/clock_regenerator.vhdl=work,../../spdif/input_decoder.vhdl=work,../../spdif/output_encoder.vhdl=work,../../spdif/packet_decoder.vhdl=work,../../spdif/packet_encoder.vhdl=work
+ProjectCFiles=buffers.sdc
 CurImplementation=compressor_Implmnt
 Implementations=compressor_Implmnt
 StartFromSynthesis=yes
@@ -20,7 +20,7 @@ NetlistFile=compressor_Implmnt/compressor.edf
 AdditionalEDIFFile=
 IPEDIFFile=
 DesignLib=compressor_Implmnt/sbt/netlist/oadb-compressor_top
-DesignView=_ep
+DesignView=_rt
 DesignCell=compressor_top
 SynthesisSDCFile=compressor_Implmnt/compressor.scf
 UserPinConstraintFile=
@@ -84,5 +84,5 @@ BitmapSetSecurity=no
 BitmapSetNoUsedIONoPullup=no
 FloorPlannerShowFanInNets=yes
 FloorPlannerShowFanOutNets=yes
-HookTo3rdPartyTextEditor=
+HookTo3rdPartyTextEditor=no
 

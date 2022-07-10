@@ -36,7 +36,7 @@ architecture structural of compressor is
     constant audio_bits_log_2   : Natural := 4;
     constant audio_bits         : Natural := 2 ** audio_bits_log_2;
     constant peak_bits          : Natural := 24;
-    constant fixed_point        : Natural := 2;
+    constant fixed_point        : Natural := 1;
     constant peak_audio_high    : Natural := peak_bits - fixed_point;
     constant peak_audio_low     : Natural := peak_audio_high - audio_bits + 1;
 
@@ -126,6 +126,7 @@ architecture structural of compressor is
     signal fifo_read            : std_logic := '0';
     signal empty_out            : std_logic := '0';
     signal fifo_out             : t_data := (others => '0');
+    signal fifo_in              : t_data := (others => '0');
     signal reset                : std_logic := '0';
     signal audio_divider_finish : std_logic := '0';
     signal peak_divider_finish  : std_logic := '0';
@@ -164,13 +165,21 @@ begin
     assert data_in'Length = audio_bits;
     assert peak_bits > audio_bits;
 
+    -- Incoming data is converted to sign-magnitude form
+    sm_in : entity convert_to_sign_magnitude
+        generic map (value_width => audio_bits)
+        port map (
+            value_in => data_in,
+            value_out => fifo_in (audio_bits - 2 downto 0),
+            value_negative_out => fifo_in (audio_bits - 1));
+
     -- FIFO is shared by both channels
     delay : entity fifo
         generic map (data_size_log_2 => audio_bits_log_2,
                      addr_size => delay_size_log_2 + 1,
                      threshold_level => delay_threshold_level)
         port map (
-            data_in => data_in,
+            data_in => fifo_in,
             data_out => fifo_out,
             empty_out => empty_out,
             full_out => open,
@@ -189,13 +198,13 @@ begin
 
     -- Audio divider
     audio : block
-        constant top_width      : Natural := peak_bits + audio_bits - fixed_point;
+        constant top_width      : Natural := peak_bits + audio_bits - fixed_point - 1;
         signal top_value        : std_logic_vector (top_width - 1 downto 0) := (others => '0');
         signal divider_result   : std_logic_vector (top_width - 1 downto 0) := (others => '0');
         signal divider_start    : std_logic := '0';
     begin
         -- Input to divider from FIFO
-        top_value (top_width - 1 downto peak_bits - fixed_point) <= fifo_out;
+        top_value (top_width - 1 downto peak_bits - fixed_point) <= fifo_out (audio_bits - 2 downto 0);
         top_value (peak_bits - fixed_point - 1 downto 0) <= (others => '0');
         divider_start <= '1' when state = COMPRESS else '0';
 
@@ -213,11 +222,17 @@ begin
 
         -- Output from divider
         assert data_out'Length = audio_bits;
-        data_out <= divider_result (audio_bits - 1 downto 0);
         left_strobe_out <= audio_divider_finish and left_flag
                                 when (state = AWAIT_AUDIO_DIVISION) else '0';
         right_strobe_out <= audio_divider_finish and not left_flag
                                 when (state = AWAIT_AUDIO_DIVISION) else '0';
+
+        sm_out : entity convert_from_sign_magnitude
+            generic map (value_width => audio_bits)
+            port map (
+                value_out => data_out,
+                value_in => divider_result (audio_bits - 2 downto 0),
+                value_negative_in => fifo_out (audio_bits - 1));
 
         -- Debug
         process (clock_in)

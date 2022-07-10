@@ -5,6 +5,9 @@ VHDL =  \
 		lib/divider.vhdl \
 		lib/fifo.vhdl \
 		lib/led_scan.vhdl \
+		lib/convert_from_sign_magnitude.vhdl \
+		lib/convert_to_sign_magnitude.vhdl \
+		app/compressor/compressor.vhdl \
 		app/matcher/match_rom.vhdl \
 		app/matcher/matcher.vhdl \
 		app/vu_meter/vu_meter.vhdl \
@@ -15,12 +18,17 @@ VHDL =  \
 		spdif/output_encoder.vhdl \
 		spdif/packet_decoder.vhdl \
 		spdif/packet_encoder.vhdl \
+		projects/compressor/compressor_main.vhdl \
 		projects/spdif_meter/spdif_meter_main.vhdl \
 
 TEST_VHDL = \
 		test/sb_ram40_4k.vhdl \
 		test/generated/test_signal_generator.vhdl \
+		test/test_compressor.vhdl \
+		test/test_compressor2.vhdl \
+		test/test_compressor_main.vhdl \
 		test/test_divider.vhdl \
+		test/test_sign_magnitude.vhdl \
 		test/test_fifo.vhdl \
 		test/test_spdif_meter_main.vhdl \
 		test/test_top_level.vhdl
@@ -35,6 +43,7 @@ run_tests:
 	python app/matcher/make_match_rom.py
 	python test/make_test_bench.py
 	ghdl -a --work=work $(VHDL) $(TEST_VHDL)
+	ghdl -r test_sign_magnitude $(RFLAGS)
 	ghdl -r test_divider $(RFLAGS)
 	ghdl -r test_compressor_main $(RFLAGS)
 	ghdl -r test_fifo $(RFLAGS)

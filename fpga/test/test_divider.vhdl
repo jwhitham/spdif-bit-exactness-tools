@@ -62,9 +62,6 @@ begin
         signal start            : std_logic := '0';
         signal reset            : std_logic := '0';
         signal finish           : std_logic := '0';
-        signal top_negative     : std_logic := '0';
-        signal bottom_negative  : std_logic := '0';
-        signal result_negative  : std_logic := '0';
         signal result           : std_logic_vector (top_width - 1 downto 0) := (others => '0');
 
     begin
@@ -74,13 +71,10 @@ begin
             port map (
                 top_value_in => top_value,
                 bottom_value_in => bottom_value,
-                top_negative_in => top_negative,
-                bottom_negative_in => bottom_negative,
                 start_in => start,
                 reset_in => reset,
                 finish_out => finish,
                 result_out => result,
-                result_negative_out => result_negative,
                 clock_in => clock);
 
         process
@@ -100,15 +94,6 @@ begin
                 for bottom in bottom_start to bottom_finish loop
                     top_value <= convert (top, top_width);
                     bottom_value <= convert (bottom, bottom_width);
-                    top_negative <= '0';
-                    bottom_negative <= '0';
-                    case part mod 4 is
-                        when 1 => top_negative <= '1';
-                        when 2 => bottom_negative <= '1';
-                        when 3 => bottom_negative <= '1';
-                                  top_negative <= '1';
-                        when others => null;
-                    end case;
 
                     expect := 0;
                     undefined := true;
@@ -131,28 +116,14 @@ begin
                         undefined := false;
                     end if;
 
-                    if (not undefined) and
-                            (result /= convert (expect, top_width)
-                             or result_negative /= (top_negative xor bottom_negative)) then
+                    if (not undefined) and result /= convert (expect, top_width) then
                         write (l, String'("Division error. Dividing "));
-                        if top_negative = '1' then
-                            write (l, String'("-"));
-                        end if;
                         write (l, top);
                         write (l, String'(" by "));
-                        if bottom_negative = '1' then
-                            write (l, String'("-"));
-                        end if;
                         write (l, bottom);
                         write (l, String'(" should be "));
-                        if (top_negative xor bottom_negative) = '1' then
-                            write (l, String'("-"));
-                        end if;
                         write (l, expect);
                         write (l, String'(" got "));
-                        if result_negative = '1' then
-                            write (l, String'("-"));
-                        end if;
                         write (l, to_integer (unsigned (result)));
                         writeline (output, l);
                         assert False;

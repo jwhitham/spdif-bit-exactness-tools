@@ -3,9 +3,6 @@
 --   result = top / bottom
 --
 -- The divider does not report an error if bottom = 0, but the result is undefined.
--- Division uses unsigned arithmetic but can track a "negative" flag associated with
--- each input. This avoids the need to convert negative values to positive ones
--- before/after division.
 
 
 library ieee;
@@ -19,13 +16,10 @@ entity divider is
     port (
         top_value_in        : in std_logic_vector (top_width - 1 downto 0);
         bottom_value_in     : in std_logic_vector (bottom_width - 1 downto 0);
-        top_negative_in     : in std_logic;
-        bottom_negative_in  : in std_logic;
         start_in            : in std_logic;
         reset_in            : in std_logic;
         finish_out          : out std_logic := '0';
         result_out          : out std_logic_vector (top_width - 1 downto 0) := (others => '0');
-        result_negative_out : out std_logic := '0';
         clock_in            : in std_logic
     );
 end divider;
@@ -38,7 +32,6 @@ architecture structural of divider is
 
     signal top          : t_wide := (others => '0');
     signal bottom       : t_wide := (others => '0');
-    signal negative     : std_logic := '0';
     signal subtracted   : t_wide := (others => '0');
     signal result       : std_logic_vector (top_width - 1 downto 0) := (others => '0');
     signal state        : t_state := IDLE;
@@ -49,7 +42,6 @@ begin
     top (top'Left downto top_width) <= (others => '0');
     bottom (bottom'Left) <= '0';
     result_out <= result;
-    result_negative_out <= negative;
 
     process (clock_in)
     begin
@@ -65,7 +57,6 @@ begin
                     steps_to_do <= top_width - 1;
 
                     if start_in = '1' then
-                        negative <= top_negative_in xor bottom_negative_in;
                         state <= SHIFT;
                     end if;
                 when SHIFT =>
