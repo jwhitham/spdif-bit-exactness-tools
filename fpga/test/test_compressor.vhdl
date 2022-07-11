@@ -149,9 +149,10 @@ begin
              (16#03ff#, 16#7fe0#, 0),
              (16#01ff#, 16#7fc0#, 0),
              (16#00ff#, 16#7f80#, 0),
-             (16#00fe#, 16#7f80#, 0),   -- amplitude does not quite get maximum amplification (21.1dB)
+             (16#00fe#, 16#7f80#, 1),   -- amplitude does not quite get maximum amplification (21.1dB)
              (16#00fd#, 16#7eff#, 1),   -- amplitude gets maximum amplification
-             (16#00fc#, 16#7e7e#, 1), 
+             (16#00fc#, 16#7e7e#, 1),   -- amplitude gets maximum amplification
+             (16#00fb#, 16#7dfe#, 1), 
              (16#007f#, 16#3fbf#, 1),
              (16#0001#, 16#0080#, 0)    -- minimum non-zero amplitude
             );  
@@ -342,8 +343,6 @@ begin
 
             -- Wait for output data
             wait until clock'event and clock = '1' and left_strobe_out = '1';
-            assert abs (to_integer (signed (data_out))) >= (t.amplitude_out - t.epsilon);
-            assert abs (to_integer (signed (data_out))) <= (t.amplitude_out + t.epsilon);
             if not (abs (to_integer (signed (data_out))) >= (t.amplitude_out - t.epsilon)
             and abs (to_integer (signed (data_out))) <= (t.amplitude_out + t.epsilon)) then
                 write (l, String'("Unexpected output "));
@@ -354,6 +353,8 @@ begin
                 write (l, t.amplitude_out);
                 writeline (output, l);
             end if;
+            assert abs (to_integer (signed (data_out))) >= (t.amplitude_out - t.epsilon);
+            assert abs (to_integer (signed (data_out))) <= (t.amplitude_out + t.epsilon);
 
             if t.amplitude_out = 0 then
                 -- Expect 0 steady state to be maintained

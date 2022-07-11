@@ -32,15 +32,18 @@ end compressor;
 
 architecture structural of compressor is
 
-
+    -- audio_bits is the input and output width (two's-complement)
+    -- Internally, sign-magnitude is used, and the magnitude is audio_bits - 1 wide.
     constant audio_bits_log_2   : Natural := 4;
     constant audio_bits         : Natural := 2 ** audio_bits_log_2;
+
     constant peak_bits          : Natural := 24;
     constant fixed_point        : Natural := 1;
-    constant peak_audio_high    : Natural := peak_bits - fixed_point;
-    constant peak_audio_low     : Natural := peak_audio_high - audio_bits + 1;
+    constant peak_audio_high    : Natural := peak_bits - fixed_point - 1;
+    constant peak_audio_low     : Natural := peak_audio_high - audio_bits + 2;
 
-    subtype t_data is std_logic_vector (audio_bits - 1 downto 0);
+    subtype t_fifo_data is std_logic_vector (audio_bits - 1 downto 0);
+    subtype t_audio_data is std_logic_vector (audio_bits - 2 downto 0);
     subtype t_peak_level is std_logic_vector (peak_bits - 1 downto 0);
 
     -- The state machine sequence is:
@@ -55,12 +58,10 @@ architecture structural of compressor is
     --        If FIFO threshold = '0' or right input received = '0' goto FILLING.
     --  START:
     --      Wait for audio input:
-    --        Generate absolute value of input,
     --        Store input in FIFO,
     --        Request output from FIFO,
     --  CLAMP_TO_FIFO_INPUT:
     --      peak_level = max (peak_level, absolute input),
-    --      Generate absolute value of FIFO output
     --  CLAMP_TO_FIFO_OUTPUT:
     --      peak_level = max (peak_level, absolute FIFO output),
     --  CLAMP_TO_MINIMUM:
@@ -115,8 +116,7 @@ architecture structural of compressor is
     signal minimum_flag         : std_logic := '1';
     signal state                : t_state := INIT;
     signal peak_level           : t_peak_level := (others => '1');
-    signal abs_audio_in         : t_data := (others => '0');
-    signal abs_fifo_out         : t_data := (others => '0');
+    signal abs_audio_in         : t_audio_data := (others => '0');
 
     -- Global signals
     signal strobe_in            : std_logic := '0';
@@ -125,17 +125,18 @@ architecture structural of compressor is
     signal write_error          : std_logic := '0';
     signal fifo_read            : std_logic := '0';
     signal empty_out            : std_logic := '0';
-    signal fifo_out             : t_data := (others => '0');
-    signal fifo_in              : t_data := (others => '0');
+    signal fifo_out             : t_fifo_data := (others => '0');
+    signal fifo_in              : t_fifo_data := (others => '0');
     signal reset                : std_logic := '0';
     signal audio_divider_finish : std_logic := '0';
     signal peak_divider_finish  : std_logic := '0';
     signal peak_divider_result  : std_logic_vector (peak_bits - 1 downto 0) := (others => '0');
-    signal abs_compare          : t_data := (others => '0');
+    signal abs_compare          : t_audio_data := (others => '0');
+    signal abs_fifo_out         : t_audio_data := (others => '0');
 
     procedure write_big_number (l : inout line; big_number : std_logic_vector) is
         constant num_bits : Natural := big_number'Length;
-        constant nibbles  : Natural := num_bits / 4;
+        constant nibbles  : Natural := (num_bits + 3) / 4;
         constant pad      : Natural := nibbles * 4;
         variable value    : Natural := 0;
     begin
@@ -195,17 +196,19 @@ begin
     assert write_error = '0';
     strobe_in <= left_strobe_in or right_strobe_in;
     fifo_read <= strobe_in when state = START else '0';
+    abs_fifo_out <= fifo_out (audio_bits - 2 downto 0);
 
     -- Audio divider
     audio : block
-        constant top_width      : Natural := peak_bits + audio_bits - fixed_point - 1;
+        constant peak_high_bit  : Natural := peak_bits - fixed_point;
+        constant top_width      : Natural := peak_high_bit + (audio_bits - 1);
         signal top_value        : std_logic_vector (top_width - 1 downto 0) := (others => '0');
         signal divider_result   : std_logic_vector (top_width - 1 downto 0) := (others => '0');
         signal divider_start    : std_logic := '0';
     begin
         -- Input to divider from FIFO
-        top_value (top_width - 1 downto peak_bits - fixed_point) <= fifo_out (audio_bits - 2 downto 0);
-        top_value (peak_bits - fixed_point - 1 downto 0) <= (others => '0');
+        top_value (top_width - 1 downto peak_high_bit) <= fifo_out (audio_bits - 2 downto 0);
+        top_value (peak_high_bit - 1 downto 0) <= (others => '0');
         divider_start <= '1' when state = COMPRESS else '0';
 
         div : entity divider
@@ -304,28 +307,13 @@ begin
         end process;
     end block peak;
 
-    -- Absolute audio input register
+    -- Absolute audio input register (needs to be a register since
+    -- the input is only valid when strobe_in = '1')
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
             if strobe_in = '1' and state = START then
-                if data_in (data_in'Left) = '0' then
-                    abs_audio_in <= std_logic_vector (signed (data_in));
-                else
-                    abs_audio_in <= std_logic_vector (0 - signed (data_in));
-                end if;
-            end if;
-        end if;
-    end process;
-
-    -- Absolute FIFO output register
-    process (clock_in)
-    begin
-        if clock_in'event and clock_in = '1' then
-            if fifo_out (fifo_out'Left) = '0' then
-                abs_fifo_out <= std_logic_vector (signed (fifo_out));
-            else
-                abs_fifo_out <= std_logic_vector (0 - signed (fifo_out));
+                abs_audio_in <= fifo_in (audio_bits - 2 downto 0);
             end if;
         end if;
     end process;
