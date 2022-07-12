@@ -28,7 +28,7 @@ architecture structural of divider is
 
     subtype t_wide is unsigned (top_width + bottom_width - 1 downto 0);
     subtype t_steps_to_do is Natural range 0 to top_width - 1; 
-    type t_state is (IDLE, SHIFT);
+    type t_state is (IDLE, SHIFT, SUBTRACT);
 
     signal top          : t_wide := (others => '0');
     signal bottom       : t_wide := (others => '0');
@@ -38,7 +38,6 @@ architecture structural of divider is
     signal steps_to_do  : t_steps_to_do := top_width - 1;
 
 begin
-    subtracted <= top - bottom;
     top (top'Left downto top_width) <= (others => '0');
     bottom (bottom'Left) <= '0';
     result_out <= result;
@@ -57,7 +56,7 @@ begin
                     steps_to_do <= top_width - 1;
 
                     if start_in = '1' then
-                        state <= SHIFT;
+                        state <= SUBTRACT;
                     end if;
                 when SHIFT =>
                     -- Perform unsigned division
@@ -78,7 +77,11 @@ begin
                         state <= IDLE;
                     else
                         steps_to_do <= steps_to_do - 1;
+                        state <= SUBTRACT;
                     end if;
+                when SUBTRACT =>
+                    subtracted <= top - bottom;
+                    state <= SHIFT;
             end case;
 
             if reset_in = '1' then
