@@ -60,12 +60,18 @@ architecture structural of compressor is
     --      Wait for audio input:
     --        Store input in FIFO,
     --        Request output from FIFO,
+    --  LOAD_FIFO_INPUT:
+    --      abs_compare = absolute input
     --  CLAMP_TO_FIFO_INPUT:
-    --      peak_level = max (peak_level, absolute input),
+    --      peak_level = max (peak_level, abs_compare)
+    --  LOAD_FIFO_OUTPUT:
+    --      abs_compare = absolute FIFO output
     --  CLAMP_TO_FIFO_OUTPUT:
-    --      peak_level = max (peak_level, absolute FIFO output),
+    --      peak_level = max (peak_level, abs_compare)
+    --  LOAD_MINIMUM:
+    --      abs_compare = peak_minimum
     --  CLAMP_TO_MINIMUM:
-    --      peak_level = max (peak_level, peak_minimum),
+    --      peak_level = max (peak_level, abs_compare)
     --  COMPRESS:
     --      signal start of division: input / peak_level
     --  AWAIT_AUDIO_DIVISION:
@@ -81,8 +87,11 @@ architecture structural of compressor is
     --      Copy divider output to peak level
     --      
     type t_state is (INIT, FILLING, START,
+                     LOAD_FIFO_INPUT,
                      CLAMP_TO_FIFO_INPUT,
+                     LOAD_FIFO_OUTPUT,
                      CLAMP_TO_FIFO_OUTPUT,
+                     LOAD_MINIMUM,
                      CLAMP_TO_MINIMUM,
                      COMPRESS,
                      AWAIT_AUDIO_DIVISION,
@@ -318,13 +327,26 @@ begin
         end if;
     end process;
 
-    -- Peak level comparison multiplexer
-    abs_compare <= abs_audio_in when state = CLAMP_TO_FIFO_INPUT
-                   else abs_fifo_out when state = CLAMP_TO_FIFO_OUTPUT
-                   else peak_minimum (peak_audio_high downto peak_audio_low);
+    -- Comparison input register
+    process (clock_in)
+    begin
+        if clock_in'event and clock_in = '1' then
+            case state is
+                when LOAD_FIFO_INPUT =>
+                    abs_compare <= abs_audio_in (audio_bits - 2 downto 0);
+                when LOAD_FIFO_OUTPUT =>
+                    abs_compare <= abs_fifo_out;
+                when LOAD_MINIMUM =>
+                    abs_compare <= peak_minimum (peak_audio_high downto peak_audio_low);
+                when others =>
+                    null;
+            end case;
+        end if;
+    end process;
 
     -- Peak level register
     process (clock_in)
+        variable l : line;
     begin
         if clock_in'event and clock_in = '1' then
             case state is
@@ -346,6 +368,11 @@ begin
                             minimum_flag <= '1';
                         else
                             minimum_flag <= '0';
+                        end if;
+                        if debug then
+                            write (l, String'("peak level clamped to: "));
+                            write_big_number (l, peak_level);
+                            writeline (output, l);
                         end if;
                     end if;
                 when AWAIT_PEAK_LEVEL_DIVISION =>
@@ -382,7 +409,7 @@ begin
                 when START =>
                     -- (wait for audio input)
                     if strobe_in = '1' then
-                        state <= CLAMP_TO_FIFO_INPUT;
+                        state <= LOAD_FIFO_INPUT;
                         if debug then
                             write (l, String'("start with input: "));
                             write_big_number (l, data_in);
@@ -390,29 +417,17 @@ begin
                         end if;
                     end if;
                     sync_out <= '1';
+                when LOAD_FIFO_INPUT =>
+                    state <= CLAMP_TO_FIFO_INPUT;
                 when CLAMP_TO_FIFO_INPUT =>
-                    -- peak_level = max (peak_level, absolute input)
+                    state <= LOAD_FIFO_OUTPUT;
+                when LOAD_FIFO_OUTPUT =>
                     state <= CLAMP_TO_FIFO_OUTPUT;
-                    if debug then
-                        write (l, String'("FIFO output: "));
-                        write_big_number (l, fifo_out);
-                        writeline (output, l);
-                    end if;
                 when CLAMP_TO_FIFO_OUTPUT =>
-                    -- peak_level = max (peak_level, absolute FIFO output)
-                    if debug then
-                        write (l, String'("peak level clamped to input: "));
-                        write_big_number (l, peak_level);
-                        writeline (output, l);
-                    end if;
+                    state <= LOAD_MINIMUM;
+                when LOAD_MINIMUM =>
                     state <= CLAMP_TO_MINIMUM;
                 when CLAMP_TO_MINIMUM =>
-                    -- peak_level = max (peak_level, peak_minimum)
-                    if debug then
-                        write (l, String'("peak level clamped to FIFO output: "));
-                        write_big_number (l, peak_level);
-                        writeline (output, l);
-                    end if;
                     state <= COMPRESS;
                 when COMPRESS =>
                     -- start division: absolute FIFO output / peak level
