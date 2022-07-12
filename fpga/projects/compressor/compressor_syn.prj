@@ -17,7 +17,9 @@ add_file -vhdl -lib work "../../spdif/input_decoder.vhdl"
 add_file -vhdl -lib work "../../spdif/output_encoder.vhdl" 
 add_file -vhdl -lib work "../../spdif/packet_decoder.vhdl" 
 add_file -vhdl -lib work "../../spdif/packet_encoder.vhdl" 
-add_file -constraint -lib work "buffers.sdc"
+add_file -vhdl -lib work "../../lib/convert_from_sign_magnitude.vhdl" 
+add_file -vhdl -lib work "../../lib/convert_to_sign_magnitude.vhdl" 
+add_file -constraint -lib work "syn_config.sdc"
 #implementation: "compressor_Implmnt"
 impl -add compressor_Implmnt -type fpga
 

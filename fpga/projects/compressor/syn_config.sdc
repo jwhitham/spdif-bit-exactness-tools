@@ -1,0 +1,1 @@
+define_global_attribute syn_noclockbuf 1
