@@ -1,8 +1,9 @@
 #-- Synopsys, Inc.
 #-- Project file C:\Users\jackd\Documents\Software projects\spdif\fpga\projects\uart_test\uart_test_syn.prj
 #project files
-add_file -vhdl -lib work "uart_test_top.vhdl"
 
+add_file -vhdl -lib work "uart_test_top.vhdl" 
+add_file -vhdl -lib work "../../lib/uart.vhdl" 
 #implementation: "uart_test_Implmnt"
 impl -add uart_test_Implmnt -type fpga
 
@@ -52,5 +53,5 @@ set_option -write_apr_constraint 1
 project -result_format "edif"
 project -result_file ./uart_test_Implmnt/uart_test.edf
 project -log_file "./uart_test_Implmnt/uart_test.srr"
-impl -active "uart_test_Implmnt"
+impl -active uart_test_Implmnt
 project -run synthesis -clean

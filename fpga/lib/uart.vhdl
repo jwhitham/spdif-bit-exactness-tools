@@ -57,23 +57,23 @@ begin
                 serial_in_reg <= serial_in;
 
                 if baud_div_16 = '1' then
-                    if receive_state /= 0 or serial_in_reg = '1' then
+                    if receive_state /= 0 or serial_in_reg = '0' then
                         -- receiving bits
                         receive_state <= receive_state + 1;
                         case receive_state is
                             when 16#008# =>
-                                -- start bit: should be 1. If not, discard packet and reset
-                                if serial_in_reg /= '1' then
+                                -- start bit: should be 0. If not, discard packet and reset
+                                if serial_in_reg /= '0' then
                                     receive_state <= 0;
                                 end if;
                             when 16#018# | 16#028# | 16#038# | 16#048#
                                     | 16#058# | 16#068# | 16#078# | 16#088# =>
                                 -- data bit: shift into data register
-                                data (7 downto 1) <= data (6 downto 0);
-                                data (0) <= serial_in_reg;
+                                data (6 downto 0) <= data (7 downto 1);
+                                data (7) <= serial_in_reg;
                             when 16#098# =>
-                                -- stop bit: should be 0. If not, discard packet and reset.
-                                if serial_in_reg = '0' then
+                                -- stop bit: should be 1. If not, discard packet and reset.
+                                if serial_in_reg = '1' then
                                     strobe_out <= '1';
                                 end if;
                                 receive_state <= 0;
@@ -107,7 +107,7 @@ begin
                         -- ready to send
                         ready_out <= '1';
                     end if;
-                    serial_out <= '0';
+                    serial_out <= '1';
                 else
                     if baud_div_16 = '1' then
                         -- send data
@@ -115,16 +115,16 @@ begin
                         case send_state is
                             when 16#001# =>
                                 -- start bit
-                                serial_out <= '1';
+                                serial_out <= '0';
                             when 16#011# | 16#021# | 16#031# | 16#041#
                                     | 16#051# | 16#061# | 16#071# | 16#081# =>
                                 -- data bit
-                                serial_out <= data (7);
-                                data (7 downto 1) <= data (6 downto 0);
+                                serial_out <= data (0);
+                                data (6 downto 0) <= data (7 downto 1);
                             when 16#091# =>
                                 -- stop bit
-                                serial_out <= '0';
-                            when 16#0a1# =>
+                                serial_out <= '1';
+                            when 16#0a0# =>
                                 -- finished
                                 send_state <= 0;
                             when others =>
