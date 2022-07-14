@@ -7,6 +7,7 @@ VHDL =  \
 		lib/led_scan.vhdl \
 		lib/convert_from_sign_magnitude.vhdl \
 		lib/convert_to_sign_magnitude.vhdl \
+		lib/uart.vhdl \
 		app/compressor/compressor.vhdl \
 		app/matcher/match_rom.vhdl \
 		app/matcher/matcher.vhdl \
@@ -31,6 +32,7 @@ TEST_VHDL = \
 		test/test_sign_magnitude.vhdl \
 		test/test_fifo.vhdl \
 		test/test_spdif_meter_main.vhdl \
+		test/test_uart.vhdl \
 		test/test_top_level.vhdl
 
 all: run_tests
@@ -43,6 +45,7 @@ run_tests:
 	python app/matcher/make_match_rom.py
 	python test/make_test_bench.py
 	ghdl -a --work=work $(VHDL) $(TEST_VHDL)
+	ghdl -r test_uart $(RFLAGS)
 	ghdl -r test_compressor $(RFLAGS)
 	ghdl -r test_compressor2 $(RFLAGS)
 	ghdl -r test_sign_magnitude $(RFLAGS)
