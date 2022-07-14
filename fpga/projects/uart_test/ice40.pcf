@@ -1,0 +1,7 @@
+# For iceFUN board
+
+set_io clk12MHz P7
+set_io tx_to_rpi A3
+set_io rx_from_rpi A2
+set_io tx_to_pic P4
+set_io rx_from_pic P5
