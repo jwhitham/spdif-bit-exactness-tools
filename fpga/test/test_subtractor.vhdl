@@ -20,7 +20,7 @@ architecture test of test_subtractor is
     type t_test_table is array (Positive range <>) of t_test;
 
     constant test_table     : t_test_table :=
-        ((4, 4), (4, 2), (4, 1), (4, 3), (8, 8), (8, 3), (1, 1));
+        ((4, 4), (4, 2), (4, 1), (4, 3), (5, 5), (5, 3), (1, 1), (2, 8));
     constant num_tests      : Natural := test_table'Length;
 
     signal clock            : std_logic := '0';
@@ -69,12 +69,13 @@ begin
             
         process
             variable expect : Integer;
+            variable expect_overflow : std_logic;
             variable l : line;
         begin
             done (part) <= '0';
             wait until done (part - 1) = '1';
 
-            write (l, String'("division test "));
+            write (l, String'("subtractor test "));
             write (l, part);
             writeline (output, l);
 
@@ -95,12 +96,17 @@ begin
                     start <= '1';
                     wait until clock'event and clock = '1';
                     start <= '0';
-                    wait until finish = '1';
+                    while finish = '0' loop
+                        wait until clock'event and clock = '1';
+                    end loop;
                     expect := top - bottom;
+                    expect_overflow := '0';
                     if expect < 0 then
                         expect := expect + max_value + 1;
+                        expect_overflow := '1';
                     end if;
-                    if std_logic_vector (to_unsigned (expect, value_width)) /= result then
+                    if std_logic_vector (to_unsigned (expect, value_width)) /= result
+                            or expect_overflow /= overflow then
                         write (l, String'("Subtractor error. "));
                         write (l, top);
                         write (l, String'(" - "));
@@ -109,6 +115,9 @@ begin
                         write (l, expect);
                         write (l, String'(" got "));
                         write (l, to_integer (unsigned (result)));
+                        if expect_overflow /= overflow then
+                            write (l, String'(" overflow flag error"));
+                        end if;
                         writeline (output, l);
                         assert False;
                         exit outer;

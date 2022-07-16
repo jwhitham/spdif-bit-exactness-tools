@@ -5,6 +5,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+use std.textio.all;
+
 entity subtractor is
     generic (value_width    : Natural;
              slice_width    : Natural := 8);
@@ -43,7 +45,7 @@ architecture structural of subtractor is
 
 begin
     assert expanded_width >= value_width;
-    assert slice_width <= value_width;
+    assert slice_width <= expanded_width;
 
     result_out <= std_logic_vector (result (value_width - 1 downto 0));
     overflow_out <= borrow;
@@ -58,7 +60,13 @@ begin
 
     result_slice <= top_slice - bottom_slice;
 
+
+    --  000000
+    --  000010
+    -- =111110
+
     process (clock_in)
+        variable l : line;
     begin
         if clock_in'event and clock_in = '1' then
             finish_out <= '0';
