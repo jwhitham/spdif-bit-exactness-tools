@@ -33,6 +33,7 @@ TEST_VHDL = \
 		test/test_subtractor.vhdl \
 		test/test_sign_magnitude.vhdl \
 		test/test_fifo.vhdl \
+		test/test_measure.vhdl \
 		test/test_spdif_meter_main.vhdl \
 		test/test_uart.vhdl \
 		test/test_top_level.vhdl
@@ -47,6 +48,7 @@ run_tests:
 	python app/matcher/make_match_rom.py
 	python test/make_test_bench.py
 	ghdl -a --work=work $(VHDL) $(TEST_VHDL)
+	ghdl -r test_measure $(RFLAGS)
 	ghdl -r test_subtractor $(RFLAGS)
 	ghdl -r test_divider $(RFLAGS)
 	ghdl -r test_uart $(RFLAGS)

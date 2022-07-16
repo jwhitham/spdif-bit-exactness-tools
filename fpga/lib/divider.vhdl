@@ -13,8 +13,9 @@ use ieee.std_logic_1164.all;
 
 entity divider is
     generic (
-        top_width    : Natural;
-        bottom_width : Natural);
+        top_width              : Natural;
+        bottom_width           : Natural;
+        subtractor_slice_width : Natural := 8);
     port (
         top_value_in        : in std_logic_vector (top_width - 1 downto 0);
         bottom_value_in     : in std_logic_vector (bottom_width - 1 downto 0);
@@ -52,7 +53,7 @@ begin
 
 
     sub : entity subtractor
-        generic map (value_width => t_wide'Length)
+        generic map (value_width => t_wide'Length, slice_width => subtractor_slice_width)
         port map (
             top_value_in => top,
             bottom_value_in => bottom,
