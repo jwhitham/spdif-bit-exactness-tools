@@ -5,3 +5,15 @@ set_io tx_to_rpi A3
 set_io rx_from_rpi A2
 set_io tx_to_pic P4
 set_io rx_from_pic P5
+set_io led1 C10
+set_io led2 A10
+set_io led3 D7
+set_io led4 D6
+set_io led5 A7
+set_io led6 C7
+set_io led7 A4
+set_io led8 C4
+set_io lcol1 A12
+set_io lcol2 D10
+set_io lcol3 A6
+set_io lcol4 C5
