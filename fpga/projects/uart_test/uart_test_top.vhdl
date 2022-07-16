@@ -104,9 +104,11 @@ begin
             variable value : t_value := 0;
         begin
             if clock'event and clock = '1' then
-                level (i) <= (others => '0');
-                value := to_integer (unsigned (ad (i) (9 downto 6)));
-                level (i) (value) <= '1';
+                if state = REPEAT then
+                    level (i) <= (others => '0');
+                    value := to_integer (unsigned (ad (i) (9 downto 6)));
+                    level (i) (value) <= '1';
+                end if;
             end if;
         end process;
     end generate convert_ad_to_level;
