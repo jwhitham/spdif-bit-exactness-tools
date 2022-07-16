@@ -95,7 +95,10 @@ begin
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
-            if output_state = ACTIVE and strobe_in = '1' then
+            if output_state = RESET then
+                data_gen <= '1';
+
+            elsif output_state = ACTIVE and strobe_in = '1' then
                 case encode_state is
                     when READY =>
                         case pulse_length is

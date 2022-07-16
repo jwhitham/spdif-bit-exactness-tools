@@ -138,24 +138,28 @@ begin
         port map (clock => clock_in,
                   meter_out => raw_left_meter,
                   strobe_in => raw_left_strobe,
+                  sync_in => sync (3),
                   data_in => raw_data (27 downto 19));
 
     raw_right : entity vu_meter 
         port map (clock => clock_in,
                   meter_out => raw_right_meter,
                   strobe_in => raw_right_strobe,
+                  sync_in => sync (3),
                   data_in => raw_data (27 downto 19));
 
     cmp_left : entity vu_meter 
         port map (clock => clock_in,
                   meter_out => cmp_left_meter,
                   strobe_in => cmp_left_strobe,
+                  sync_in => sync (8),
                   data_in => cmp_data (27 downto 19));
 
     cmp_right : entity vu_meter 
         port map (clock => clock_in,
                   meter_out => cmp_right_meter,
                   strobe_in => cmp_right_strobe,
+                  sync_in => sync (8),
                   data_in => cmp_data (27 downto 19));
 
 end structural;

@@ -231,18 +231,18 @@ by splitting operations into smaller steps) and the time taken to process a samp
 (which is increased by splitting operations into smaller steps). As there is no need
 to process samples faster than the sample rate, a design can take hundreds of
 clock cycles per sample. For instance, if the FPGA clock is 96MHz, and the
-sample rate is 48kHz stereo, a new audio sample arrive every 1000 clock cycles.
+sample rate is 48kHz stereo, a new audio sample arrives every 1000 clock cycles.
 This is plenty of time.
 
 One misstep here was to try to build a signed divider, i.e. one which could work with
 negative and positive numbers. This is pretty tricky to implement. It's normally achieved by converting
 both numerator and denominator to positive numbers, and then correcting the sign afterwards.
-I tried other implementations but found them too complex. I had many problems caused by my attempt
+But I had many problems caused by my attempt
 to support [two's complement numbers](https://en.wikipedia.org/wiki/Two%27s_complement) in the divider.
 These were both functionality bugs and problems with the minimum period of the FPGA design,
 which was greatly increased by long paths through subtractor carry chains. I even hit the
 "fun" special case where the minimum possible number (e.g. -128 for 8-bit) is divided by -1:
-the result can't be represented as a two's complement number, so the result is undefined.
+the result can't be represented as a two's complement number.
 (x86 CPUs will generate something like a divide by zero exception if you attempt such an operation,
 other CPUs might act like you divided by 1, and in C the result may be affected by the horrible
 [integer promotion](https://stackoverflow.com/questions/44455248/integer-promotion-in-c) feature,
@@ -251,7 +251,8 @@ a great source of surprising behaviour for the unwary.)
 Eventually I realised that I didn't need to use two's complement numbers inside the
 compressor or divider, and could instead use sign-magnitude numbers, where the sign bit
 is separate from the rest of the value. Conversion to two's complement is only necessary
-at the input and output, since S/PDIF is two's complement.
+at the input and output, since S/PDIF is two's complement. Sign-magnitude led to a much
+simpler implementation.
 
 Even with this change, the size of the numbers being divided is quite large, and so I also
 implemented a [subtractor](lib/subtractor.vhdl) which operates on a configurable number

@@ -168,12 +168,14 @@ begin
         port map (clock => clock_in,
                   meter_out => left_meter,
                   strobe_in => left_strobe,
+                  sync_in => sync (3),
                   data_in => data (27 downto 19));
 
     right : entity vu_meter 
         port map (clock => clock_in,
                   meter_out => right_meter,
                   strobe_in => right_strobe,
+                  sync_in => sync (3),
                   data_in => data (27 downto 19));
 
     sync (4) <= '1' when matcher_sync /= "00" else '0';

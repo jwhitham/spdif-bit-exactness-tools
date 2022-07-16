@@ -636,10 +636,10 @@ clock regenerator desynchronised
 channel encoder desynchronised
 packet encoder desynchronised
 output encoder desynchronised
-second input decoder desynchronised
 second packet decoder desynchronised
 second channel decoder desynchronised
 second matcher desynchronised
+second input decoder desynchronised
 Start of test/test_44100_data with quality = Quality.ROUND_16
 input decoder single time = 27
 input decoder single time = 9
