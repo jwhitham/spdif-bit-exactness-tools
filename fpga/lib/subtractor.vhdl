@@ -5,8 +5,6 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-use std.textio.all;
-
 entity subtractor is
     generic (value_width    : Natural;
              slice_width    : Natural := 8;
@@ -63,7 +61,6 @@ begin
     result_slice <= top_slice + bottom_slice when do_addition else top_slice - bottom_slice;
 
     process (clock_in)
-        variable l : line;
     begin
         if clock_in'event and clock_in = '1' then
             finish_out <= '0';

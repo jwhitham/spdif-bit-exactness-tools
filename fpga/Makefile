@@ -2,8 +2,8 @@
 RFLAGS = --assert-level=note
 
 VHDL =  \
-		lib/divider.vhdl \
 		lib/subtractor.vhdl \
+		lib/divider.vhdl \
 		lib/fifo.vhdl \
 		lib/led_scan.vhdl \
 		lib/convert_from_sign_magnitude.vhdl \
@@ -48,11 +48,11 @@ run_tests:
 	python test/make_test_bench.py
 	ghdl -a --work=work $(VHDL) $(TEST_VHDL)
 	ghdl -r test_subtractor $(RFLAGS)
+	ghdl -r test_divider $(RFLAGS)
 	ghdl -r test_uart $(RFLAGS)
 	ghdl -r test_compressor $(RFLAGS)
 	ghdl -r test_compressor2 $(RFLAGS)
 	ghdl -r test_sign_magnitude $(RFLAGS)
-	ghdl -r test_divider $(RFLAGS)
 	ghdl -r test_compressor_main $(RFLAGS)
 	ghdl -r test_fifo $(RFLAGS)
 	ghdl -r test_spdif_meter_main $(RFLAGS)
