@@ -4,7 +4,7 @@ Version=Lattice Semiconductor Corporation iCEcube - Release: 2020.12.27943 - Bui
 ProjectName=compressor
 Vendor=SiliconBlue
 Synthesis=synplify
-ProjectVFiles=compressor_main.vhdl=work,compressor_pll.vhd=work,compressor_top.vhdl=work,../../app/compressor/compressor.vhdl=work,../../app/vu_meter/vu_meter.vhdl=work,../../lib/divider.vhdl=work,../../lib/fifo.vhdl=work,../../lib/led_scan.vhdl=work,../../spdif/channel_decoder.vhdl=work,../../spdif/channel_encoder.vhdl=work,../../spdif/clock_regenerator.vhdl=work,../../spdif/input_decoder.vhdl=work,../../spdif/output_encoder.vhdl=work,../../spdif/packet_decoder.vhdl=work,../../spdif/packet_encoder.vhdl=work,../../lib/convert_from_sign_magnitude.vhdl,../../lib/convert_to_sign_magnitude.vhdl
+ProjectVFiles=compressor_main.vhdl=work,compressor_pll.vhd=work,compressor_top.vhdl=work,../../app/compressor/compressor.vhdl=work,../../app/vu_meter/vu_meter.vhdl=work,../../lib/divider.vhdl=work,../../lib/fifo.vhdl=work,../../lib/led_scan.vhdl=work,../../spdif/channel_decoder.vhdl=work,../../spdif/channel_encoder.vhdl=work,../../spdif/clock_regenerator.vhdl=work,../../spdif/input_decoder.vhdl=work,../../spdif/output_encoder.vhdl=work,../../spdif/packet_decoder.vhdl=work,../../spdif/packet_encoder.vhdl=work,../../lib/convert_from_sign_magnitude.vhdl=work,../../lib/convert_to_sign_magnitude.vhdl=work,../../lib/subtractor.vhdl
 ProjectCFiles=syn_config.sdc
 CurImplementation=compressor_Implmnt
 Implementations=compressor_Implmnt

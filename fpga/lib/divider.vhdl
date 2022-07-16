@@ -96,7 +96,7 @@ begin
 
                         if subtract_overflow = '0' then
                             -- subtraction did not result in overflow
-                            top <= subtract_result;
+                            top (top_width - 1 downto 0) <= subtract_result (top_width - 1 downto 0);
                             result (0) <= '1';
                         else
                             -- subtraction resulted in overflow

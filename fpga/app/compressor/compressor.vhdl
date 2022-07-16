@@ -15,6 +15,7 @@ entity compressor is
              decay_rate             : Real := 1.0;          -- dB
              delay_threshold_level  : Real := 0.99;
              delay_size_log_2       : Natural := 9;
+             subtractor_slice_width : Natural := 8;
              debug                  : Boolean := false);
     port (
         data_in         : in std_logic_vector (15 downto 0);
@@ -219,7 +220,8 @@ begin
 
         div : entity divider
             generic map (top_width => top_width,
-                         bottom_width => peak_bits)
+                         bottom_width => peak_bits,
+                         subtractor_slice_width => subtractor_slice_width)
             port map (
                 top_value_in => top_value,
                 bottom_value_in => peak_level,
@@ -283,7 +285,8 @@ begin
 
         div : entity divider
             generic map (top_width => top_width,
-                         bottom_width => peak_bits)
+                         bottom_width => peak_bits,
+                         subtractor_slice_width => subtractor_slice_width)
             port map (
                 top_value_in => top_value,
                 bottom_value_in => bottom_value,
