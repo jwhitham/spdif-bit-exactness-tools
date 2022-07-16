@@ -6,8 +6,6 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-use std.textio.all;
-
 entity test_uart is
 end test_uart;
 
@@ -72,7 +70,6 @@ begin
     end process;
 
     process
-        variable l : line;
     begin
         done <= '0';
         wait until clock'event and clock = '1';
@@ -80,9 +77,6 @@ begin
         for i in 1 to 255 loop
             wait until strobe_out'event and strobe_out = '1';
             assert data_out = std_logic_vector (to_unsigned (i, 8));
-            write (l, String'("Receive "));
-            write (l, to_integer (unsigned (data_out)));
-            writeline (output, l);
             wait until strobe_out'event and strobe_out = '0';
         end loop;
         done <= '1';
