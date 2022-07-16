@@ -3,6 +3,7 @@ RFLAGS = --assert-level=note
 
 VHDL =  \
 		lib/divider.vhdl \
+		lib/subtractor.vhdl \
 		lib/fifo.vhdl \
 		lib/led_scan.vhdl \
 		lib/convert_from_sign_magnitude.vhdl \
@@ -29,6 +30,7 @@ TEST_VHDL = \
 		test/test_compressor2.vhdl \
 		test/test_compressor_main.vhdl \
 		test/test_divider.vhdl \
+		test/test_subtractor.vhdl \
 		test/test_sign_magnitude.vhdl \
 		test/test_fifo.vhdl \
 		test/test_spdif_meter_main.vhdl \
@@ -45,6 +47,7 @@ run_tests:
 	python app/matcher/make_match_rom.py
 	python test/make_test_bench.py
 	ghdl -a --work=work $(VHDL) $(TEST_VHDL)
+	ghdl -r test_subtractor $(RFLAGS)
 	ghdl -r test_uart $(RFLAGS)
 	ghdl -r test_compressor $(RFLAGS)
 	ghdl -r test_compressor2 $(RFLAGS)

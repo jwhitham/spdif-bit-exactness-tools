@@ -27,6 +27,7 @@ architecture structural of subtractor is
 
     constant number_of_slices : Natural := (value_width + slice_width - 1) / slice_width;
     constant expanded_width   : Natural := slice_width * number_of_slices;
+    constant unused_bits      : Natural := expanded_width - value_width;
 
     subtype t_expanded_value is unsigned (expanded_width - 1 downto 0);
     subtype t_slice is unsigned (slice_width + 1 downto 0);
@@ -53,11 +54,11 @@ begin
 
     top_slice (slice_width + 1) <= '0';
     top_slice (slice_width downto 1) <= top (slice_width - 1 downto 0);
-    top_slice (0) <= borrow when do_addition else '0';
+    top_slice (0) <= '1' when do_addition else '0';
 
     bottom_slice (slice_width + 1) <= '0';
     bottom_slice (slice_width downto 1) <= bottom (slice_width - 1 downto 0);
-    bottom_slice (0) <= '0' when do_addition else borrow;
+    bottom_slice (0) <= borrow;
 
     result_slice <= top_slice + bottom_slice when do_addition else top_slice - bottom_slice;
 
@@ -101,6 +102,12 @@ begin
                         -- Finished?
                         finish_out <= '1';
                         state <= IDLE;
+                        if do_addition and unused_bits /= 0 then
+                            -- Use correct bit for overflow output; we can't just use
+                            -- slice_width + 1 as with subtraction, since addition overflow
+                            -- only affects one bit.
+                            borrow <= result_slice (slice_width + 1 - unused_bits);
+                        end if;
                     else
                         steps_to_do <= steps_to_do - 1;
                         state <= SUBTRACT;

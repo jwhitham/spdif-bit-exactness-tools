@@ -23,7 +23,10 @@ architecture test of test_subtractor is
     constant test_table     : t_test_table :=
        ((4, 4, false), (4, 2, false), (4, 1, false), (4, 3, false),
         (6, 6, false), (5, 3, false), (1, 1, false), (2, 8, false),
-        (4, 4, true),  (4, 2, true),  (4, 1, true),  (2, 8, true));
+        (4, 4, true),  (4, 2, true),  (4, 1, true),  (4, 3, true),
+        (6, 6, true),  (5, 3, true),  (1, 1, true),  (2, 8, true),
+        (3, 4, true),  (3, 4, false), (3, 5, true),  (3, 5, false),
+        (3, 9, true),  (3, 9, false), (3, 8, true),  (3, 8, false));
     constant num_tests      : Natural := test_table'Length;
 
     signal clock            : std_logic := '0';
@@ -136,7 +139,11 @@ begin
                         write (l, String'(" got "));
                         write (l, to_integer (unsigned (result)));
                         if expect_overflow /= overflow then
-                            write (l, String'(" overflow flag error"));
+                            if expect_overflow = '1' then
+                                write (l, String'(" overflow flag should be set"));
+                            else
+                                write (l, String'(" overflow flag should be clear"));
+                            end if;
                         end if;
                         writeline (output, l);
                         assert False;
