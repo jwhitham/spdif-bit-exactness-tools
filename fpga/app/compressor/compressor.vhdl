@@ -459,6 +459,20 @@ begin
                     end if;
             end case;
 
+            case state is
+                when INIT | FILLING | START =>
+                    -- new audio input is expected
+                    null;
+                when others =>
+                    -- new audio input is too early! deadline miss!
+                    if strobe_in = '1' then
+                        write (l, String'("Deadline miss! New audio data arrived sooner than expected. State is "));
+                        write (l, String'(t_state'Image (state)));
+                        writeline (output, l);
+                    end if;
+                    assert strobe_in = '0';
+            end case;
+
             if sync_in = '0' then
                 state <= INIT;
             end if;
