@@ -9,7 +9,8 @@ use std.textio.all;
 
 entity subtractor is
     generic (value_width    : Natural;
-             slice_width    : Natural := 8);
+             slice_width    : Natural := 8;
+             do_addition    : Boolean := false);
     port (
         top_value_in        : in std_logic_vector (value_width - 1 downto 0);
         bottom_value_in     : in std_logic_vector (value_width - 1 downto 0);
@@ -52,18 +53,13 @@ begin
 
     top_slice (slice_width + 1) <= '0';
     top_slice (slice_width downto 1) <= top (slice_width - 1 downto 0);
-    top_slice (0) <= '0';
+    top_slice (0) <= borrow when do_addition else '0';
 
     bottom_slice (slice_width + 1) <= '0';
     bottom_slice (slice_width downto 1) <= bottom (slice_width - 1 downto 0);
-    bottom_slice (0) <= borrow;
+    bottom_slice (0) <= '0' when do_addition else borrow;
 
-    result_slice <= top_slice - bottom_slice;
-
-
-    --  000000
-    --  000010
-    -- =111110
+    result_slice <= top_slice + bottom_slice when do_addition else top_slice - bottom_slice;
 
     process (clock_in)
         variable l : line;

@@ -15,12 +15,15 @@ architecture test of test_subtractor is
     type t_test is record
         value_width : Natural;
         slice_width : Natural;
+        do_addition : Boolean;
     end record;
 
     type t_test_table is array (Positive range <>) of t_test;
 
     constant test_table     : t_test_table :=
-        ((4, 4), (4, 2), (4, 1), (4, 3), (5, 5), (5, 3), (1, 1), (2, 8));
+       ((4, 4, false), (4, 2, false), (4, 1, false), (4, 3, false),
+        (6, 6, false), (5, 3, false), (1, 1, false), (2, 8, false),
+        (4, 4, true),  (4, 2, true),  (4, 1, true),  (2, 8, true));
     constant num_tests      : Natural := test_table'Length;
 
     signal clock            : std_logic := '0';
@@ -44,6 +47,7 @@ begin
 
         constant value_width    : Natural := test_table (part).value_width;
         constant slice_width    : Natural := test_table (part).slice_width;
+        constant do_addition    : Boolean := test_table (part).do_addition;
         constant max_value      : Integer := (2 ** value_width) - 1;
 
         signal top_value        : std_logic_vector (value_width - 1 downto 0) := (others => '0');
@@ -56,7 +60,8 @@ begin
     begin
         sub : entity subtractor
             generic map (value_width => value_width,
-                         slice_width => slice_width)
+                         slice_width => slice_width,
+                         do_addition => do_addition)
             port map (
                 top_value_in => top_value,
                 bottom_value_in => bottom_value,
@@ -99,17 +104,32 @@ begin
                     while finish = '0' loop
                         wait until clock'event and clock = '1';
                     end loop;
-                    expect := top - bottom;
+
                     expect_overflow := '0';
-                    if expect < 0 then
-                        expect := expect + max_value + 1;
-                        expect_overflow := '1';
+                    if do_addition then
+                        expect := top + bottom;
+                        if expect > max_value then
+                            expect := expect - max_value - 1;
+                            expect_overflow := '1';
+                        end if;
+                    else
+                        expect := top - bottom;
+                        if expect < 0 then
+                            expect := expect + max_value + 1;
+                            expect_overflow := '1';
+                        end if;
                     end if;
                     if std_logic_vector (to_unsigned (expect, value_width)) /= result
                             or expect_overflow /= overflow then
-                        write (l, String'("Subtractor error. "));
-                        write (l, top);
-                        write (l, String'(" - "));
+                        if do_addition then
+                            write (l, String'("Adder error. "));
+                            write (l, top);
+                            write (l, String'(" + "));
+                        else
+                            write (l, String'("Subtractor error. "));
+                            write (l, top);
+                            write (l, String'(" - "));
+                        end if;
                         write (l, bottom);
                         write (l, String'(" should be "));
                         write (l, expect);
