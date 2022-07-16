@@ -13,6 +13,7 @@ entity uart is
         data_out      : out std_logic_vector (7 downto 0) := (others => '0');
         strobe_out    : out std_logic := '0';
         ready_out     : out std_logic := '0';
+        reset_in      : in std_logic;
         serial_in     : in std_logic;
         serial_out    : out std_logic := '0';
         clock_in      : in std_logic);
@@ -98,7 +99,12 @@ begin
 
                 ready_out <= '0';
 
-                if send_state = 0 then
+                if reset_in = '1' then
+                    -- send a break (hold serial out low)
+                    serial_out <= '0';
+                    send_state <= 0;
+                    
+                elsif send_state = 0 then
                     if strobe_in = '1' then
                         -- begin sending
                         data <= data_in;

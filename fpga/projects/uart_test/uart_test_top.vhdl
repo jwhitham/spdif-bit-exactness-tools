@@ -29,22 +29,30 @@ architecture structural of uart_test_top is
 
     constant clock_frequency : Real := 96.0e6;
 
+    subtype t_ad is std_logic_vector (11 downto 0);
+    type t_ad_array is array (Natural range 1 to 2) of t_ad;
+
+    subtype t_level is std_logic_vector (15 downto 0);
+    type t_level_array is array (Natural range 1 to 2) of t_level;
+
     signal data_from_pic    : std_logic_vector (7 downto 0);
     signal data_to_pic      : std_logic_vector (7 downto 0);
     signal strobe_from_pic  : std_logic;
     signal strobe_to_pic    : std_logic;
     signal clock            : std_logic := '0';
-    signal ad1, ad2         : std_logic_vector (15 downto 0);
-    signal lcols       : std_logic_vector (3 downto 0) := "0000";
-    signal lrows       : std_logic_vector (7 downto 0) := "00000000";
+    signal uart_reset       : std_logic := '0';
+    signal ad               : t_ad_array := (others => (others => '0'));
+    signal level            : t_level_array := (others => (others => '0'));
+    signal lcols            : std_logic_vector (3 downto 0) := "0000";
+    signal lrows            : std_logic_vector (7 downto 0) := "00000000";
 
-    type t_state is (RESET, WAIT_BETWEEN_REQUESTS,
+    type t_state is (REPEAT, WAIT_BETWEEN_REQUESTS,
                      SEND_REQUEST_1, WAIT_REPLY_1, WAIT_REPLY_2,
                      SEND_REQUEST_2, WAIT_REPLY_3, WAIT_REPLY_4,
-                     TIMEOUT_ERROR);
-    signal state            : t_state := RESET;
+                     TIMEOUT_ERROR, WAIT_RESET_UART);
+    signal state            : t_state := REPEAT;
 
-    constant max_countdown  : Natural := Natural (clock_frequency / 10.0);
+    constant max_countdown  : Natural := Natural (clock_frequency / 100.0);
     subtype t_countdown is Natural range 0 to max_countdown;
     signal countdown        : t_countdown := max_countdown;
 
@@ -69,10 +77,10 @@ begin
 
     leds : entity led_scan
         port map (clock => clock,
-                  leds1_in => ad1 (7 downto 0),
-                  leds2_in => ad1 (15 downto 8),
-                  leds3_in => ad2 (7 downto 0),
-                  leds4_in => ad2 (15 downto 8),
+                  leds1_in => level (1) (7 downto 0),
+                  leds2_in => level (1) (15 downto 8),
+                  leds3_in => level (2) (7 downto 0),
+                  leds4_in => level (2) (15 downto 8),
                   lrows_out => lrows,
                   lcols_out => lcols);
 
@@ -89,12 +97,28 @@ begin
     lcol3 <= lcols (2);
     lcol4 <= lcols (3);
 
+    convert_ad_to_level : for i in 1 to 2 generate
+    begin
+        process (clock)
+            subtype t_value is Integer range 0 to 15;
+            variable value : t_value := 0;
+        begin
+            if clock'event and clock = '1' then
+                level (i) <= (others => '0');
+                value := to_integer (unsigned (ad (i) (9 downto 6)));
+                level (i) (value) <= '1';
+            end if;
+        end process;
+    end generate convert_ad_to_level;
+
+
     process (clock)
     begin
         if clock'event and clock = '1' then
             strobe_to_pic <= '0';
+            uart_reset <= '0';
             case state is
-                when RESET =>
+                when REPEAT =>
                     countdown <= max_countdown;
                     state <= WAIT_BETWEEN_REQUESTS;
 
@@ -114,7 +138,7 @@ begin
                 when WAIT_REPLY_1 =>
                     if strobe_from_pic = '1' then
                         state <= WAIT_REPLY_2;
-                        ad1 (7 downto 0) <= data_from_pic;
+                        ad (1) (7 downto 0) <= data_from_pic;
                     elsif countdown = 0 then
                         state <= TIMEOUT_ERROR;
                     else
@@ -124,7 +148,7 @@ begin
                 when WAIT_REPLY_2 =>
                     if strobe_from_pic = '1' then
                         state <= SEND_REQUEST_2;
-                        ad1 (15 downto 8) <= data_from_pic;
+                        ad (1) (9 downto 8) <= data_from_pic (1 downto 0);
                     elsif countdown = 0 then
                         state <= TIMEOUT_ERROR;
                     else
@@ -140,7 +164,7 @@ begin
                 when WAIT_REPLY_3 =>
                     if strobe_from_pic = '1' then
                         state <= WAIT_REPLY_4;
-                        ad2 (7 downto 0) <= data_from_pic;
+                        ad (2) (7 downto 0) <= data_from_pic;
                     elsif countdown = 0 then
                         state <= TIMEOUT_ERROR;
                     else
@@ -149,8 +173,8 @@ begin
 
                 when WAIT_REPLY_4 =>
                     if strobe_from_pic = '1' then
-                        state <= RESET;
-                        ad2 (15 downto 8) <= data_from_pic;
+                        state <= REPEAT;
+                        ad (2) (9 downto 8) <= data_from_pic (1 downto 0);
                     elsif countdown = 0 then
                         state <= TIMEOUT_ERROR;
                     else
@@ -158,8 +182,16 @@ begin
                     end if;
 
                 when TIMEOUT_ERROR =>
-                    ad1 <= std_logic_vector (to_unsigned (16#5005#, 16));
-                    ad2 <= std_logic_vector (to_unsigned (16#a00a#, 16));
+                    countdown <= max_countdown;
+                    state <= WAIT_RESET_UART;
+
+                when WAIT_RESET_UART =>
+                    uart_reset <= '1';
+                    if countdown = 0 then
+                        state <= REPEAT;
+                    else
+                        countdown <= countdown - 1;
+                    end if;
 
             end case;
         end if;
@@ -172,6 +204,7 @@ begin
         port map (
             data_in => data_to_pic,
             strobe_in => strobe_to_pic,
+            reset_in => uart_reset,
             data_out => data_from_pic,
             strobe_out => strobe_from_pic,
             ready_out => open,

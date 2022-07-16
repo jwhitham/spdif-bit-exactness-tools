@@ -16,6 +16,7 @@ architecture structural of test_uart is
     signal data_out      : std_logic_vector (7 downto 0) := (others => '0');
     signal strobe_out    : std_logic := '0';
     signal ready_out     : std_logic := '0';
+    signal reset_in      : std_logic := '0';
     signal serial_in     : std_logic := '0';
     signal serial_out    : std_logic := '0';
     signal clock         : std_logic := '0';
@@ -33,6 +34,7 @@ begin
             data_out => data_out,
             strobe_out => strobe_out,
             ready_out => ready_out,
+            reset_in => reset_in,
             serial_in => serial_in,
             serial_out => serial_out,
             clock_in => clock);
@@ -53,7 +55,12 @@ begin
 
     process
     begin
+        reset_in <= '1';
         wait until clock'event and clock = '1';
+        wait until clock'event and clock = '1';
+        reset_in <= '0';
+        wait until clock'event and clock = '1';
+
         -- send bytes 1 to 255
         for i in 1 to 255 loop
             wait until clock'event and clock = '0';
