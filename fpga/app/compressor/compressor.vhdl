@@ -60,6 +60,9 @@ architecture structural of compressor is
     --      Wait for audio input:
     --        Store input in FIFO,
     --        Request output from FIFO,
+    --      For left channel only:
+    --        if peak level division is ready:
+    --          peak_level = previous peak level / peak divisor
     --  LOAD_FIFO_INPUT:
     --      abs_compare = absolute input
     --  CLAMP_TO_FIFO_INPUT:
@@ -72,21 +75,15 @@ architecture structural of compressor is
     --      abs_compare = peak_minimum
     --  CLAMP_TO_MINIMUM:
     --      peak_level = max (peak_level, abs_compare)
-    --  COMPRESS_LEFT / RIGHT:
+    --  COMPRESS:
     --      signal start of division: input / peak_level
-    --      for COMPRESS_LEFT only:
-    --          signal start of division: peak_level / peak_divisor
-    --  AWAIT_AUDIO_DIVISION_LEFT / RIGHT:
+    --      for left channel only:
+    --        signal start of division: peak_level / peak_divisor
+    --  AWAIT_AUDIO_DIVISION:
     --      Copy divider_finish to appropriate output strobe
     --      Copy divider output to audio output
     --      Flip channel flag
-    --      If divider_finish = '1':
-    --          AWAIT_AUDIO_DIVISION_LEFT: goto START
-    --          AWAIT_AUDIO_DIVISION_RIGHT: goto AWAIT_PEAK_LEVEL_DIVISION
-    --      else repeat
-    --  AWAIT_PEAK_LEVEL_DIVISION:
     --      If divider_finish = '1' goto START
-    --      Copy divider output to peak level
     --      
     type t_state is (INIT, FILLING, START,
                      LOAD_FIFO_INPUT,
@@ -95,11 +92,8 @@ architecture structural of compressor is
                      CLAMP_TO_FIFO_OUTPUT,
                      LOAD_MINIMUM,
                      CLAMP_TO_MINIMUM,
-                     COMPRESS_LEFT,
-                     AWAIT_AUDIO_DIVISION_LEFT,
-                     COMPRESS_RIGHT,
-                     AWAIT_AUDIO_DIVISION_RIGHT,
-                     AWAIT_PEAK_LEVEL_DIVISION);
+                     COMPRESS,
+                     AWAIT_AUDIO_DIVISION);
 
     -- Generate control values for the compressor
     -- The peak level is a fixed-point value. The width is peak_bits.
@@ -129,6 +123,7 @@ architecture structural of compressor is
     signal state                : t_state := INIT;
     signal peak_level           : t_peak_level := (others => '1');
     signal abs_audio_in         : t_audio_data := (others => '0');
+    signal peak_divider_done    : std_logic := '0';
 
     -- Global signals
     signal strobe_in            : std_logic := '0';
@@ -141,7 +136,6 @@ architecture structural of compressor is
     signal fifo_in              : t_fifo_data := (others => '0');
     signal reset                : std_logic := '0';
     signal audio_divider_finish : std_logic := '0';
-    signal peak_divider_finish  : std_logic := '0';
     signal peak_divider_result  : std_logic_vector (peak_bits - 1 downto 0) := (others => '0');
     signal abs_compare          : t_audio_data := (others => '0');
     signal abs_fifo_out         : t_audio_data := (others => '0');
@@ -221,12 +215,11 @@ begin
         -- Input to divider from FIFO
         top_value (top_width - 1 downto peak_high_bit) <= fifo_out (audio_bits - 2 downto 0);
         top_value (peak_high_bit - 1 downto 0) <= (others => '0');
-        divider_start <= '1' when state = COMPRESS_LEFT or state = COMPRESS_RIGHT else '0';
+        divider_start <= '1' when state = COMPRESS else '0';
 
         div : entity divider
             generic map (top_width => top_width,
-                         bottom_width => peak_bits,
-                         subtractor_slice_width => 16)
+                         bottom_width => peak_bits)
             port map (
                 top_value_in => top_value,
                 bottom_value_in => peak_level,
@@ -238,10 +231,10 @@ begin
 
         -- Output from divider
         assert data_out'Length = audio_bits;
-        left_strobe_out <= audio_divider_finish
-                                when (state = AWAIT_AUDIO_DIVISION_LEFT) else '0';
-        right_strobe_out <= audio_divider_finish
-                                when (state = AWAIT_AUDIO_DIVISION_RIGHT) else '0';
+        left_strobe_out <= audio_divider_finish and left_flag
+                                when (state = AWAIT_AUDIO_DIVISION) else '0';
+        right_strobe_out <= audio_divider_finish and not left_flag
+                                when (state = AWAIT_AUDIO_DIVISION) else '0';
 
         sm_out : entity convert_from_sign_magnitude
             generic map (value_width => audio_bits)
@@ -278,27 +271,50 @@ begin
         signal bottom_value     : std_logic_vector (peak_bits - 1 downto 0) := peak_divisor;
         signal divider_result   : std_logic_vector (top_width - 1 downto 0) := (others => '0');
         signal divider_start    : std_logic := '0';
+        signal divider_finish   : std_logic := '0';
+        signal divider_ready    : std_logic := '0';
     begin
         -- Input to divider from peak_level register
         top_value (top_width - 1 downto peak_bits - fixed_point) <= peak_level;
         top_value (peak_bits - fixed_point - 1 downto 0) <= (others => '0');
-        divider_start <= '1' when state = COMPRESS_RIGHT else '0';
+
+        -- peak division starts when the left channel enters audio division
+        divider_start <= '1' when (state = COMPRESS) and (left_flag = '1') else '0';
 
         div : entity divider
             generic map (top_width => top_width,
-                         bottom_width => peak_bits,
-                         subtractor_slice_width => 16)
+                         bottom_width => peak_bits)
             port map (
                 top_value_in => top_value,
                 bottom_value_in => bottom_value,
                 start_in => divider_start,
                 reset_in => reset,
-                finish_out => peak_divider_finish,
+                finish_out => divider_finish,
                 result_out => divider_result,
+                ready_out => divider_ready,
                 clock_in => clock_in);
 
         -- Output from divider
         peak_divider_result <= divider_result (peak_bits - 1 downto 0);
+
+        -- peak_divisor_done indicates that divider_result is valid
+        process (clock_in)
+            variable l : line;
+        begin
+            if reset = '1' then
+                peak_divider_done <= '0';
+            elsif divider_start = '1' then
+                if divider_ready = '0' then
+                    write (l, String'("Deadline miss! Peak divider is not ready for new data."));
+                    writeline (output, l);
+                    assert divider_ready = '1';
+                else
+                    peak_divider_done <= '0';
+                end if;
+            elsif divider_finish = '1' then
+                peak_divider_done <= '1';
+            end if;
+        end process;
 
         -- Debug
         process (clock_in)
@@ -312,7 +328,7 @@ begin
                     write_big_number (l, bottom_value);
                     writeline (output, l);
                 end if;
-                if peak_divider_finish = '1' and debug then
+                if divider_finish = '1' and debug then
                     write (l, String'("result of peak division: "));
                     write_big_number (l, divider_result);
                     writeline (output, l);
@@ -362,6 +378,13 @@ begin
                     peak_level (peak_audio_low - 1 downto 0) <= (others => '1');
                     peak_level (peak_audio_high downto peak_audio_low) <= abs_compare;
 
+                when START =>
+                    -- Before processing the left channel, set peak_level to new divider output if available
+                    -- Peak decays towards minimum value (maximum amplification)
+                    if minimum_flag = '0' and left_flag = '1' and peak_divider_done = '1' then
+                        peak_level <= peak_divider_result;
+                    end if;
+
                 when CLAMP_TO_FIFO_INPUT | CLAMP_TO_FIFO_OUTPUT | CLAMP_TO_MINIMUM =>
                     -- Apply comparison and set
                     if (unsigned (peak_level (peak_audio_high downto peak_audio_low)) <= unsigned (abs_compare)) then
@@ -379,12 +402,6 @@ begin
                             write_big_number (l, peak_level);
                             writeline (output, l);
                         end if;
-                    end if;
-                when AWAIT_PEAK_LEVEL_DIVISION =>
-                    -- Set to new divider output
-                    -- Peak decays towards minimum value (maximum amplification)
-                    if minimum_flag = '0' and peak_divider_finish = '1' then
-                        peak_level <= peak_divider_result;
                     end if;
                 when others =>
                     null;
@@ -412,7 +429,8 @@ begin
                         state <= START;
                     end if;
                 when START =>
-                    -- (wait for audio input)
+                    -- Wait for audio input
+                    -- For left channel only, set peak level to new peak level if ready
                     if strobe_in = '1' then
                         state <= LOAD_FIFO_INPUT;
                         if debug then
@@ -433,49 +451,21 @@ begin
                 when LOAD_MINIMUM =>
                     state <= CLAMP_TO_MINIMUM;
                 when CLAMP_TO_MINIMUM =>
-                    if left_flag = '1' then
-                        state <= COMPRESS_LEFT;
-                    else
-                        state <= COMPRESS_RIGHT;
-                    end if;
-                when COMPRESS_LEFT =>
-                    -- start division: absolute FIFO output / peak level (left channel)
+                    state <= COMPRESS;
+                when COMPRESS =>
+                    -- start division: absolute FIFO output / peak level
+                    -- For left channel only, start division: peak level / peak level divisor
                     if debug then
                         write (l, String'("peak level clamped to minimum: "));
                         write_big_number (l, peak_level);
                         writeline (output, l);
                     end if;
-                    state <= AWAIT_AUDIO_DIVISION_LEFT;
-                when AWAIT_AUDIO_DIVISION_LEFT =>
-                    -- When division is complete, flip the channel flag, wait for next input
+                    state <= AWAIT_AUDIO_DIVISION;
+                when AWAIT_AUDIO_DIVISION =>
+                    -- When division is complete, flip the channel flag
+                    -- Wait for the next audio input
                     if audio_divider_finish = '1' then
-                        left_flag <= '0';
-                        state <= START;
-                    end if;
-                when COMPRESS_RIGHT =>
-                    -- start division: absolute FIFO output / peak level (right channel)
-                    if debug then
-                        write (l, String'("peak level clamped to minimum: "));
-                        write_big_number (l, peak_level);
-                        writeline (output, l);
-                    end if;
-                    state <= AWAIT_AUDIO_DIVISION_RIGHT;
-                when AWAIT_AUDIO_DIVISION_RIGHT =>
-                    -- When division is complete, flip the channel flag, wait for peak level division
-                    if audio_divider_finish = '1' then
-                        left_flag <= '1';
-                        state <= AWAIT_PEAK_LEVEL_DIVISION;
-                    end if;
-                    -- The peak level division should always be slower than audio division as the register
-                    -- is wider - however, we will check!
-                    if peak_divider_finish = '1' then
-                        write (l, String'("Too soon! Peak level division was faster than audio division?"));
-                        writeline (output, l);
-                    end if;
-                    assert peak_divider_finish = '0';
-                when AWAIT_PEAK_LEVEL_DIVISION =>
-                    -- When division is complete, wait for the next audio input
-                    if peak_divider_finish = '1' then
+                        left_flag <= not left_flag;
                         state <= START;
                     end if;
             end case;
@@ -490,8 +480,8 @@ begin
                         write (l, String'("Deadline miss! New audio data arrived sooner than expected. State is "));
                         write (l, String'(t_state'Image (state)));
                         writeline (output, l);
+                        assert strobe_in = '0';
                     end if;
-                    assert strobe_in = '0';
             end case;
 
             if sync_in = '0' then

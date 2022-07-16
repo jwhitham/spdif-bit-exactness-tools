@@ -22,6 +22,7 @@ entity divider is
         start_in            : in std_logic;
         reset_in            : in std_logic;
         finish_out          : out std_logic := '0';
+        ready_out           : out std_logic := '0';
         result_out          : out std_logic_vector (top_width - 1 downto 0) := (others => '0');
         clock_in            : in std_logic
     );
@@ -50,6 +51,7 @@ begin
     top (top'Left downto top_width) <= (others => '0');
     result_out <= result;
     subtract_start <= '1' when state = START_SUBTRACT else '0';
+    ready_out <= '1' when state = IDLE else '0';
 
 
     sub : entity subtractor

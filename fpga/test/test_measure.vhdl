@@ -25,7 +25,7 @@ architecture test of test_measure is
 
     constant sample_rate            : Natural := 1000;
     constant sample_period          : Time := 1000 ms / sample_rate;
-    constant clock_period           : Time := sample_period / 10000;
+    constant clock_period           : Time := sample_period / 1000;
     constant fpga_freq_mhz          : Natural := 96;
 
     signal data_out         : t_data := (others => '0');
@@ -53,7 +53,7 @@ begin
 
     process
     begin
-        -- 10MHz clock (one clock every 100ns)
+        -- 1MHz clock (one clock every 1000ns)
         while done /= '1' loop
             clock <= '1';
             wait for (clock_period / 2.0);
