@@ -16,9 +16,9 @@ entity uart_test_top is
         rx_from_pic         : in std_logic;
 
         rotary_common_p53   : out std_logic := '0';
-        rotary_024_p54      : in std_logic;
-        rotary_01_p44       : in std_logic;
-        rotary_23_p43       : in std_logic;
+        rotary_024_p54      : inout std_logic;
+        rotary_01_p44       : inout std_logic;
+        rotary_23_p43       : inout std_logic;
 
         adjust_1a_p52       : out std_logic := '0';
         adjust_1b_p50       : out std_logic := '0';
@@ -79,11 +79,11 @@ architecture structural of uart_test_top is
     signal countdown        : t_countdown := max_countdown;
 
     component SB_IO is
-        generic (pin_type : std_logic_vector (5 downto 0);
-                 pullup : std_logic);
+        generic (PIN_TYPE : std_logic_vector (5 downto 0);
+                 PULLUP : std_logic);
         port (
-            package_pin : inout std_logic;
-            d_in_0 : out std_logic);
+            PACKAGE_PIN : inout std_logic;
+            D_IN_0 : out std_logic);
     end component;
 
 begin
@@ -181,13 +181,14 @@ begin
         signal rotary_024       : std_logic := '0';
         signal rotary_01        : std_logic := '0';
         signal rotary_23        : std_logic := '0';
-
     begin
         -- Rotary switch has a common output from the FPGA
         -- which is always LOW. And three inputs with pullups.
         rotary_common_p53 <= '0';
 
-        -- See https://www.latticesemi.com/~/media/LatticeSemi/Documents/TechnicalBriefs/SBTICETechnologyLibrary201504.pdf page 87..90
+        -- Here is one way to configure input pins with a pullup.
+        -- See https://www.latticesemi.com/~/media/LatticeSemi/Documents/
+        --     TechnicalBriefs/SBTICETechnologyLibrary201504.pdf page 87..90
         -- pin_type = "000001": simple PIN_INPUT
         rotary_024_buffer : SB_IO
             generic map (pin_type => "000001", pullup => '1')
@@ -216,7 +217,7 @@ begin
                 rotary_23 => rotary_23,
                 strobe_out => open,
                 mode_out => rot_mode);
-        end block rotary;
+    end block rotary;
 
 end structural;
 
