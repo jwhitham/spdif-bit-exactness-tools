@@ -61,22 +61,12 @@ architecture structural of uart_test_top is
     signal adc_ready        : std_logic := '0';
     signal adc_error        : std_logic := '0';
     signal adc_enable_poll  : std_logic := '0';
-    signal rot_mode         : std_logic_vector (2 downto 0) := (others => '0');
+    signal rot_value        : std_logic_vector (2 downto 0) := (others => '0');
 
     signal ad               : t_ad_array := (others => (others => '0'));
     signal level            : t_level_array := (others => (others => '0'));
     signal lcols            : std_logic_vector (3 downto 0) := "0000";
     signal lrows            : std_logic_vector (7 downto 0) := "00000000";
-
-    type t_state is (REPEAT, WAIT_BETWEEN_REQUESTS,
-                     SEND_REQUEST_1, WAIT_REPLY_1, WAIT_REPLY_2,
-                     SEND_REQUEST_2, WAIT_REPLY_3, WAIT_REPLY_4,
-                     TIMEOUT_ERROR, WAIT_RESET_UART);
-    signal state            : t_state := REPEAT;
-
-    constant max_countdown  : Natural := Natural (clock_frequency / 100.0);
-    subtype t_countdown is Natural range 0 to max_countdown;
-    signal countdown        : t_countdown := max_countdown;
 
     component SB_IO is
         generic (PIN_TYPE : std_logic_vector (5 downto 0);
@@ -150,13 +140,13 @@ begin
     level (4) (0) <= adc_ready;
     level (4) (1) <= adc_error;
 
-    level (3) (0) <= rot_mode (0);
-    level (3) (1) <= rot_mode (1);
-    level (3) (2) <= rot_mode (2);
+    level (3) (0) <= rot_value (0);
+    level (3) (1) <= rot_value (1);
+    level (3) (2) <= rot_value (2);
 
-    level (3) (4) <= rot_mode (0);
-    level (3) (5) <= rot_mode (1);
-    level (3) (6) <= rot_mode (2);
+    level (3) (4) <= rot_value (0);
+    level (3) (5) <= rot_value (1);
+    level (3) (6) <= rot_value (2);
 
     adc_enable_poll <= not button_c11;
 
@@ -215,8 +205,10 @@ begin
                 rotary_024 => rotary_024,
                 rotary_01 => rotary_01,
                 rotary_23 => rotary_23,
-                strobe_out => open,
-                mode_out => rot_mode);
+                left_button => button_a11,
+                right_button => button_a5,
+                strobe_out => level (3) (3),
+                value_out => rot_value);
     end block rotary;
 
 end structural;

@@ -188,6 +188,30 @@ decoder. A more efficient design is possible by combining the packet and output 
 properly decoupling them forced me to add a FIFO buffer. But I needed a generic FIFO buffer
 component anyway for the compressor, so I thought I might as well create one at the same time.
 
+Clock regenerator
+-----------------
+
+I needed to generate a clock signal to drive the S/PDIF output. This clock must
+tick at an exact frequency of sample\_rate * 128, because sending the
+data for each stereo channel requires up to 64 high/low transitions. I intended to use
+one of the ICE40's PLLs for this purpose, but I found that I could not configure the
+frequency I required to match the 44.1kHz CD sample rate (or any multiple of it).
+
+I decided instead to generate the output clock signal from the input, by measuring the
+number of FPGA clock cycles X needed to send Y packets. Then I can determine the number
+of clock cycles between each output transition, which is X/64Y. This is not likely to
+be an integer, so I represent it as a fixed point value. On each FPGA clock cycle,
+I add a fixed-point value of 1.0 to an accumulator, and when it becomes larger than X/64Y,
+I subtract X/64Y from the value and generate an S/PDIF clock pulse. This accounts for the
+inexact ratio between the S/PDIF clock frequency and the FPGA clock frequency.
+[Here is the code](spdif/clock_regenerator.vhdl). 
+
+The initial version of this code did not attempt to synchronise to the beginning of
+each packet, but this turned out to be a bad idea as the clocks drifted, and eventually
+any FIFO buffer between input and output would either overflow or drain. I decided to
+synchronise the output to the input in order to prevent this. I also restructured
+the arithmetic to improve the clock frequency.
+
 Experiments
 -----------
 
