@@ -6,6 +6,8 @@ add_file -vhdl -lib work "uart_test_top.vhdl"
 add_file -vhdl -lib work "../../lib/uart.vhdl" 
 add_file -vhdl -lib work "compressor_pll.vhd" 
 add_file -vhdl -lib work "../../lib/led_scan.vhdl" 
+add_file -vhdl -lib work "../../lib/icefun_adc_driver.vhdl" 
+add_file -vhdl -lib work "../../lib/rotary_switch_driver.vhdl" 
 #implementation: "uart_test_Implmnt"
 impl -add uart_test_Implmnt -type fpga
 

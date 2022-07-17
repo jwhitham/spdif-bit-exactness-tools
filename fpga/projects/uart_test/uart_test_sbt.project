@@ -4,7 +4,7 @@ Version=Lattice Semiconductor Corporation iCEcube - Release: 2020.12.27943 - Bui
 ProjectName=uart_test
 Vendor=SiliconBlue
 Synthesis=synplify
-ProjectVFiles=uart_test_top.vhdl=work,../../lib/uart.vhdl=work,compressor_pll.vhd=work,../../lib/led_scan.vhdl=work
+ProjectVFiles=uart_test_top.vhdl=work,../../lib/uart.vhdl=work,compressor_pll.vhd=work,../../lib/led_scan.vhdl=work,../../lib/icefun_adc_driver.vhdl,../../lib/rotary_switch_driver.vhdl
 ProjectCFiles=
 CurImplementation=uart_test_Implmnt
 Implementations=uart_test_Implmnt
