@@ -10,12 +10,12 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity rotary_switch_driver is
-    generic (clock_frequency : Real);
     port (
         clock_in            : in std_logic;
-        rotary_024          : in std_logic;
-        rotary_01           : in std_logic;
-        rotary_23           : in std_logic;
+        pulse_100hz_in      : in std_logic;
+        rotary_024          : in std_logic; -- grey wire
+        rotary_01           : in std_logic; -- purple wire
+        rotary_23           : in std_logic; -- blue wire
         left_button         : in std_logic;
         right_button        : in std_logic;
         strobe_out          : out std_logic := '0';
@@ -24,8 +24,8 @@ end rotary_switch_driver;
 
 architecture structural of rotary_switch_driver is
 
-    -- Signals must be stable for at least 10ms to be recognised as valid
-    constant max_countdown  : Natural := Natural (clock_frequency / 100.0);
+    -- Signals must be stable for 10 - 20ms to be recognised as valid
+    constant max_countdown  : Natural := 2;
     subtype t_countdown is Natural range 0 to max_countdown;
     subtype t_rotary is std_logic_vector (2 downto 0);
     subtype t_button is std_logic_vector (1 downto 0);
@@ -87,24 +87,22 @@ begin
                 old_rotary_value <= new_rotary_value;
 
             elsif countdown /= 0 then
-                countdown <= countdown - 1;
+                if pulse_100hz_in = '1' then
+                    countdown <= countdown - 1;
+                end if;
 
             else
                 if updated_buttons = '1' then
                     if new_button_value (1) = '1' then
                         -- left button: decrement
                         strobe_out <= '1';
-                        if output_value = min_value then
-                            output_value <= max_value;
-                        else
+                        if output_value /= min_value then
                             output_value <= std_logic_vector (unsigned (output_value) - 1);
                         end if;
                     elsif new_button_value (0) = '1' then
                         -- right button: increment
                         strobe_out <= '1';
-                        if output_value = max_value then
-                            output_value <= min_value;
-                        else
+                        if output_value /= max_value then
                             output_value <= std_logic_vector (unsigned (output_value) + 1);
                         end if;
                     end if;

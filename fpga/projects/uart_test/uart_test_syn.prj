@@ -8,6 +8,8 @@ add_file -vhdl -lib work "compressor_pll.vhd"
 add_file -vhdl -lib work "../../lib/led_scan.vhdl" 
 add_file -vhdl -lib work "../../lib/icefun_adc_driver.vhdl" 
 add_file -vhdl -lib work "../../lib/rotary_switch_driver.vhdl" 
+add_file -vhdl -lib work "../../lib/pulse_gen.vhdl" 
+add_file -vhdl -lib work "../../app/mode_display/mode_display.vhdl" 
 #implementation: "uart_test_Implmnt"
 impl -add uart_test_Implmnt -type fpga
 

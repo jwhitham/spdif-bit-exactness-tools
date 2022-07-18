@@ -10,13 +10,14 @@ entity icefun_adc_driver is
     generic (clock_frequency : Real);
     port (
         clock_in            : in std_logic;
+        pulse_100hz_in      : in std_logic;
         tx_to_pic           : out std_logic := '0';
         rx_from_pic         : in std_logic;
         enable_poll_in      : in std_logic;
         ready_out           : out std_logic := '0';
         error_out           : out std_logic := '0';
-        adjust_1_out        : out std_logic_vector (11 downto 0) := (others => '0');
-        adjust_2_out        : out std_logic_vector (11 downto 0) := (others => '0');
+        adjust_1_out        : out std_logic_vector (9 downto 0) := (others => '0');
+        adjust_2_out        : out std_logic_vector (9 downto 0) := (others => '0');
         adjust_1a_p52       : out std_logic := '0';
         adjust_1b_p50       : out std_logic := '0';
         adjust_2a_p47       : out std_logic := '0';
@@ -30,18 +31,18 @@ architecture structural of icefun_adc_driver is
                      SEND_REQUEST_2, WAIT_REPLY_3, WAIT_REPLY_4,
                      TIMEOUT_ERROR, WAIT_START);
 
-    -- Countdown implements a delay of 10ms
+    -- Countdown implements a delay of ~20ms
     -- This is the timeout for receiving data from the PIC and also
     -- the initial delay for the first request.
-    constant max_countdown  : Natural := Natural (clock_frequency / 100.0);
+    constant max_countdown  : Natural := 2;
 
     subtype t_countdown is Natural range 0 to max_countdown;
 
     -- Registers
     signal countdown        : t_countdown := max_countdown;
     signal state            : t_state := RESET;
-    signal adjust_1_tmp     : std_logic_vector (11 downto 0) := (others => '0');
-    signal adjust_2_tmp     : std_logic_vector (11 downto 0) := (others => '0');
+    signal adjust_1_tmp     : std_logic_vector (9 downto 0) := (others => '0');
+    signal adjust_2_tmp     : std_logic_vector (9 downto 0) := (others => '0');
 
     -- Signals
     signal data_from_pic    : std_logic_vector (7 downto 0);
@@ -66,6 +67,9 @@ begin
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
+            if pulse_100hz_in = '1' and countdown /= 0 then
+                countdown <= countdown - 1;
+            end if;
             case state is
                 when RESET =>
                     -- Initial state.
@@ -76,8 +80,6 @@ begin
                     -- Don't generate the first request immediately. Wait for the timeout to expire.
                     if countdown = 0 then
                         state <= SEND_REQUEST_1;
-                    else
-                        countdown <= countdown - 1;
                     end if;
 
                 when SEND_REQUEST_1 =>
@@ -92,8 +94,6 @@ begin
                         adjust_1_tmp (7 downto 0) <= data_from_pic;
                     elsif countdown = 0 then
                         state <= TIMEOUT_ERROR;
-                    else
-                        countdown <= countdown - 1;
                     end if;
 
                 when WAIT_REPLY_2 =>
@@ -103,8 +103,6 @@ begin
                         adjust_1_tmp (9 downto 8) <= data_from_pic (1 downto 0);
                     elsif countdown = 0 then
                         state <= TIMEOUT_ERROR;
-                    else
-                        countdown <= countdown - 1;
                     end if;
 
                 when SEND_REQUEST_2 =>
@@ -119,8 +117,6 @@ begin
                         adjust_2_tmp (7 downto 0) <= data_from_pic;
                     elsif countdown = 0 then
                         state <= TIMEOUT_ERROR;
-                    else
-                        countdown <= countdown - 1;
                     end if;
 
                 when WAIT_REPLY_4 =>
@@ -130,8 +126,6 @@ begin
                         adjust_2_tmp (9 downto 8) <= data_from_pic (1 downto 0);
                     elsif countdown = 0 then
                         state <= TIMEOUT_ERROR;
-                    else
-                        countdown <= countdown - 1;
                     end if;
 
                 when TIMEOUT_ERROR =>
@@ -140,8 +134,6 @@ begin
                         if enable_poll_in = '1' then
                             state <= RESET;
                         end if;
-                    else
-                        countdown <= countdown - 1;
                     end if;
 
                 when WAIT_START =>
@@ -150,8 +142,6 @@ begin
                         if enable_poll_in = '1' then
                             state <= SEND_REQUEST_1;
                         end if;
-                    else
-                        countdown <= countdown - 1;
                     end if;
             end case;
         end if;

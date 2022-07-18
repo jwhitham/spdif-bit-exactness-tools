@@ -21,26 +21,16 @@ end uart;
 
 architecture structural of uart is
 
-    constant baud_divisor_max  : Natural :=
-            Natural (clock_frequency / (baud_rate * 16.0)) - 1;
-    subtype t_baud_divisor is Natural range 0 to baud_divisor_max;
-
-    signal baud_divisor       : t_baud_divisor := 0;
     signal baud_div_16        : std_logic := '0';
 
 begin
-    generate_clock_enable : process (clock_in)
-    begin
-        if clock_in'event and clock_in = '1' then
-            baud_div_16 <= '0';
-            if baud_divisor = baud_divisor_max then
-                baud_divisor <= 0;
-                baud_div_16 <= '1';
-            else
-                baud_divisor <= baud_divisor + 1;
-            end if;
-        end if;
-    end process generate_clock_enable;
+    generate_clock_enable : entity pulse_gen
+        generic map (
+            clock_frequency => clock_frequency,
+            pulse_frequency => baud_rate * 16.0)
+        port map (
+            pulse_out => baud_div_16,
+            clock_in => clock_in);
 
     serial_input : block
         signal serial_in_reg : std_logic := '0';

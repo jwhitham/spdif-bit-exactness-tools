@@ -15,10 +15,10 @@ entity uart_test_top is
         tx_to_pic           : out std_logic := '0';
         rx_from_pic         : in std_logic;
 
-        rotary_common_p53   : out std_logic := '0';
-        rotary_024_p54      : inout std_logic;
-        rotary_01_p44       : inout std_logic;
-        rotary_23_p43       : inout std_logic;
+        rotary_common_p53   : out std_logic := '0'; -- green wire E12
+        rotary_024_p54      : inout std_logic; -- grey wire D14
+        rotary_01_p44       : inout std_logic; -- purple wire K14
+        rotary_23_p43       : inout std_logic; -- blue wire H11
 
         adjust_1a_p52       : out std_logic := '0';
         adjust_1b_p50       : out std_logic := '0';
@@ -51,22 +51,31 @@ architecture structural of uart_test_top is
 
     constant clock_frequency : Real := 96.0e6;
 
-    subtype t_ad is std_logic_vector (11 downto 0);
+    subtype t_ad is std_logic_vector (9 downto 0);
     type t_ad_array is array (Natural range 1 to 2) of t_ad;
-
-    subtype t_level is std_logic_vector (7 downto 0);
-    type t_level_array is array (Natural range 1 to 4) of t_level;
 
     signal clock            : std_logic := '0';
     signal adc_ready        : std_logic := '0';
     signal adc_error        : std_logic := '0';
     signal adc_enable_poll  : std_logic := '0';
+    signal pulse_100hz      : std_logic := '0';
+    signal rot_strobe       : std_logic := '0';
     signal rot_value        : std_logic_vector (2 downto 0) := (others => '0');
 
     signal ad               : t_ad_array := (others => (others => '0'));
-    signal level            : t_level_array := (others => (others => '0'));
-    signal lcols            : std_logic_vector (3 downto 0) := "0000";
-    signal lrows            : std_logic_vector (7 downto 0) := "00000000";
+    signal lcols            : std_logic_vector (3 downto 0) := (others => '0');
+    signal lrows            : std_logic_vector (7 downto 0) := (others => '0');
+
+    signal raw_meter_left   : std_logic_vector (7 downto 0) := (others => '0');
+    signal raw_meter_right  : std_logic_vector (7 downto 0) := (others => '0');
+
+    signal cmp_meter_left   : std_logic_vector (7 downto 0) := (others => '0');
+    signal cmp_meter_right  : std_logic_vector (7 downto 0) := (others => '0');
+
+    signal sample_rate      : std_logic_vector (15 downto 0) := (others => '0');
+    signal matcher_sync     : std_logic_vector (1 downto 0) := (others => '0');
+    signal single_time      : std_logic_vector (7 downto 0) := (others => '0');
+    signal sync             : std_logic;
 
     component SB_IO is
         generic (PIN_TYPE : std_logic_vector (5 downto 0);
@@ -84,76 +93,65 @@ begin
               PLLOUTCORE => open,
               PLLOUTGLOBAL => clock);
 
+    led1 <= lrows (7);
+    led2 <= lrows (6);
+    led3 <= lrows (5);
+    led4 <= lrows (4);
+    led5 <= lrows (3);
+    led6 <= lrows (2);
+    led7 <= lrows (1);
+    led8 <= lrows (0);
+    lcol1 <= lcols (3);
+    lcol2 <= lcols (2);
+    lcol3 <= lcols (1);
+    lcol4 <= lcols (0);
+
     spdif_tx_p55 <= spdif_rx_p42;
 
-    -- iceFUN has a PIC with A/D converters, accessed via serial connection at 250kbps
-    -- sending \xA1 gave me the input to pin 26 labelled X2
-    -- sending \xA2 gave me the input to pin 25 labelled X1
-    -- sending \xA3 gave me the input to pin 32 labelled X3
-    -- sending \xA4 gave me the input to pin 33 labelled X4
-    -- samples arrive around 150 microseconds after being requested though the time is not exact
-    -- and varies by 20/30 microseconds in both directions; the delay in these UARTs increases
-    -- the time - expect a minimum sample period of about 250 microseconds here.
-    -- The least significant byte seemed to be sent first (manual says otherwise).
-    -- Values were 10 bit.
+    pulse_100hz_gen : entity pulse_gen
+        generic map (
+            clock_frequency => clock_frequency,
+            pulse_frequency => 100.0)
+        port map (
+            clock_in => clock,
+            pulse_out => pulse_100hz);
 
-    leds : entity led_scan
-        port map (clock => clock,
-                  leds1_in => level (1),
-                  leds2_in => level (2),
-                  leds3_in => level (3),
-                  leds4_in => level (4),
-                  lrows_out => lrows,
-                  lcols_out => lcols);
+    display : entity mode_display
+        port map (
+            clock_in => clock,
+            pulse_100hz_in => pulse_100hz,
 
-    led1 <= lrows (0);
-    led2 <= lrows (1);
-    led3 <= lrows (2);
-    led4 <= lrows (3);
-    led5 <= lrows (4);
-    led6 <= lrows (5);
-    led7 <= lrows (6);
-    led8 <= lrows (7);
-    lcol1 <= lcols (0);
-    lcol2 <= lcols (1);
-    lcol3 <= lcols (2);
-    lcol4 <= lcols (3);
+            -- mode select
+            rot_strobe_in => rot_strobe,
+            rot_value_in => rot_value,
 
-    convert_ad_to_level : for i in 1 to 2 generate
-    begin
-        process (clock)
-            subtype t_value is Integer range 0 to 15;
-            variable value : t_value := 0;
-        begin
-            if clock'event and clock = '1' then
-                if adc_ready = '1' then
-                    level (i) <= (others => '0');
-                    value := to_integer (unsigned (ad (i) (9 downto 7)));
-                    level (i) (value) <= '1';
-                end if;
-            end if;
-        end process;
-    end generate convert_ad_to_level;
+            -- shown in all modes
+            raw_meter_left_in => raw_meter_left,
+            raw_meter_right_in => raw_meter_right,
 
-    level (4) (7) <= '1';
-    level (4) (6) <= '1';
-    level (4) (0) <= adc_ready;
-    level (4) (1) <= adc_error;
+            -- shown in compressor modes
+            cmp_meter_left_in => cmp_meter_left,
+            cmp_meter_right_in => cmp_meter_right,
 
-    level (3) (0) <= rot_value (0);
-    level (3) (1) <= rot_value (1);
-    level (3) (2) <= rot_value (2);
+            -- shown in passthrough modes
+            sample_rate_in => sample_rate,
+            matcher_sync_in => matcher_sync,
+            single_time_in => single_time,
+            sync_in => sync,
 
-    level (3) (4) <= rot_value (0);
-    level (3) (5) <= rot_value (1);
-    level (3) (6) <= rot_value (2);
+            -- LED outputs
+            lcols_out => lcols,
+            lrows_out => lrows);
 
+    sync <= '1';
+    single_time <= ad (1) (9 downto 2);
     adc_enable_poll <= not button_c11;
 
     adc : entity icefun_adc_driver
         generic map (clock_frequency => clock_frequency)
         port map (
             clock_in => clock,
+            pulse_100hz_in => pulse_100hz,
             tx_to_pic => tx_to_pic,
             rx_from_pic => rx_from_pic,
             enable_poll_in => adc_enable_poll,
@@ -199,15 +197,15 @@ begin
                 d_in_0 => rotary_23);
 
         rot : entity rotary_switch_driver
-            generic map (clock_frequency => clock_frequency)
             port map (
                 clock_in => clock,
+                pulse_100hz_in => pulse_100hz,
                 rotary_024 => rotary_024,
                 rotary_01 => rotary_01,
                 rotary_23 => rotary_23,
                 left_button => button_a11,
                 right_button => button_a5,
-                strobe_out => level (3) (3),
+                strobe_out => rot_strobe,
                 value_out => rot_value);
     end block rotary;
 
