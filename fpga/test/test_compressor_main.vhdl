@@ -16,6 +16,8 @@ architecture structural of test_compressor_main is
     signal clock           : std_logic := '0';
     signal raw_data        : std_logic := '0';
     signal done            : std_logic := '0';
+    constant one           : std_logic := '1';
+    constant zero          : std_logic := '0';
     signal lcols           : std_logic_vector (3 downto 0) := (others => '0');
     signal lrows           : std_logic_vector (7 downto 0) := (others => '0');
 
@@ -26,11 +28,17 @@ begin
     t : entity compressor_main
         port map (
             clock_in => clock,
-            raw_data_in => raw_data,
-            cmp_data_out => open,
-            clock_out => open,
+            spdif_rx_in => raw_data,
             lcols_out => lcols,
-            lrows_out => lrows);
+            lrows_out => lrows,
+            rx_from_pic_in => zero,
+            rotary_024_in => one,
+            rotary_01_in => one,
+            rotary_23_in => one,
+            button_a11_in => one,
+            button_c11_in => one,
+            button_c6_in => one,
+            button_a5_in => one);
 
     printer : process
         variable l : line;

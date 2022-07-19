@@ -1,4 +1,9 @@
-# For iceFUN board
+# Compressor draft 2 pinouts
+
+set_io clk12MHz P7
+
+set_io tx_to_pic P4
+set_io rx_from_pic P5
 
 set_io led1 C10
 set_io led2 A10
@@ -12,7 +17,22 @@ set_io lcol1 A12
 set_io lcol2 D10
 set_io lcol3 A6
 set_io lcol4 C5
-set_io clk12MHz P7
-set_io raw_data_in B14
-set_io cmp_data_out H1
-set_io clock_out J1
+
+set_io rotary_common_p53 E12
+set_io rotary_024_p54 D14
+set_io rotary_01_p44 K14
+set_io rotary_23_p43 H11
+
+set_io adjust_1a_p52 E14
+set_io adjust_1b_p50 F14
+set_io adjust_2a_p47 H12
+set_io adjust_2b_p45 K12
+
+set_io spdif_tx_p55 D12
+set_io spdif_rx_p42 L12
+
+set_io button_a11 A11
+set_io button_c11 C11
+set_io button_c6 C6
+set_io button_a5 A5
+

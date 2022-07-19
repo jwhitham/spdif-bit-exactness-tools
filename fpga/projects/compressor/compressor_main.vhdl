@@ -8,50 +8,89 @@ use ieee.numeric_std.all;
 
 entity compressor_main is
     port (
-        clock_in        : in std_logic;
-        raw_data_in     : in std_logic;
-        cmp_data_out    : out std_logic := '0';
-        lcols_out       : out std_logic_vector (3 downto 0) := "0000";
-        lrows_out       : out std_logic_vector (7 downto 0) := "00000000";
-        clock_out       : out std_logic := '0'
-    );
+        clock_in            : in std_logic;
+
+        tx_to_pic_out       : out std_logic := '0';
+        rx_from_pic_in      : in std_logic;
+
+        rotary_024_in       : in std_logic;
+        rotary_01_in        : in std_logic;
+        rotary_23_in        : in std_logic;
+
+        adjust_1a_out       : out std_logic := '0';
+        adjust_1b_out       : out std_logic := '0';
+        adjust_2a_out       : out std_logic := '0';
+        adjust_2b_out       : out std_logic := '0';
+
+        spdif_tx_out        : out std_logic := '0';
+        spdif_rx_in         : in std_logic;
+
+        button_a11_in       : in std_logic;
+        button_c11_in       : in std_logic;
+        button_c6_in        : in std_logic;
+        button_a5_in        : in std_logic;
+
+        -- LED outputs
+        lcols_out           : out std_logic_vector (3 downto 0) := "0000";
+        lrows_out           : out std_logic_vector (7 downto 0) := "00000000");
 end compressor_main;
 
 architecture structural of compressor_main is
 
-    signal preemph                  : std_logic := '0';
-    signal sync                     : std_logic_vector (8 downto 1) := (others => '0');
     signal rg_strobe                : std_logic := '0';
-    signal raw_packet_data          : std_logic := '0';
-    signal raw_packet_shift         : std_logic := '0';
-    signal raw_packet_start         : std_logic := '0';
-    signal raw_left_strobe          : std_logic := '0';
-    signal raw_right_strobe         : std_logic := '0';
 
-    signal cmp_packet_data          : std_logic := '0';
-    signal cmp_packet_shift         : std_logic := '0';
-    signal cmp_packet_start         : std_logic := '0';
-    signal cmp_left_strobe          : std_logic := '0';
-    signal cmp_right_strobe         : std_logic := '0';
-
+    -- biphase mark codes, decoded
     subtype t_pulse_length is std_logic_vector (1 downto 0);
     signal raw_pulse_length         : t_pulse_length := "00";
     signal cmp_pulse_length         : t_pulse_length := "00";
 
+    -- serial S/PDIF data
+    signal raw_packet_data          : std_logic := '0';
+    signal raw_packet_shift         : std_logic := '0';
+    signal raw_packet_start         : std_logic := '0';
+    signal cmp_packet_data          : std_logic := '0';
+    signal cmp_packet_shift         : std_logic := '0';
+    signal cmp_packet_start         : std_logic := '0';
+
+    -- parallel audio data
+    subtype t_data is std_logic_vector (31 downto 0);
+    signal raw_data                 : t_data := (others => '0');
+    signal raw_left_strobe          : std_logic := '0';
+    signal raw_right_strobe         : std_logic := '0';
+    signal cmp_data                 : t_data := (others => '0');
+    signal cmp_left_strobe          : std_logic := '0';
+    signal cmp_right_strobe         : std_logic := '0';
+
+    -- matcher
+    signal matcher_sync             : std_logic_vector (1 downto 0) := "00";
+    signal sample_rate              : std_logic_vector (15 downto 0) := (others => '0');
+
+    -- volume controls (potentiometers)
+    subtype t_adjust is std_logic_vector (9 downto 0);
+    signal adjust_1                 : t_adjust := (others => '0');
+    signal adjust_2                 : t_adjust := (others => '0');
+    
+    -- display and UI
     subtype t_leds is std_logic_vector (7 downto 0);
     signal raw_left_meter           : t_leds := (others => '0');
     signal raw_right_meter          : t_leds := (others => '0');
     signal cmp_left_meter           : t_leds := (others => '0');
     signal cmp_right_meter          : t_leds := (others => '0');
+    signal single_time              : t_leds := (others => '0');
+    signal preemph                  : std_logic := '0';
+    signal sync                     : std_logic_vector (8 downto 1) := (others => '0');
+    signal pulse_100hz              : std_logic := '0';
+    signal adc_enable_poll          : std_logic := '0';
 
-    subtype t_data is std_logic_vector (31 downto 0);
-    signal raw_data                 : t_data := (others => '0');
-    signal cmp_data                 : t_data := (others => '0');
+    -- user mode
+    signal rot_strobe               : std_logic := '0';
+    signal rot_value                : std_logic_vector (2 downto 0) := "000";
 
+    constant clock_frequency        : Real := 96.0e6;
 begin
     dec1 : entity input_decoder
-        port map (clock_in => clock_in, data_in => raw_data_in,
-                  sync_out => sync (1), single_time_out => open,
+        port map (clock_in => clock_in, data_in => spdif_rx_in,
+                  sync_out => sync (1), single_time_out => single_time,
                   pulse_length_out => raw_pulse_length);
 
     dec2 : entity packet_decoder
@@ -105,7 +144,8 @@ begin
                   data_in => cmp_data,
                   left_strobe_in => cmp_left_strobe,
                   right_strobe_in => cmp_right_strobe);
-    preemph <= '0';
+
+    preemph <= not button_c6_in;
 
     pe : entity packet_encoder
         port map (clock => clock_in,
@@ -123,16 +163,16 @@ begin
                   sync_out => sync (8),
                   error_out => open,
                   strobe_in => rg_strobe,
-                  data_out => cmp_data_out);
+                  data_out => spdif_tx_out);
 
-    leds : entity led_scan
-        port map (clock => clock_in,
-                  leds1_in => raw_left_meter,
-                  leds2_in => raw_right_meter,
-                  leds3_in => cmp_left_meter,
-                  leds4_in => cmp_right_meter,
-                  lrows_out => lrows_out,
-                  lcols_out => lcols_out);
+    m : entity matcher
+        port map (data_in => raw_data,
+                  left_strobe_in => raw_left_strobe,
+                  right_strobe_in => raw_right_strobe,
+                  sync_in => sync (3),
+                  sync_out => matcher_sync,
+                  sample_rate_out => sample_rate,
+                  clock => clock_in);
 
     raw_left : entity vu_meter 
         port map (clock => clock_in,
@@ -162,5 +202,65 @@ begin
                   sync_in => sync (8),
                   data_in => cmp_data (27 downto 19));
 
+    pulse_100hz_gen : entity pulse_gen
+        generic map (clock_frequency => clock_frequency,
+                     pulse_frequency => 100.0)
+        port map (clock_in => clock_in,
+                  pulse_out => pulse_100hz);
+
+    display : entity mode_display
+        port map (clock_in => clock_in,
+                  pulse_100hz_in => pulse_100hz,
+
+                  -- mode select
+                  rot_strobe_in => rot_strobe,
+                  rot_value_in => rot_value,
+  
+                  -- shown in all modes
+                  raw_meter_left_in => raw_left_meter,
+                  raw_meter_right_in => raw_right_meter,
+
+                  -- shown in compressor modes
+                  cmp_meter_left_in => cmp_left_meter,
+                  cmp_meter_right_in => cmp_right_meter,
+
+                  -- shown in passthrough modes
+                  sample_rate_in => sample_rate,
+                  matcher_sync_in => matcher_sync,
+                  single_time_in => single_time,
+                  sync_in => sync (8),
+
+                  -- LED outputs
+                  lcols_out => lcols_out,
+                  lrows_out => lrows_out);
+
+    adc_enable_poll <= not button_c11_in;
+
+    adc : entity icefun_adc_driver
+        generic map (clock_frequency => clock_frequency)
+        port map (clock_in => clock_in,
+                  pulse_100hz_in => pulse_100hz,
+                  tx_to_pic => tx_to_pic_out,
+                  rx_from_pic => rx_from_pic_in,
+                  enable_poll_in => adc_enable_poll,
+                  ready_out => open,
+                  error_out => open,
+                  adjust_1_out => adjust_1,
+                  adjust_2_out => adjust_2,
+                  adjust_1a_p52 => adjust_1a_out,
+                  adjust_1b_p50 => adjust_1b_out,
+                  adjust_2a_p47 => adjust_2a_out,
+                  adjust_2b_p45 => adjust_2b_out);
+
+    rot : entity rotary_switch_driver
+        port map (clock_in => clock_in,
+                  pulse_100hz_in => pulse_100hz,
+                  rotary_024 => rotary_024_in,
+                  rotary_01 => rotary_01_in,
+                  rotary_23 => rotary_23_in,
+                  left_button => button_a11_in,
+                  right_button => button_a5_in,
+                  strobe_out => rot_strobe,
+                  value_out => rot_value);
 end structural;
 
