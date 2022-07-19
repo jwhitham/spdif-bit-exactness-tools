@@ -38,6 +38,7 @@ end compressor_main;
 architecture structural of compressor_main is
 
     signal rg_strobe                : std_logic := '0';
+    signal encoded_spdif            : std_logic := '0';
 
     -- biphase mark codes, decoded
     subtype t_pulse_length is std_logic_vector (1 downto 0);
@@ -163,7 +164,20 @@ begin
                   sync_out => sync (8),
                   error_out => open,
                   strobe_in => rg_strobe,
-                  data_out => spdif_tx_out);
+                  data_out => encoded_spdif);
+       
+    process (clock_in)
+    begin
+        if clock_in'event and clock_in = '1' then
+            if rot_value = "101" then
+                -- passthrough mode
+                spdif_tx_out <= not spdif_rx_in;
+            else
+                -- via encoder
+                spdif_tx_out <= encoded_spdif;
+            end if;
+        end if;
+    end process;
 
     m : entity matcher
         port map (data_in => raw_data,
