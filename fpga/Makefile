@@ -8,11 +8,15 @@ VHDL =  \
 		lib/led_scan.vhdl \
 		lib/convert_from_sign_magnitude.vhdl \
 		lib/convert_to_sign_magnitude.vhdl \
+		lib/pulse_gen.vhdl \
 		lib/uart.vhdl \
+		lib/icefun_adc_driver.vhdl \
+		lib/rotary_switch_driver.vhdl \
 		app/compressor/compressor.vhdl \
 		app/matcher/match_rom.vhdl \
 		app/matcher/matcher.vhdl \
 		app/vu_meter/vu_meter.vhdl \
+		app/mode_display/mode_display.vhdl \
 		spdif/channel_decoder.vhdl \
 		spdif/channel_encoder.vhdl \
 		spdif/clock_regenerator.vhdl \
