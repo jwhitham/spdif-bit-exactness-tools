@@ -11,8 +11,8 @@ entity mode_display is
         pulse_100hz_in      : in std_logic;
 
         -- mode select
-        rot_strobe_in       : in std_logic;
-        rot_value_in        : in std_logic_vector (2 downto 0);
+        mode_strobe_in      : in std_logic;
+        mode_select_in      : in mode_definitions.t_mode;
 
         -- shown in all modes
         raw_meter_left_in   : in std_logic_vector (7 downto 0);
@@ -39,7 +39,7 @@ architecture structural of mode_display is
     subtype t_countdown is Natural range 0 to max_countdown;
 
     type t_display_mode is (DESYNC, COMPRESS_MAX, COMPRESS_2,
-                            COMPRESS_1, ATTENUATED_1, ATTENUATED_2,
+                            COMPRESS_1, ATTENUATE_1, ATTENUATE_2,
                             PASSTHROUGH, DOUBLE_VU_METER, SINGLE_VU_METER);
     subtype t_led_line is std_logic_vector (7 downto 0);
     type t_leds is array (Natural range 0 to 3) of t_led_line;
@@ -83,13 +83,13 @@ begin
                 leds (1) <= "11100010";
                 leds (2) <= "10000010";
                 leds (3) <= "11100010";
-            when ATTENUATED_1 =>
+            when ATTENUATE_1 =>
                 -- attenuated to volume level 1 "a1"
                 leds (0) <= "11100000";
                 leds (1) <= "10100010";
                 leds (2) <= "11100010";
                 leds (3) <= "10100010";
-            when ATTENUATED_2 =>
+            when ATTENUATE_2 =>
                 -- attenuated to volume level 2 "a2"
                 leds (0) <= "11100000";
                 leds (1) <= "10100101";
@@ -131,20 +131,22 @@ begin
                 countdown <= max_countdown;
                 display_mode <= DESYNC;
 
-            elsif rot_strobe_in = '1' then
+            elsif mode_strobe_in = '1' then
                 -- Change mode
                 countdown <= max_countdown;
-                case rot_value_in is
-                    when "000" =>
+                case mode_select_in is
+                    when mode_definitions.COMPRESS_MAX =>
                         display_mode <= COMPRESS_MAX;
-                    when "001" =>
+                    when mode_definitions.COMPRESS_2 =>
                         display_mode <= COMPRESS_2;
-                    when "010" =>
+                    when mode_definitions.COMPRESS_1 =>
                         display_mode <= COMPRESS_1;
-                    when "011" =>
-                        display_mode <= ATTENUATED_1;
-                    when "100" =>
-                        display_mode <= ATTENUATED_2;
+                    when mode_definitions.ATTENUATE_1 =>
+                        display_mode <= ATTENUATE_1;
+                    when mode_definitions.ATTENUATE_2 =>
+                        display_mode <= ATTENUATE_2;
+                    when mode_definitions.PASSTHROUGH =>
+                        display_mode <= PASSTHROUGH;
                     when others =>
                         display_mode <= PASSTHROUGH;
                 end case;
@@ -158,8 +160,8 @@ begin
 
             else
                 -- Stable - show normal display
-                case rot_value_in is
-                    when "000" | "001" | "010" =>
+                case mode_select_in is
+                    when mode_definitions.COMPRESS_MAX | mode_definitions.COMPRESS_2 | mode_definitions.COMPRESS_1 =>
                         display_mode <= DOUBLE_VU_METER;
                     when others =>
                         display_mode <= SINGLE_VU_METER;

@@ -11,7 +11,8 @@ VHDL =  \
 		lib/pulse_gen.vhdl \
 		lib/uart.vhdl \
 		lib/icefun_adc_driver.vhdl \
-		lib/rotary_switch_driver.vhdl \
+		app/mode_definitions.vhdl \
+		app/rotary_switch.vhdl \
 		app/compressor.vhdl \
 		app/generated/match_rom.vhdl \
 		app/matcher.vhdl \

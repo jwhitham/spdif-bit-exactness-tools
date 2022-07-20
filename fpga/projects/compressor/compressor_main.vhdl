@@ -84,8 +84,8 @@ architecture structural of compressor_main is
     signal adc_enable_poll          : std_logic := '0';
 
     -- user mode
-    signal rot_strobe               : std_logic := '0';
-    signal rot_value                : std_logic_vector (2 downto 0) := "000";
+    signal mode_strobe              : std_logic := '0';
+    signal mode_select              : mode_definitions.t_mode := mode_definitions.min_value;
 
     constant clock_frequency        : Real := 96.0e6;
 begin
@@ -169,7 +169,7 @@ begin
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
-            if rot_value = "101" then
+            if mode_select = mode_definitions.passthrough then
                 -- passthrough mode
                 spdif_tx_out <= not spdif_rx_in;
             else
@@ -227,8 +227,8 @@ begin
                   pulse_100hz_in => pulse_100hz,
 
                   -- mode select
-                  rot_strobe_in => rot_strobe,
-                  rot_value_in => rot_value,
+                  mode_strobe_in => mode_strobe,
+                  mode_select_in => mode_select,
   
                   -- shown in all modes
                   raw_meter_left_in => raw_left_meter,
@@ -266,7 +266,7 @@ begin
                   adjust_2a_p47 => adjust_2a_out,
                   adjust_2b_p45 => adjust_2b_out);
 
-    rot : entity rotary_switch_driver
+    rot : entity rotary_switch
         port map (clock_in => clock_in,
                   pulse_100hz_in => pulse_100hz,
                   rotary_024 => rotary_024_in,
@@ -274,7 +274,7 @@ begin
                   rotary_23 => rotary_23_in,
                   left_button => button_a11_in,
                   right_button => button_a5_in,
-                  strobe_out => rot_strobe,
-                  value_out => rot_value);
+                  strobe_out => mode_strobe,
+                  value_out => mode_select);
 end structural;
 
