@@ -46,7 +46,7 @@ def generate(index: int) -> typing.Tuple[int, int]:
     return (left, right)
 
 def main() -> None:
-    with open("app/matcher/match_rom.vhdl", "wt") as fd:
+    with open("app/generated/match_rom.vhdl", "wt") as fd:
         fd.write("""
 library ieee;
 use ieee.std_logic_1164.all;
