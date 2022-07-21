@@ -22,6 +22,7 @@ entity compressor is
         left_strobe_in  : in std_logic;
         right_strobe_in : in std_logic;
         data_out        : out std_logic_vector (15 downto 0) := (others => '0');
+        peak_level_out  : out std_logic_vector (31 downto 0) := (others => '0');
         left_strobe_out : out std_logic := '0';
         right_strobe_out : out std_logic := '0';
         sync_in         : in std_logic;
@@ -204,6 +205,7 @@ begin
     strobe_in <= left_strobe_in or right_strobe_in;
     fifo_read <= strobe_in when state = START else '0';
     abs_fifo_out <= fifo_out (audio_bits - 2 downto 0);
+    peak_level_out (peak_bits - 1 downto 0) <= peak_level;
 
     -- Audio divider
     audio : block

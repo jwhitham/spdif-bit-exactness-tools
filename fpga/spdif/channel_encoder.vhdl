@@ -25,14 +25,14 @@ architecture structural of channel_encoder is
 
     constant b_interval     : Natural := 192;
 
-    subtype t_status_counter is Natural range 0 to b_interval;
-    signal status_counter   : t_status_counter := 0;
+    subtype t_subcode_counter is Natural range 0 to b_interval;
+    signal subcode_counter  : t_subcode_counter := 0;
 
     subtype t_bit_counter is Natural range 0 to 31;
     signal bit_counter      : t_bit_counter := 0;
-    constant status_bit     : t_status_counter := 30;
-    constant user_bit       : t_status_counter := 29;
-    constant validity_bit   : t_status_counter := 28;
+    constant subcode_bit    : t_bit_counter := 30;
+    constant user_bit       : t_bit_counter := 29;
+    constant validity_bit   : t_bit_counter := 28;
 begin
 
     data_out <= data (0);
@@ -45,7 +45,7 @@ begin
 
             if sync_in = '0' then
                 bit_counter <= 0;
-                status_counter <= 0;
+                subcode_counter <= 0;
                 sync_out <= '0';
                 waiting <= '0';
 
@@ -58,28 +58,28 @@ begin
 
                 -- Generate B/M header
                 if left_strobe_in = '1' then
-                    if status_counter = 0 or status_counter = b_interval then
+                    if subcode_counter = 0 or subcode_counter = b_interval then
                         data (3 downto 0) <= "0001"; -- Output B
-                        status_counter <= 1;
+                        subcode_counter <= 1;
                         sync_out <= '1';
                     else
                         data (3 downto 0) <= "0100"; -- Output M
-                        status_counter <= status_counter + 1;
+                        subcode_counter <= subcode_counter + 1;
                     end if;
                 else
                     data (3 downto 0) <= "0010"; -- Output W
                 end if;
-                -- See https://www.minidisc.org/manuals/an22.pdf for description of channel status bits
+                -- See https://www.minidisc.org/manuals/an22.pdf for description of subcode bits
                 -- They repeat periodically, beginning with a B packet, which is sent every b_interval.
-                case status_counter is
+                case subcode_counter is
                     when 2 =>
-                        data (status_bit) <= '1'; -- copy
+                        data (subcode_bit) <= '1'; -- copy
                     when 13 =>
-                        data (status_bit) <= '1'; -- category 0x02 - PCM encoder/decoder
+                        data (subcode_bit) <= '1'; -- category 0x02 - PCM encoder/decoder
                     when 3 =>
-                        data (status_bit) <= preemph_in; -- DAC instructed to undo 15/50 preemphasis
+                        data (subcode_bit) <= preemph_in; -- DAC instructed to undo 15/50 preemphasis
                     when others =>
-                        data (status_bit) <= '0';
+                        data (subcode_bit) <= '0';
                 end case;
                 data (validity_bit) <= '0'; -- can be D/A converted
                 data (user_bit) <= '0';

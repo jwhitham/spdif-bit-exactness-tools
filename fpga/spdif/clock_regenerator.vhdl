@@ -6,6 +6,7 @@ use ieee.numeric_std.all;
 entity clock_regenerator is
     port (
         pulse_length_in  : in std_logic_vector (1 downto 0) := "00";
+        clock_interval_out : out std_logic_vector (15 downto 0) := (others => '0');
         sync_in          : in std_logic;
         sync_out         : out std_logic := '0';
         clock_in         : in std_logic;
@@ -103,6 +104,7 @@ begin
     end process;
 
     sync_out <= sync_gen;
+    clock_interval_out <= std_logic_vector (clock_interval (15 downto 0));
     divisor_subtract <= divisor - clock_interval;
 
     process (clock_in)

@@ -14,6 +14,7 @@ VHDL =  \
 		app/mode_definitions.vhdl \
 		app/rotary_switch.vhdl \
 		app/compressor.vhdl \
+		app/generated/version_rom.vhdl \
 		app/generated/match_rom.vhdl \
 		app/matcher.vhdl \
 		app/vu_meter.vhdl \
@@ -25,7 +26,7 @@ VHDL =  \
 		spdif/output_encoder.vhdl \
 		spdif/packet_decoder.vhdl \
 		spdif/packet_encoder.vhdl \
-		projects/compressor/compressor_main.vhdl
+		app/compressor_main.vhdl
 
 TEST_VHDL = \
 		test/sb_ram40_4k.vhdl \
@@ -49,6 +50,7 @@ clean:
 run_tests:
 	ghdl --remove
 	python app/make_match_rom.py
+	python app/make_version_rom.py
 	python test/make_test_bench.py
 	ghdl -a --work=work $(VHDL) $(TEST_VHDL)
 	ghdl -r test_measure $(RFLAGS)

@@ -82,6 +82,9 @@ architecture structural of compressor_main is
     signal sync                     : std_logic_vector (8 downto 1) := (others => '0');
     signal pulse_100hz              : std_logic := '0';
     signal adc_enable_poll          : std_logic := '0';
+    signal clock_interval           : std_logic_vector (15 downto 0) := (others => '0');
+    signal subcode                  : std_logic_vector (31 downto 0) := (others => '0');
+    signal peak_level               : std_logic_vector (31 downto 0) := (others => '0');
 
     -- user mode
     signal mode_strobe              : std_logic := '0';
@@ -111,12 +114,14 @@ begin
                   sync_in => sync (2),
                   sync_out => sync (3),
                   data_out => raw_data,
+                  subcode_out => subcode,
                   left_strobe_out => raw_left_strobe,
                   right_strobe_out => raw_right_strobe);
 
     rg : entity clock_regenerator
         port map (clock_in => clock_in,
                   pulse_length_in => raw_pulse_length,
+                  clock_interval_out => clock_interval,
                   sync_in => sync (3),
                   sync_out => sync (4),
                   strobe_out => rg_strobe);
@@ -125,6 +130,7 @@ begin
         port map (clock_in => clock_in,
                   sync_in => sync (4),
                   sync_out => sync (5),
+                  peak_level_out => peak_level,
                   data_in => raw_data (27 downto 12),
                   left_strobe_in => raw_left_strobe,
                   right_strobe_in => raw_right_strobe,
@@ -238,11 +244,16 @@ begin
                   cmp_meter_left_in => cmp_left_meter,
                   cmp_meter_right_in => cmp_right_meter,
 
-                  -- shown in passthrough modes
+                  -- shown in debug modes
                   sample_rate_in => sample_rate,
                   matcher_sync_in => matcher_sync,
                   single_time_in => single_time,
-                  sync_in => sync (8),
+                  all_sync_in => sync,
+                  clock_interval_in => clock_interval,
+                  subcode_in => subcode,
+                  peak_level_in => peak_level,
+                  adjust_1_in => adjust_1,
+                  adjust_2_in => adjust_2,
 
                   -- LED outputs
                   lcols_out => lcols_out,
