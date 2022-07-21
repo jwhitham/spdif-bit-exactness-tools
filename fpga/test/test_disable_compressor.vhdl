@@ -150,26 +150,34 @@ begin
             end if;
         end loop;
 
-        -- Turn on compression and we quickly lose accuracy
+        -- Turn on compression and we quickly lose accuracy - but
+        -- hopefully not very much at first (if we did suddenly lose a lot of accuracy,
+        -- that would point to a glitch, e.g. because the peak level is 1.0, but the
+        -- maximum audio level is really 32767.0 / 32768.0, and the abs_compare comparison does not
+        -- consider that the value might be 1.0).
+
         enable <= '1';
         write (l, String'("Enable compression!"));
         writeline (output, l);
 
-        for i in 1 to 40 loop
+        for i in 1 to 80 loop
             wait until clock'event and clock = '1' and (left_strobe_out or right_strobe_out) = '1';
             value := to_integer (signed (data_out));
             expect := test_numbers (sample_counter);
             sample_counter := (sample_counter + 1) mod test_numbers'Length;
             if value /= expect then
                 ok := True;
-                write (l, String'("Lost accuracy at "));
-                write (l, i);
-                write (l, String'(" as expected: got "));
-                write (l, value);
-                write (l, String'(" lossless value is "));
-                write (l, expect);
-                writeline (output, l);
-                --exit;
+                if abs (value - expect) > 5 then
+                    write (l, String'("Lost more accuracy than expected at "));
+                    write (l, i);
+                    write (l, String'(" as expected: got "));
+                    write (l, value);
+                    write (l, String'(" lossless value is "));
+                    write (l, expect);
+                    writeline (output, l);
+                    assert False;
+                    exit;
+                end if;
             end if;
         end loop;
 

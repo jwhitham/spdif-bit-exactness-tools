@@ -127,7 +127,7 @@ architecture structural of compressor is
     constant peak_minimum       : t_peak_level := convert_to_bits (decibel (- max_amplification));
 
     -- This is the maximum value for the peak level
-    constant peak_maximum       : t_peak_level := convert_to_bits (1.0);
+    constant peak_maximum       : t_peak_level := t_peak_level (unsigned (convert_to_bits (1.0)) - 1);
 
     -- Global registers
     signal left_flag            : std_logic := '1';
@@ -402,11 +402,7 @@ begin
                         peak_level <= peak_divider_result;
                     end if;
 
-                when CLAMP_TO_FIFO_INPUT | CLAMP_TO_FIFO_OUTPUT | CLAMP_TO_MINIMUM =>
-                    -- High bits are always zeroed in case there was a recent CLAMP_TO_MAXIMUM.
-                    -- In that case, abs_compare may appear to be 0 (as 1.0 is outside its range).
-                    peak_level (peak_bits - 1 downto peak_audio_high + 1) <= (others => '0');
-
+                when CLAMP_TO_FIFO_INPUT | CLAMP_TO_FIFO_OUTPUT | CLAMP_TO_MINIMUM | CLAMP_TO_MAXIMUM =>
                     -- Apply comparison and set
                     if (unsigned (peak_level (peak_audio_high downto peak_audio_low)) <= unsigned (abs_compare)) then
                         -- New 16-bit peak level loaded (reduce amplification)
@@ -424,17 +420,6 @@ begin
                             write_big_number (l, abs_compare);
                             writeline (output, l);
                         end if;
-                    end if;
-                when CLAMP_TO_MAXIMUM =>
-                    -- Always set to peak_maximum (1.0).
-                    peak_level <= peak_maximum;
-                    assert to_integer (unsigned (abs_compare)) = 0;
-                    peak_level (peak_audio_high downto peak_audio_low) <= abs_compare;
-                    peak_level (peak_audio_low - 1 downto 0) <= (others => '0');
-                    minimum_flag <= '0';
-                    if debug then
-                        write (l, String'("peak level clamped to maximum"));
-                        writeline (output, l);
                     end if;
                 when others =>
                     null;
