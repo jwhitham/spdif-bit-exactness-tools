@@ -402,27 +402,39 @@ begin
                         peak_level <= peak_divider_result;
                     end if;
 
-                when CLAMP_TO_FIFO_INPUT | CLAMP_TO_FIFO_OUTPUT | CLAMP_TO_MINIMUM | CLAMP_TO_MAXIMUM =>
+                when CLAMP_TO_FIFO_INPUT | CLAMP_TO_FIFO_OUTPUT | CLAMP_TO_MINIMUM =>
+                    -- High bits are always zeroed in case there was a recent CLAMP_TO_MAXIMUM.
+                    -- In that case, abs_compare may appear to be 0 (as 1.0 is outside its range).
+                    peak_level (peak_bits - 1 downto peak_audio_high + 1) <= (others => '0');
+
                     -- Apply comparison and set
                     if (unsigned (peak_level (peak_audio_high downto peak_audio_low)) <= unsigned (abs_compare)) then
                         -- New 16-bit peak level loaded (reduce amplification)
-                        peak_level <= (others => '0');
                         peak_level (peak_audio_high downto peak_audio_low) <= abs_compare;
-                        if state = CLAMP_TO_MAXIMUM then
-                            peak_level (peak_audio_low - 1 downto 0) <= (others => '0');
-                        else
-                            peak_level (peak_audio_low - 1 downto 0) <= (others => '1');
-                        end if;
+                        peak_level (peak_audio_low - 1 downto 0) <= (others => '1');
                         if state = CLAMP_TO_MINIMUM then
                             minimum_flag <= '1';
                         else
                             minimum_flag <= '0';
                         end if;
                         if debug then
-                            write (l, String'("peak level clamped to: "));
-                            write_big_number (l, peak_level);
+                            write (l, String'("peak level "));
+                            write (l, t_state'Image (state));
+                            write (l, String'(": "));
+                            write_big_number (l, abs_compare);
                             writeline (output, l);
                         end if;
+                    end if;
+                when CLAMP_TO_MAXIMUM =>
+                    -- Always set to peak_maximum (1.0).
+                    peak_level <= peak_maximum;
+                    assert to_integer (unsigned (abs_compare)) = 0;
+                    peak_level (peak_audio_high downto peak_audio_low) <= abs_compare;
+                    peak_level (peak_audio_low - 1 downto 0) <= (others => '0');
+                    minimum_flag <= '0';
+                    if debug then
+                        write (l, String'("peak level clamped to maximum"));
+                        writeline (output, l);
                     end if;
                 when others =>
                     null;
@@ -486,11 +498,6 @@ begin
                 when COMPRESS =>
                     -- start division: absolute FIFO output / peak level
                     -- For left channel only, start division: peak level / peak level divisor
-                    if debug then
-                        write (l, String'("peak level clamped to minimum: "));
-                        write_big_number (l, peak_level);
-                        writeline (output, l);
-                    end if;
                     state <= AWAIT_AUDIO_DIVISION;
                 when AWAIT_AUDIO_DIVISION =>
                     -- When division is complete, flip the channel flag
