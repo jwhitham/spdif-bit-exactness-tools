@@ -91,6 +91,7 @@ begin
         constant delay_size_log_2      : Natural := 5;
         constant test_delay_threshold_level : Real :=
             0.25 + (Real (incremental) / Real (2 ** (delay_size_log_2 + 1)));
+        constant one            : std_logic := '1';
 
         signal data_out         : t_data := (others => '0');
         signal left_strobe_out  : std_logic := '0';
@@ -109,6 +110,7 @@ begin
                 data_in => data_in,
                 left_strobe_in => left_strobe_in,
                 right_strobe_in => right_strobe_in,
+                enable_in => one,
                 data_out => data_out,
                 left_strobe_out => left_strobe_out,
                 right_strobe_out => right_strobe_out,

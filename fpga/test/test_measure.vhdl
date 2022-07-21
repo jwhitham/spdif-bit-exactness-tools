@@ -23,10 +23,12 @@ architecture test of test_measure is
     signal right_strobe_in  : std_logic := '0';
     signal enable_strobes   : std_logic := '0';
 
-    constant sample_rate            : Natural := 1000;
-    constant sample_period          : Time := 1000 ms / sample_rate;
-    constant clock_period           : Time := sample_period / 1000;
-    constant fpga_freq_mhz          : Natural := 96;
+    constant sample_rate    : Natural := 1000;
+    constant sample_period  : Time := 1000 ms / sample_rate;
+    constant clock_period   : Time := sample_period / 1000;
+    constant fpga_freq_mhz  : Natural := 96;
+
+    constant one            : std_logic := '1';
 
     signal data_out         : t_data := (others => '0');
     signal left_strobe_out  : std_logic := '0';
@@ -100,6 +102,7 @@ begin
             data_in => data_in,
             left_strobe_in => left_strobe_in,
             right_strobe_in => right_strobe_in,
+            enable_in => one,
             data_out => data_out,
             left_strobe_out => left_strobe_out,
             right_strobe_out => right_strobe_out,

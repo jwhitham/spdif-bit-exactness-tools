@@ -25,6 +25,7 @@ entity compressor is
         peak_level_out  : out std_logic_vector (31 downto 0) := (others => '0');
         left_strobe_out : out std_logic := '0';
         right_strobe_out : out std_logic := '0';
+        enable_in       : in std_logic;
         sync_in         : in std_logic;
         sync_out        : out std_logic := '0';
         ready_out       : out std_logic := '0';
@@ -77,6 +78,10 @@ architecture structural of compressor is
     --      abs_compare = peak_minimum
     --  CLAMP_TO_MINIMUM:
     --      peak_level = max (peak_level, abs_compare)
+    --  LOAD_MAXIMUM:
+    --      abs_compare = peak_maximum
+    --  CLAMP_TO_MAXIMUM:
+    --      peak_level = max (peak_level, abs_compare)
     --  COMPRESS:
     --      signal start of division: input / peak_level
     --      for left channel only:
@@ -94,6 +99,8 @@ architecture structural of compressor is
                      CLAMP_TO_FIFO_OUTPUT,
                      LOAD_MINIMUM,
                      CLAMP_TO_MINIMUM,
+                     LOAD_MAXIMUM,
+                     CLAMP_TO_MAXIMUM,
                      COMPRESS,
                      AWAIT_AUDIO_DIVISION);
 
@@ -118,6 +125,9 @@ architecture structural of compressor is
 
     -- This is the minimum sound level that will be amplified to the maximum level
     constant peak_minimum       : t_peak_level := convert_to_bits (decibel (- max_amplification));
+
+    -- This is the maximum value for the peak level
+    constant peak_maximum       : t_peak_level := convert_to_bits (1.0);
 
     -- Global registers
     signal left_flag            : std_logic := '1';
@@ -364,6 +374,8 @@ begin
                     abs_compare <= abs_fifo_out;
                 when LOAD_MINIMUM =>
                     abs_compare <= peak_minimum (peak_audio_high downto peak_audio_low);
+                when LOAD_MAXIMUM =>
+                    abs_compare <= peak_maximum (peak_audio_high downto peak_audio_low);
                 when others =>
                     null;
             end case;
@@ -390,13 +402,17 @@ begin
                         peak_level <= peak_divider_result;
                     end if;
 
-                when CLAMP_TO_FIFO_INPUT | CLAMP_TO_FIFO_OUTPUT | CLAMP_TO_MINIMUM =>
+                when CLAMP_TO_FIFO_INPUT | CLAMP_TO_FIFO_OUTPUT | CLAMP_TO_MINIMUM | CLAMP_TO_MAXIMUM =>
                     -- Apply comparison and set
                     if (unsigned (peak_level (peak_audio_high downto peak_audio_low)) <= unsigned (abs_compare)) then
                         -- New 16-bit peak level loaded (reduce amplification)
                         peak_level <= (others => '0');
-                        peak_level (peak_audio_low - 1 downto 0) <= (others => '1');
                         peak_level (peak_audio_high downto peak_audio_low) <= abs_compare;
+                        if state = CLAMP_TO_MAXIMUM then
+                            peak_level (peak_audio_low - 1 downto 0) <= (others => '0');
+                        else
+                            peak_level (peak_audio_low - 1 downto 0) <= (others => '1');
+                        end if;
                         if state = CLAMP_TO_MINIMUM then
                             minimum_flag <= '1';
                         else
@@ -452,10 +468,20 @@ begin
                 when LOAD_FIFO_OUTPUT =>
                     state <= CLAMP_TO_FIFO_OUTPUT;
                 when CLAMP_TO_FIFO_OUTPUT =>
-                    state <= LOAD_MINIMUM;
+                    -- when the compressor is on, this enforces a minimum peak level,
+                    -- but when the compressor is off, it forces the peak level to be treated as 1.0.
+                    if enable_in = '1' then
+                        state <= LOAD_MINIMUM;
+                    else
+                        state <= LOAD_MAXIMUM;
+                    end if;
                 when LOAD_MINIMUM =>
                     state <= CLAMP_TO_MINIMUM;
                 when CLAMP_TO_MINIMUM =>
+                    state <= COMPRESS;
+                when LOAD_MAXIMUM =>
+                    state <= CLAMP_TO_MAXIMUM;
+                when CLAMP_TO_MAXIMUM =>
                     state <= COMPRESS;
                 when COMPRESS =>
                     -- start division: absolute FIFO output / peak level

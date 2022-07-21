@@ -82,6 +82,7 @@ architecture structural of compressor_main is
     signal sync                     : std_logic_vector (8 downto 1) := (others => '0');
     signal pulse_100hz              : std_logic := '0';
     signal adc_enable_poll          : std_logic := '0';
+    signal cmp_enable               : std_logic := '0';
     signal clock_interval           : std_logic_vector (15 downto 0) := (others => '0');
     signal subcode                  : std_logic_vector (31 downto 0) := (others => '0');
     signal peak_level               : std_logic_vector (31 downto 0) := (others => '0');
@@ -132,14 +133,21 @@ begin
                   sync_out => sync (5),
                   peak_level_out => peak_level,
                   ready_out => open,
+                  enable_in => cmp_enable,
                   data_in => raw_data (27 downto 12),
                   left_strobe_in => raw_left_strobe,
                   right_strobe_in => raw_right_strobe,
                   data_out => cmp_data (27 downto 12),
                   left_strobe_out => cmp_left_strobe,
                   right_strobe_out => cmp_right_strobe);
+
     cmp_data (31 downto 28) <= (others => '0');
     cmp_data (11 downto 0) <= (others => '0');
+    cmp_enable <= '0' when mode_select = mode_definitions.PASSTHROUGH
+                        or mode_select = mode_definitions.ATTENUATE_1
+                        or mode_select = mode_definitions.ATTENUATE_2
+                        or mode_select = mode_definitions.DBG_VERSION
+                        else '1';
 
     ce : entity channel_encoder
         port map (clock => clock_in,
@@ -176,7 +184,7 @@ begin
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
-            if mode_select = mode_definitions.passthrough then
+            if mode_select = mode_definitions.PASSTHROUGH then
                 -- passthrough mode
                 spdif_tx_out <= not spdif_rx_in;
             else

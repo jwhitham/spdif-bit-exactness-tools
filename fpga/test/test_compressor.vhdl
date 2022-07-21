@@ -32,6 +32,7 @@ architecture test of test_compressor is
     signal clock_counter            : Natural := 0;
     signal square_wave_negative     : std_logic := '0';
 
+    constant one                    : std_logic := '1';
     constant sample_rate            : Natural := 1000;
 
     constant sample_period          : Time := 1000 ms / sample_rate;
@@ -58,6 +59,7 @@ begin
             left_strobe_in => left_strobe_in,
             right_strobe_in => right_strobe_in,
             data_out => data_out,
+            enable_in => one,
             left_strobe_out => left_strobe_out,
             right_strobe_out => right_strobe_out,
             sync_in => sync_in,
