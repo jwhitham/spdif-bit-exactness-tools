@@ -4,7 +4,7 @@ Version=Lattice Semiconductor Corporation iCEcube - Release: 2020.12.27943 - Bui
 ProjectName=compressor
 Vendor=SiliconBlue
 Synthesis=synplify
-ProjectVFiles=compressor_main.vhdl=work,compressor_pll.vhd=work,compressor_top.vhdl=work,../../app/compressor/compressor.vhdl=work,../../app/vu_meter/vu_meter.vhdl=work,../../lib/divider.vhdl=work,../../lib/fifo.vhdl=work,../../lib/led_scan.vhdl=work,../../spdif/channel_decoder.vhdl=work,../../spdif/channel_encoder.vhdl=work,../../spdif/clock_regenerator.vhdl=work,../../spdif/input_decoder.vhdl=work,../../spdif/output_encoder.vhdl=work,../../spdif/packet_decoder.vhdl=work,../../spdif/packet_encoder.vhdl=work,../../lib/convert_from_sign_magnitude.vhdl=work,../../lib/convert_to_sign_magnitude.vhdl=work,../../lib/subtractor.vhdl=work,../../app/matcher/match_rom.vhdl,../../app/matcher/matcher.vhdl,../../lib/pulse_gen.vhdl,../../app/mode_display/mode_display.vhdl,../../lib/icefun_adc_driver.vhdl,../../lib/rotary_switch_driver.vhdl,../../lib/uart.vhdl
+ProjectVFiles=compressor_pll.vhd=work,compressor_top.vhdl=work,../spdif/channel_decoder.vhdl,../spdif/channel_encoder.vhdl,../spdif/clock_regenerator.vhdl,../spdif/input_decoder.vhdl,../spdif/output_encoder.vhdl,../spdif/packet_decoder.vhdl,../spdif/packet_encoder.vhdl,../lib/convert_from_sign_magnitude.vhdl,../lib/convert_to_sign_magnitude.vhdl,../lib/divider.vhdl,../lib/fifo.vhdl,../lib/icefun_adc_driver.vhdl,../lib/led_scan.vhdl,../lib/pulse_gen.vhdl,../lib/subtractor.vhdl,../lib/uart.vhdl,../app/compressor.vhdl,../app/compressor_main.vhdl,../app/matcher.vhdl,../app/mode_definitions.vhdl,../app/mode_display.vhdl,../app/rotary_switch.vhdl,../app/vu_meter.vhdl,../app/generated/match_rom.vhdl,../app/generated/version_rom.vhdl
 ProjectCFiles=syn_config.sdc
 CurImplementation=compressor_Implmnt
 Implementations=compressor_Implmnt
@@ -16,13 +16,13 @@ DeviceFamily=iCE40
 Device=HX8K
 DevicePackage=CB132
 DevicePower=
-NetlistFile=compressor_Implmnt/compressor.edf
+NetlistFile=
 AdditionalEDIFFile=
 IPEDIFFile=
-DesignLib=compressor_Implmnt/sbt/netlist/oadb-compressor_top
-DesignView=_rt
-DesignCell=compressor_top
-SynthesisSDCFile=compressor_Implmnt/compressor.scf
+DesignLib=
+DesignView=
+DesignCell=
+SynthesisSDCFile=
 UserPinConstraintFile=
 UserSDCFile=
 PhysicalConstraintFile=ice40.pcf

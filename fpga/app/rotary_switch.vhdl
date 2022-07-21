@@ -55,7 +55,7 @@ begin
         end if;
     end process register_inputs;
 
-    decode_inputs : process (code)
+    decode_inputs : process
     begin
         if clock_in'event and clock_in = '1' then
             case code is

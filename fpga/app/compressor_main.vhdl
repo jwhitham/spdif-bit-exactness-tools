@@ -131,6 +131,7 @@ begin
                   sync_in => sync (4),
                   sync_out => sync (5),
                   peak_level_out => peak_level,
+                  ready_out => open,
                   data_in => raw_data (27 downto 12),
                   left_strobe_in => raw_left_strobe,
                   right_strobe_in => raw_right_strobe,
