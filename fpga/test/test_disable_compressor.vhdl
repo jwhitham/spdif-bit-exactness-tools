@@ -113,7 +113,10 @@ begin
         variable sample_counter : Natural := 0;
         variable value          : Integer := 0;
         variable expect         : Integer := 0;
+        variable good           : Natural := 0;
         variable ok             : Boolean := false;
+
+        constant some_number_of_tests : Natural := 80;
 
     begin
         done <= '0';
@@ -126,7 +129,8 @@ begin
         wait until clock'event and clock = '1' and left_strobe_in = '1';
         wait until clock'event and clock = '1' and right_strobe_in = '1';
 
-        -- The first sample on each channel is lost by the compressor.
+        -- The first sample on each channel is lost by the compressor. This is because
+        -- the FIFO is held in the reset state until sync_in = '1' and right_strobe_in = '1'.
         sample_counter := 2;
 
         -- wait for data from the output
@@ -160,7 +164,7 @@ begin
         write (l, String'("Enable compression!"));
         writeline (output, l);
 
-        for i in 1 to 80 loop
+        for i in 1 to some_number_of_tests loop
             wait until clock'event and clock = '1' and (left_strobe_out or right_strobe_out) = '1';
             value := to_integer (signed (data_out));
             expect := test_numbers (sample_counter);
@@ -182,6 +186,29 @@ begin
         end loop;
 
         assert ok;
+
+        -- Accuracy should recover after a while
+        enable <= '0';
+        write (l, String'("Disable compression!"));
+        writeline (output, l);
+
+        for i in 1 to some_number_of_tests loop
+            wait until clock'event and clock = '1' and (left_strobe_out or right_strobe_out) = '1';
+            value := to_integer (signed (data_out));
+            expect := test_numbers (sample_counter);
+            sample_counter := (sample_counter + 1) mod test_numbers'Length;
+            if value = expect then
+                good := good + 1;
+            else
+                good := 0;
+            end if;
+        end loop;
+
+        assert good > 20;
+        write (l, String'("accuracy recovered after "));
+        write (l, some_number_of_tests - good);
+        write (l, String'(" samples"));
+        writeline (output, l);
 
         done <= '1';
         wait;
