@@ -46,7 +46,6 @@ begin
     left_strobe <= shift_in and synced and start_in and parity and bm_packet and not expect_right;
     right_strobe <= shift_in and synced and start_in and parity and w_packet and expect_right;
     sync_out <= synced;
-    subcode_out <= subcode;
     b_packet <= '1' when data (3 downto 0) = "0001" else '0';
     m_packet <= '1' when data (3 downto 0) = "0100" else '0';
     bm_packet <= b_packet or m_packet;

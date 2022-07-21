@@ -5,6 +5,8 @@ use work.all;
 library ieee;
 use ieee.std_logic_1164.all;
 
+use mode_definitions.all;
+
 entity mode_display is
     port (
         clock_in            : in std_logic;
@@ -48,8 +50,8 @@ architecture structural of mode_display is
                             ANNOUNCE_COMPRESS_MAX, ANNOUNCE_COMPRESS_2, ANNOUNCE_PASSTHROUGH, 
                             ANNOUNCE_COMPRESS_1, ANNOUNCE_ATTENUATE_1, ANNOUNCE_ATTENUATE_2,
                             BOOT, DESYNC, DOUBLE_VU_METER, SINGLE_VU_METER,
-                            DBG_SPDIF, DBG_SUBCODES, DBG_COMPRESS,
-                            DBG_ADCS, DBG_VERSION);
+                            SHOW_DBG_SPDIF, SHOW_DBG_SUBCODES, SHOW_DBG_COMPRESS,
+                            SHOW_DBG_ADCS, SHOW_DBG_VERSION);
     subtype t_led_line is std_logic_vector (7 downto 0);
     type t_leds is array (Natural range 0 to 3) of t_led_line;
 
@@ -63,149 +65,149 @@ architecture structural of mode_display is
 
 begin
 
-    process (display_mode, raw_meter_left_in, raw_meter_right_in,
-             cmp_meter_left_in, cmp_meter_right_in, sample_rate_in,
-             matcher_sync_in, single_time_in)
+    process (clock_in)
     begin
-        leds <= (others => (others => '0'));
-        case display_mode is
-            when DBG_VERSION | ANNOUNCE_DBG_VERSION | BOOT =>
-                -- Bootup
-                leds (0) <= version (31 downto 24);
-                leds (1) <= version (23 downto 16);
-                leds (1) <= version (15 downto 8);
-                leds (1) <= version (7 downto 0);
-            when DESYNC =>
-                -- Desync "dc"
-                leds (0) <= "00010000";
-                leds (1) <= "01110111";
-                leds (2) <= "01010100";
-                leds (3) <= "01110111";
-            when ANNOUNCE_COMPRESS_MAX =>
-                -- compressed to max level "cx"
-                leds (0) <= "00000000";
-                leds (1) <= "11100101";
-                leds (2) <= "10000010";
-                leds (3) <= "11100101";
-            when ANNOUNCE_COMPRESS_2 =>
-                -- compressed to volume level 2 "c2"
-                leds (0) <= "00000000";
-                leds (1) <= "11100101";
-                leds (2) <= "10000101";
-                leds (3) <= "11100101";
-            when ANNOUNCE_COMPRESS_1 =>
-                -- compressed to volume level 1 "c1"
-                leds (0) <= "00000000";
-                leds (1) <= "11100010";
-                leds (2) <= "10000010";
-                leds (3) <= "11100010";
-            when ANNOUNCE_ATTENUATE_1 =>
-                -- attenuated to volume level 1 "a1"
-                leds (0) <= "11100000";
-                leds (1) <= "10100010";
-                leds (2) <= "11100010";
-                leds (3) <= "10100010";
-            when ANNOUNCE_ATTENUATE_2 =>
-                -- attenuated to volume level 2 "a2"
-                leds (0) <= "11100000";
-                leds (1) <= "10100101";
-                leds (2) <= "11100101";
-                leds (3) <= "10100101";
-            when ANNOUNCE_PASSTHROUGH =>
-                -- passthrough "p"
-                leds (0) <= "11100000";
-                leds (1) <= "10100000";
-                leds (2) <= "11100000";
-                leds (3) <= "10000000";
-            when DOUBLE_VU_METER =>
-                -- Compressed modes
-                leds (0) <= raw_meter_left_in;
-                leds (1) <= raw_meter_right_in;
-                leds (2) <= cmp_meter_left_in;
-                leds (3) <= cmp_meter_right_in;
-            when SINGLE_VU_METER =>
-                -- Passthrough and attenuated modes
-                leds (0) <= raw_meter_left_in;
-                leds (1) <= raw_meter_right_in;
-            when ANNOUNCE_DBG_SPDIF =>
-                -- debug mode 1
-                leds (0) <= "10000000";
-                leds (1) <= "10000000";
-                leds (2) <= "10000000";
-                leds (3) <= "10000000";
-            when DBG_SPDIF =>
-                -- S/PDIF signal information
-                leds (0) <= single_time_in;
-                leds (1) <= clock_interval_in (15 downto 8);
-                leds (2) <= clock_interval_in (7 downto 0);
-                leds (3) <= all_sync_in;
-            when ANNOUNCE_DBG_SUBCODES =>
-                -- debug mode 2
-                leds (0) <= "10100000";
-                leds (1) <= "10100000";
-                leds (2) <= "10100000";
-                leds (3) <= "10100000";
-            when DBG_SUBCODES =>
-                -- Subcodes information
-                leds (0) <= subcode_in (31 downto 24);
-                leds (1) <= subcode_in (23 downto 16);
-                leds (2) <= subcode_in (15 downto 8);
-                leds (3) <= subcode_in (7 downto 0);
-            when ANNOUNCE_DBG_COMPRESS =>
-                -- debug mode 3
-                leds (0) <= "10101000";
-                leds (1) <= "10101000";
-                leds (2) <= "10101000";
-                leds (3) <= "10101000";
-            when DBG_COMPRESS =>
-                -- Compressor information
-                leds (0) <= peak_level_in (31 downto 24);
-                leds (1) <= peak_level_in (23 downto 16);
-                leds (2) <= peak_level_in (15 downto 8);
-                leds (3) <= peak_level_in (7 downto 0);
-            when ANNOUNCE_DBG_ADCS =>
-                -- debug mode 4
-                leds (0) <= "10101010";
-                leds (1) <= "10101010";
-                leds (2) <= "10101010";
-                leds (3) <= "10101010";
-            when DBG_ADCS =>
-                -- ADC information
-                leds (0) (1 downto 0) <= adjust_1_in (9 downto 8);
-                leds (1) <= adjust_1_in (7 downto 0);
-                leds (2) (1 downto 0) <= adjust_2_in (9 downto 8);
-                leds (3) <= adjust_2_in (7 downto 0);
-        end case;
+        if clock_in'event and clock_in = '1' then
+            leds <= (others => (others => '0'));
+            case display_mode is
+                when SHOW_DBG_VERSION | ANNOUNCE_DBG_VERSION | BOOT =>
+                    -- Bootup
+                    leds (0) <= version (31 downto 24);
+                    leds (1) <= version (23 downto 16);
+                    leds (1) <= version (15 downto 8);
+                    leds (1) <= version (7 downto 0);
+                when DESYNC =>
+                    -- Desync "dc"
+                    leds (0) <= "00010000";
+                    leds (1) <= "01110111";
+                    leds (2) <= "01010100";
+                    leds (3) <= "01110111";
+                when ANNOUNCE_COMPRESS_MAX =>
+                    -- compressed to max level "cx"
+                    leds (0) <= "00000000";
+                    leds (1) <= "11100101";
+                    leds (2) <= "10000010";
+                    leds (3) <= "11100101";
+                when ANNOUNCE_COMPRESS_2 =>
+                    -- compressed to volume level 2 "c2"
+                    leds (0) <= "00000000";
+                    leds (1) <= "11100101";
+                    leds (2) <= "10000101";
+                    leds (3) <= "11100101";
+                when ANNOUNCE_COMPRESS_1 =>
+                    -- compressed to volume level 1 "c1"
+                    leds (0) <= "00000000";
+                    leds (1) <= "11100010";
+                    leds (2) <= "10000010";
+                    leds (3) <= "11100010";
+                when ANNOUNCE_ATTENUATE_1 =>
+                    -- attenuated to volume level 1 "a1"
+                    leds (0) <= "11100000";
+                    leds (1) <= "10100010";
+                    leds (2) <= "11100010";
+                    leds (3) <= "10100010";
+                when ANNOUNCE_ATTENUATE_2 =>
+                    -- attenuated to volume level 2 "a2"
+                    leds (0) <= "11100000";
+                    leds (1) <= "10100101";
+                    leds (2) <= "11100101";
+                    leds (3) <= "10100101";
+                when ANNOUNCE_PASSTHROUGH =>
+                    -- passthrough "p"
+                    leds (0) <= "11100000";
+                    leds (1) <= "10100000";
+                    leds (2) <= "11100000";
+                    leds (3) <= "10000000";
+                when DOUBLE_VU_METER =>
+                    -- Compressed modes
+                    leds (0) <= raw_meter_left_in;
+                    leds (1) <= raw_meter_right_in;
+                    leds (2) <= cmp_meter_left_in;
+                    leds (3) <= cmp_meter_right_in;
+                when SINGLE_VU_METER =>
+                    -- Passthrough and attenuated modes
+                    leds (0) <= raw_meter_left_in;
+                    leds (1) <= raw_meter_right_in;
+                when ANNOUNCE_DBG_SPDIF =>
+                    -- debug mode 1
+                    leds (0) <= "10000000";
+                    leds (1) <= "10000000";
+                    leds (2) <= "10000000";
+                    leds (3) <= "10000000";
+                when SHOW_DBG_SPDIF =>
+                    -- S/PDIF signal information
+                    leds (0) <= single_time_in;
+                    leds (1) <= clock_interval_in (15 downto 8);
+                    leds (2) <= clock_interval_in (7 downto 0);
+                    leds (3) <= all_sync_in;
+                when ANNOUNCE_DBG_SUBCODES =>
+                    -- debug mode 2
+                    leds (0) <= "10100000";
+                    leds (1) <= "10100000";
+                    leds (2) <= "10100000";
+                    leds (3) <= "10100000";
+                when SHOW_DBG_SUBCODES =>
+                    -- Subcodes information
+                    leds (0) <= subcode_in (31 downto 24);
+                    leds (1) <= subcode_in (23 downto 16);
+                    leds (2) <= subcode_in (15 downto 8);
+                    leds (3) <= subcode_in (7 downto 0);
+                when ANNOUNCE_DBG_COMPRESS =>
+                    -- debug mode 3
+                    leds (0) <= "10101000";
+                    leds (1) <= "10101000";
+                    leds (2) <= "10101000";
+                    leds (3) <= "10101000";
+                when SHOW_DBG_COMPRESS =>
+                    -- Compressor information
+                    leds (0) <= peak_level_in (31 downto 24);
+                    leds (1) <= peak_level_in (23 downto 16);
+                    leds (2) <= peak_level_in (15 downto 8);
+                    leds (3) <= peak_level_in (7 downto 0);
+                when ANNOUNCE_DBG_ADCS =>
+                    -- debug mode 4
+                    leds (0) <= "10101010";
+                    leds (1) <= "10101010";
+                    leds (2) <= "10101010";
+                    leds (3) <= "10101010";
+                when SHOW_DBG_ADCS =>
+                    -- ADC information
+                    leds (0) (1 downto 0) <= adjust_1_in (9 downto 8);
+                    leds (1) <= adjust_1_in (7 downto 0);
+                    leds (2) (1 downto 0) <= adjust_2_in (9 downto 8);
+                    leds (3) <= adjust_2_in (7 downto 0);
+            end case;
+        end if;
     end process;
 
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
             if mode_strobe_in = '1' then
-                -- Change mode
+                -- Change mode; announce the new mode
                 countdown <= max_countdown;
                 case mode_select_in is
-                    when mode_definitions.COMPRESS_MAX =>
+                    when COMPRESS_MAX =>
                         display_mode <= ANNOUNCE_COMPRESS_MAX;
-                    when mode_definitions.COMPRESS_2 =>
+                    when COMPRESS_2 =>
                         display_mode <= ANNOUNCE_COMPRESS_2;
-                    when mode_definitions.COMPRESS_1 =>
+                    when COMPRESS_1 =>
                         display_mode <= ANNOUNCE_COMPRESS_1;
-                    when mode_definitions.ATTENUATE_1 =>
+                    when ATTENUATE_1 =>
                         display_mode <= ANNOUNCE_ATTENUATE_1;
-                    when mode_definitions.ATTENUATE_2 =>
+                    when ATTENUATE_2 =>
                         display_mode <= ANNOUNCE_ATTENUATE_2;
-                    when mode_definitions.PASSTHROUGH =>
+                    when PASSTHROUGH =>
                         display_mode <= ANNOUNCE_PASSTHROUGH;
-                    when mode_definitions.DBG_SPDIF =>
+                    when DBG_SPDIF =>
                         display_mode <= ANNOUNCE_DBG_SPDIF;
-                    when mode_definitions.DBG_SUBCODES =>
+                    when DBG_SUBCODES =>
                         display_mode <= ANNOUNCE_DBG_SUBCODES;
-                    when mode_definitions.DBG_COMPRESS =>
+                    when DBG_COMPRESS =>
                         display_mode <= ANNOUNCE_DBG_COMPRESS;
-                    when mode_definitions.DBG_ADCS =>
+                    when DBG_ADCS =>
                         display_mode <= ANNOUNCE_DBG_ADCS;
-                    when mode_definitions.DBG_VERSION =>
+                    when DBG_VERSION =>
                         display_mode <= ANNOUNCE_DBG_VERSION;
                     when others =>
                         display_mode <= ANNOUNCE_PASSTHROUGH;
@@ -226,20 +228,18 @@ begin
             else
                 -- Stable - show normal display
                 case mode_select_in is
-                    when mode_definitions.COMPRESS_MAX
-                            | mode_definitions.COMPRESS_2
-                            | mode_definitions.COMPRESS_1 =>
+                    when COMPRESS_MAX | COMPRESS_2 | COMPRESS_1 =>
                         display_mode <= DOUBLE_VU_METER;
-                    when mode_definitions.DBG_SPDIF =>
-                        display_mode <= DBG_SPDIF;
-                    when mode_definitions.DBG_SUBCODES =>
-                        display_mode <= DBG_SUBCODES;
-                    when mode_definitions.DBG_COMPRESS =>
-                        display_mode <= DBG_COMPRESS;
-                    when mode_definitions.DBG_ADCS =>
-                        display_mode <= DBG_ADCS;
-                    when mode_definitions.DBG_VERSION =>
-                        display_mode <= DBG_VERSION;
+                    when DBG_SPDIF =>
+                        display_mode <= SHOW_DBG_SPDIF;
+                    when DBG_SUBCODES =>
+                        display_mode <= SHOW_DBG_SUBCODES;
+                    when DBG_COMPRESS =>
+                        display_mode <= SHOW_DBG_COMPRESS;
+                    when DBG_ADCS =>
+                        display_mode <= SHOW_DBG_ADCS;
+                    when DBG_VERSION =>
+                        display_mode <= SHOW_DBG_VERSION;
                     when others =>
                         display_mode <= SINGLE_VU_METER;
                 end case;
