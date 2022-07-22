@@ -9,6 +9,7 @@ entity input_decoder is
         pulse_length_out : out std_logic_vector (1 downto 0) := "00";
         single_time_out  : out std_logic_vector (7 downto 0) := (others => '0');
         sync_out         : out std_logic := '0';
+        sync_in          : in std_logic := '0';
         clock_in         : in std_logic
     );
 end input_decoder;
@@ -53,7 +54,10 @@ begin
             transition_time <= zero_transition_time;
             transition_class <= NONE;
 
-            if delay0 = delay1 then
+            if sync_in = '0' then
+                transition_class <= LONG;
+
+            elsif delay0 = delay1 then
                 if timer = max_transition_time then
                     threshold <= LONG;
                     transition_class <= LONG;

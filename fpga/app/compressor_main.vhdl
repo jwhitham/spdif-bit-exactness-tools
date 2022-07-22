@@ -11,6 +11,7 @@ use mode_definitions.all;
 entity compressor_main is
     port (
         clock_in            : in std_logic;
+        reset_in            : in std_logic;
 
         tx_to_pic_out       : out std_logic := '0';
         rx_from_pic_in      : in std_logic;
@@ -81,7 +82,7 @@ architecture structural of compressor_main is
     signal cmp_right_meter          : t_leds := (others => '0');
     signal single_time              : t_leds := (others => '0');
     signal preemph                  : std_logic := '0';
-    signal sync                     : std_logic_vector (8 downto 1) := (others => '0');
+    signal sync                     : std_logic_vector (8 downto 0) := (others => '0');
     signal pulse_100hz              : std_logic := '0';
     signal adc_enable_poll          : std_logic := '0';
     signal cmp_enable               : std_logic := '0';
@@ -101,9 +102,14 @@ architecture structural of compressor_main is
 
     constant clock_frequency        : Real := 96.0e6;
 begin
+    sync (0) <= not reset_in;
+
     dec1 : entity input_decoder
-        port map (clock_in => clock_in, data_in => spdif_rx_in,
-                  sync_out => sync (1), single_time_out => single_time,
+        port map (clock_in => clock_in,
+                  data_in => spdif_rx_in,
+                  sync_in => sync (0),
+                  sync_out => sync (1),
+                  single_time_out => single_time,
                   pulse_length_out => raw_pulse_length);
 
     dec2 : entity packet_decoder
@@ -272,6 +278,7 @@ begin
     display : entity mode_display
         port map (clock_in => clock_in,
                   pulse_100hz_in => pulse_100hz,
+                  reset_in => reset_in,
 
                   -- mode select
                   mode_strobe_in => mode_strobe,
@@ -311,6 +318,7 @@ begin
     adc : entity icefun_adc_driver
         generic map (clock_frequency => clock_frequency)
         port map (clock_in => clock_in,
+                  reset_in => reset_in,
                   pulse_100hz_in => pulse_100hz,
                   tx_to_pic => tx_to_pic_out,
                   rx_from_pic => rx_from_pic_in,
@@ -326,6 +334,7 @@ begin
 
     rot : entity rotary_switch
         port map (clock_in => clock_in,
+                  reset_in => reset_in,
                   pulse_100hz_in => pulse_100hz,
                   rotary_024 => rotary_024_in,
                   rotary_01 => rotary_01_in,

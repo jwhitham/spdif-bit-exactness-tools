@@ -13,6 +13,7 @@ use ieee.numeric_std.all;
 entity rotary_switch is
     port (
         clock_in            : in std_logic;
+        reset_in            : in std_logic;
         pulse_100hz_in      : in std_logic;
         rotary_024          : in std_logic; -- grey wire
         rotary_01           : in std_logic; -- purple wire
@@ -74,7 +75,16 @@ begin
     begin
         if clock_in'event and clock_in = '1' then
             strobe_out <= '0';
-            if new_button_value /= old_button_value then
+
+            if reset_in = '1' then
+                -- Don't trigger a mode change strobe when coming out of reset!
+                updated_buttons <= '0';
+                updated_rotary <= '0';
+                old_button_value <= new_button_value;
+                old_rotary_value <= new_rotary_value;
+                countdown <= 0;
+
+            elsif new_button_value /= old_button_value then
                 countdown <= max_countdown;
                 updated_buttons <= '1';
                 old_button_value <= new_button_value;

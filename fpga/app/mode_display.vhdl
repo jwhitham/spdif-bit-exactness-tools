@@ -11,6 +11,7 @@ entity mode_display is
     port (
         clock_in            : in std_logic;
         pulse_100hz_in      : in std_logic;
+        reset_in            : in std_logic;
 
         -- mode select
         mode_strobe_in      : in std_logic;
@@ -28,7 +29,7 @@ entity mode_display is
         sample_rate_in      : in std_logic_vector (15 downto 0);
         matcher_sync_in     : in std_logic_vector (1 downto 0);
         single_time_in      : in std_logic_vector (7 downto 0);
-        all_sync_in         : in std_logic_vector (1 to 8);
+        all_sync_in         : in std_logic_vector (8 downto 0);
         clock_interval_in   : in std_logic_vector (15 downto 0);
         subcode_in          : in std_logic_vector (31 downto 0);
         peak_level_in       : in std_logic_vector (31 downto 0);
@@ -66,13 +67,17 @@ architecture structural of mode_display is
     signal adc_error_latch  : std_logic := '0';
     signal cmp_fifo_error_latch : std_logic := '0';
     signal cmp_over_error_latch : std_logic := '0';
+    signal desync_error_latch : std_logic := '0';
 
     -- Signals
     signal display_mode     : t_display_mode := BOOT;
     signal leds             : t_leds := (others => (others => '0'));
     signal version          : std_logic_vector (31 downto 0) := (others => '0');
+    signal desync_flag      : std_logic := '0';
 
 begin
+
+    desync_flag <= not all_sync_in (all_sync_in'Left);
 
     process (clock_in)
     begin
@@ -148,7 +153,7 @@ begin
                     leds (0) <= single_time_in;
                     leds (1) <= clock_interval_in (15 downto 8);
                     leds (2) <= clock_interval_in (7 downto 0);
-                    leds (3) <= all_sync_in;
+                    leds (3) <= all_sync_in (8 downto 1);
                 when ANNOUNCE_DBG_SUBCODES =>
                     -- debug mode 2
                     leds (0) <= "00100000";
@@ -186,7 +191,8 @@ begin
                     leds (0) (6) <= adc_error_latch;     -- ADC capture error (timeout reading from PIC)
                     leds (0) (5) <= cmp_fifo_error_latch; -- compressor FIFO error
                     leds (0) (4) <= cmp_over_error_latch; -- compressor overflow error
-                    leds (0) (3) <= reset_error_in;
+                    leds (0) (3) <= desync_error_latch;  -- desync at some point
+                    leds (0) (2) <= reset_error_in;      -- reset button is pressed
                     leds (1) <= adjust_1_in (7 downto 0);
                     leds (2) (1 downto 0) <= adjust_2_in (9 downto 8);
                     leds (3) <= adjust_2_in (7 downto 0);
@@ -203,7 +209,12 @@ begin
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
-            if mode_strobe_in = '1' then
+            if reset_in = '1' then
+                -- Hold in reset
+                countdown <= max_countdown;
+                display_mode <= BOOT;
+
+            elsif mode_strobe_in = '1' then
                 -- Change mode; announce the new mode
                 countdown <= max_countdown;
                 case mode_select_in is
@@ -240,8 +251,8 @@ begin
                     countdown <= countdown - 1;
                 end if;
 
-            elsif all_sync_in /= "11111111" then
-                -- No input
+            elsif desync_flag = '1' and display_mode /= DESYNC then
+                -- Show desync display
                 countdown <= max_countdown;
                 display_mode <= DESYNC;
 
@@ -270,16 +281,18 @@ begin
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
-            if reset_error_in = '1' or display_mode = BOOT then
+            if reset_in = '1' or reset_error_in = '1' then
                 oe_error_latch <= '0';
                 adc_error_latch <= '0';
                 cmp_fifo_error_latch <= '0';
                 cmp_over_error_latch <= '0';
+                desync_error_latch <= '0';
             else
                 oe_error_latch <= oe_error_latch or oe_error_in;
                 adc_error_latch <= adc_error_latch or adc_error_in;
                 cmp_over_error_latch <= cmp_over_error_latch or cmp_over_error_in;
                 cmp_fifo_error_latch <= cmp_fifo_error_latch or cmp_fifo_error_in;
+                desync_error_latch <= desync_flag or desync_error_latch;
             end if;
         end if;
     end process;

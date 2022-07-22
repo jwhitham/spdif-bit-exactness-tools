@@ -16,6 +16,7 @@ architecture structural of test_compressor_main is
     signal clock           : std_logic := '0';
     signal raw_data        : std_logic := '0';
     signal done            : std_logic := '0';
+    signal reset           : std_logic := '0';
     constant one           : std_logic := '1';
     constant zero          : std_logic := '0';
     signal lcols           : std_logic_vector (3 downto 0) := (others => '0');
@@ -28,6 +29,7 @@ begin
     t : entity compressor_main
         port map (
             clock_in => clock,
+            reset_in => reset,
             spdif_rx_in => raw_data,
             lcols_out => lcols,
             lrows_out => lrows,
@@ -55,6 +57,11 @@ begin
             writeline (output, l);
         end dump;
     begin
+        reset <= '1';
+        for i in 1 to 5 loop
+            wait until clock'event and clock = '1';
+        end loop;
+        reset <= '0';
         wait until clock'event and clock = '1';
         while done /= '1' loop
             case lcols is
