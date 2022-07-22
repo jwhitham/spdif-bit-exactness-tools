@@ -22,6 +22,8 @@ architecture test of test_compressor2 is
     signal left_strobe_in   : std_logic := '0';
     signal right_strobe_in  : std_logic := '0';
 
+    constant volume_1       : std_logic_vector (10 downto 0) := (10 => '1', others => '0');
+
     constant sample_rate            : Natural := 1000;
     constant sample_period          : Time := 1000 ms / sample_rate;
     constant clock_period           : Time := sample_period / 1000;
@@ -114,6 +116,7 @@ begin
                 data_out => data_out,
                 left_strobe_out => left_strobe_out,
                 right_strobe_out => right_strobe_out,
+                volume_in => volume_1,
                 sync_in => sync_in,
                 sync_out => sync_out,
                 clock_in => clock);

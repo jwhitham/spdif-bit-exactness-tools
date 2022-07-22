@@ -34,6 +34,7 @@ architecture test of test_compressor is
 
     constant one                    : std_logic := '1';
     constant sample_rate            : Natural := 1000;
+    constant volume_1       : std_logic_vector (10 downto 0) := (10 => '1', others => '0');
 
     constant sample_period          : Time := 1000 ms / sample_rate;
     constant clock_period           : Time := sample_period / 1000;
@@ -60,6 +61,7 @@ begin
             right_strobe_in => right_strobe_in,
             data_out => data_out,
             enable_in => one,
+            volume_in => volume_1,
             left_strobe_out => left_strobe_out,
             right_strobe_out => right_strobe_out,
             sync_in => sync_in,

@@ -36,6 +36,8 @@ architecture test of test_disable_compressor is
     signal sync_out         : std_logic := '0';
     signal enable           : std_logic := '0';
 
+    constant volume_1       : std_logic_vector (10 downto 0) := (10 => '1', others => '0');
+
     type t_test_numbers is array (Natural range <>) of Integer;
     constant test_numbers : t_test_numbers :=
         (-2483, -12278, 23458, 20125, -20618, -28339, 25736, 23287, -1643, 11680, 
@@ -103,6 +105,7 @@ begin
             data_out => data_out,
             left_strobe_out => left_strobe_out,
             right_strobe_out => right_strobe_out,
+            volume_in => volume_1,
             ready_out => open,
             sync_in => one,
             sync_out => sync_out,

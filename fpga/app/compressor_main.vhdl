@@ -6,6 +6,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+use mode_definitions.all;
+
 entity compressor_main is
     port (
         clock_in            : in std_logic;
@@ -86,6 +88,7 @@ architecture structural of compressor_main is
     signal clock_interval           : std_logic_vector (15 downto 0) := (others => '0');
     signal subcode                  : std_logic_vector (31 downto 0) := (others => '0');
     signal peak_level               : std_logic_vector (31 downto 0) := (others => '0');
+    signal volume                   : std_logic_vector (10 downto 0) := (others => '0');
 
     -- user mode
     signal mode_strobe              : std_logic := '0';
@@ -132,6 +135,7 @@ begin
                   sync_in => sync (4),
                   sync_out => sync (5),
                   peak_level_out => peak_level,
+                  volume_in => volume,
                   ready_out => open,
                   enable_in => cmp_enable,
                   data_in => raw_data (27 downto 12),
@@ -143,11 +147,32 @@ begin
 
     cmp_data (31 downto 28) <= (others => '0');
     cmp_data (11 downto 0) <= (others => '0');
-    cmp_enable <= '0' when mode_select = mode_definitions.PASSTHROUGH
-                        or mode_select = mode_definitions.ATTENUATE_1
-                        or mode_select = mode_definitions.ATTENUATE_2
-                        or mode_select = mode_definitions.DBG_VERSION
-                        else '1';
+
+    process (adjust_1, adjust_2, mode_select)
+    begin
+        -- Compressor is disabled in certain modes
+        cmp_enable <= '1';
+        case mode_select is
+            when PASSTHROUGH | ATTENUATE_1 | ATTENUATE_2 | DBG_VERSION =>
+                cmp_enable <= '0';
+            when others =>
+                null;
+        end case;
+
+        -- Volume is not 1.0 in certain modes
+        volume <= (others => '0');
+        case mode_select is
+            when ATTENUATE_1 | COMPRESS_1 =>
+                -- volume from adjuster 1, range is [0.0, 1.0)
+                volume (volume'Left - 1 downto 0) <= adjust_1;
+            when ATTENUATE_2 | COMPRESS_2 =>
+                -- volume from adjuster 2, range is [0.0, 1.0)
+                volume (volume'Left - 1 downto 0) <= adjust_2;
+            when others =>
+                -- volume is 1.0
+                volume (volume'Left) <= '1';
+        end case;
+    end process;
 
     ce : entity channel_encoder
         port map (clock => clock_in,

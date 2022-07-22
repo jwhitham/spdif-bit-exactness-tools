@@ -29,6 +29,7 @@ architecture test of test_measure is
     constant fpga_freq_mhz  : Natural := 96;
 
     constant one            : std_logic := '1';
+    constant volume_1       : std_logic_vector (10 downto 0) := (10 => '1', others => '0');
 
     signal data_out         : t_data := (others => '0');
     signal left_strobe_out  : std_logic := '0';
@@ -106,6 +107,7 @@ begin
             data_out => data_out,
             left_strobe_out => left_strobe_out,
             right_strobe_out => right_strobe_out,
+            volume_in => volume_1,
             ready_out => ready_out,
             sync_in => sync_in,
             sync_out => sync_out,

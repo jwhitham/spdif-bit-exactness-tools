@@ -23,6 +23,7 @@ entity compressor is
         right_strobe_in : in std_logic;
         data_out        : out std_logic_vector (15 downto 0) := (others => '0');
         peak_level_out  : out std_logic_vector (31 downto 0) := (others => '0');
+        volume_in       : in std_logic_vector (10 downto 0) := (others => '0');
         left_strobe_out : out std_logic := '0';
         right_strobe_out : out std_logic := '0';
         enable_in       : in std_logic;
@@ -48,6 +49,10 @@ architecture structural of compressor is
     subtype t_fifo_data is std_logic_vector (audio_bits - 1 downto 0);
     subtype t_audio_data is std_logic_vector (audio_bits - 2 downto 0);
     subtype t_peak_level is std_logic_vector (peak_bits - 1 downto 0);
+
+    -- volume control; the volume control is a fixed-point number, range [0.0, 2.0)
+    -- but values above 1.0 must not be used (will cause clipping)
+    constant volume_bits        : Natural := 11;
 
     -- The state machine sequence is:
     --
@@ -83,14 +88,16 @@ architecture structural of compressor is
     --  CLAMP_TO_MAXIMUM:
     --      peak_level = max (peak_level, abs_compare)
     --  COMPRESS:
-    --      signal start of division: input / peak_level
+    --      signal start of multiplication: input * volume
     --      for left channel only:
     --        signal start of division: peak_level / peak_divisor
     --  AWAIT_AUDIO_DIVISION:
-    --      Copy divider_finish to appropriate output strobe
-    --      Copy divider output to audio output
-    --      Flip channel flag
-    --      If divider_finish = '1' goto START
+    --      wait for multiplication to finish, then signal start of division: input / peak_level
+    --      wait for division to finish, then:
+    --        Copy divider_finish to appropriate output strobe
+    --        Copy divider output to audio output
+    --        Flip channel flag
+    --        goto START
     --      
     type t_state is (INIT, FILLING, START,
                      LOAD_FIFO_INPUT,
@@ -181,8 +188,18 @@ architecture structural of compressor is
     end write_big_number;
 begin
     reset <= '1' when state = INIT else '0';
+
+    -- Check for invalid configuration
     assert data_in'Length = audio_bits;
     assert peak_bits > audio_bits;
+    assert volume_in'Length = volume_bits;
+    assert volume_in (volume_bits - 1) = '0' or to_integer (unsigned (volume_in (volume_bits - 2 downto 0))) = 0;
+    assert 0.0 < delay_threshold_level;
+    assert 1.0 > delay_threshold_level;
+
+    -- The threshold level must allow some space in the FIFO so that new samples can arrive
+    -- while old samples are being processed.
+    assert (Real (2 ** delay_size_log_2) * (1.0 - delay_threshold_level)) > 4.0;
 
     -- Incoming data is converted to sign-magnitude form
     sm_in : entity convert_to_sign_magnitude
@@ -217,19 +234,43 @@ begin
     abs_fifo_out <= fifo_out (audio_bits - 2 downto 0);
     peak_level_out (peak_bits - 1 downto 0) <= peak_level;
 
-    -- Audio divider
+    -- Audio multiplier and divider
     audio : block
         constant peak_high_bit  : Natural := peak_bits - fixed_point;
         constant top_width      : Natural := peak_high_bit + (audio_bits - 1);
+        constant mul_width      : Natural := volume_bits + audio_bits - 1;
         signal top_value        : std_logic_vector (top_width - 1 downto 0) := (others => '0');
         signal divider_result   : std_logic_vector (top_width - 1 downto 0) := (others => '0');
+        signal mul_result       : std_logic_vector (mul_width - 1 downto 0) := (others => '0');
         signal divider_start    : std_logic := '0';
+        signal multiplier_start : std_logic := '0';
     begin
-        -- Input to divider from FIFO
-        top_value (top_width - 1 downto peak_high_bit) <= fifo_out (audio_bits - 2 downto 0);
-        top_value (peak_high_bit - 1 downto 0) <= (others => '0');
-        divider_start <= '1' when state = COMPRESS else '0';
+        -- The multiplier reduces the volume by multiplying the FIFO output by volume_in
+        -- (the volume is a fixed-point value and must not be greater than 1.0.)
+        multiplier_start <= '1' when state = COMPRESS else '0';
 
+        mul : entity multiplier
+            generic map (a_width => volume_bits,
+                         b_width => audio_bits - 1,
+                         adder_slice_width => subtractor_slice_width)
+            port map (
+                a_value_in => volume_in,
+                b_value_in => fifo_out (audio_bits - 2 downto 0),
+                start_in => multiplier_start,
+                reset_in => reset,
+                finish_out => divider_start,
+                result_out => mul_result,
+                clock_in => clock_in);
+
+        -- The output of the multiplier is shifted left so that it can be divided by the peak level
+        -- to get the audio output value. The top bit is discarded: it must be 0 because the
+        -- volume cannot be greater than 1.0 and the audio input must be less than 1.0.
+        assert top_width > mul_width;
+        assert mul_result (mul_width - 1) = '0';
+        top_value (top_width - 1 downto top_width - mul_width + 1) <= mul_result (mul_width - 2 downto 0);
+        top_value (top_width - mul_width downto 0) <= (others => '0');
+
+        -- The divider increases the volume by dividing by peak_level
         div : entity divider
             generic map (top_width => top_width,
                          bottom_width => peak_bits,
@@ -262,8 +303,17 @@ begin
             variable l : line;
         begin
             if clock_in'event and clock_in = '1' then
+                if multiplier_start = '1' and debug then
+                    write (l, String'("begin audio multiplication: "));
+                    write_big_number (l, volume_in);
+                    write (l, String'(" * "));
+                    write_big_number (l, fifo_out (audio_bits - 2 downto 0));
+                    writeline (output, l);
+                end if;
                 if divider_start = '1' and debug then
-                    write (l, String'("begin audio division: "));
+                    write (l, String'("result of audio multiplication: "));
+                    write_big_number (l, mul_result);
+                    write (l, String'(" begin audio division: "));
                     write_big_number (l, top_value);
                     write (l, String'(" / "));
                     write_big_number (l, peak_level);
