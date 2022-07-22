@@ -14,7 +14,7 @@ entity compressor is
              sample_rate            : Natural := 48000;     -- Hz
              decay_rate             : Real := 1.0;          -- dB
              delay_threshold_level  : Real := 0.99;
-             delay_size_log_2       : Natural := 11;
+             delay_size_log_2       : Natural := 9;
              subtractor_slice_width : Natural := 8;
              debug                  : Boolean := false);
     port (
