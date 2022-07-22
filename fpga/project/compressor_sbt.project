@@ -4,7 +4,7 @@ Version=Lattice Semiconductor Corporation iCEcube - Release: 2020.12.27943 - Bui
 ProjectName=compressor
 Vendor=SiliconBlue
 Synthesis=synplify
-ProjectVFiles=compressor_pll.vhd=work,compressor_top.vhdl=work,../spdif/channel_decoder.vhdl=work,../spdif/channel_encoder.vhdl=work,../spdif/clock_regenerator.vhdl=work,../spdif/input_decoder.vhdl=work,../spdif/output_encoder.vhdl=work,../spdif/packet_decoder.vhdl=work,../spdif/packet_encoder.vhdl=work,../lib/convert_from_sign_magnitude.vhdl=work,../lib/convert_to_sign_magnitude.vhdl=work,../lib/divider.vhdl=work,../lib/fifo.vhdl=work,../lib/icefun_adc_driver.vhdl=work,../lib/led_scan.vhdl=work,../lib/pulse_gen.vhdl=work,../lib/subtractor.vhdl=work,../lib/uart.vhdl=work,../app/compressor.vhdl=work,../app/compressor_main.vhdl=work,../app/matcher.vhdl=work,../app/mode_definitions.vhdl=work,../app/mode_display.vhdl=work,../app/rotary_switch.vhdl=work,../app/vu_meter.vhdl=work,../app/generated/match_rom.vhdl=work,../app/generated/version_rom.vhdl=work,../lib/multiplier.vhdl
+ProjectVFiles=compressor_pll.vhd=work,compressor_top.vhdl=work,../spdif/channel_decoder.vhdl=work,../spdif/channel_encoder.vhdl=work,../spdif/clock_regenerator.vhdl=work,../spdif/input_decoder.vhdl=work,../spdif/output_encoder.vhdl=work,../spdif/packet_decoder.vhdl=work,../spdif/packet_encoder.vhdl=work,../lib/convert_from_sign_magnitude.vhdl=work,../lib/convert_to_sign_magnitude.vhdl=work,../lib/divider.vhdl=work,../lib/fifo.vhdl=work,../lib/icefun_adc_driver.vhdl=work,../lib/led_scan.vhdl=work,../lib/pulse_gen.vhdl=work,../lib/subtractor.vhdl=work,../lib/uart.vhdl=work,../app/compressor.vhdl=work,../app/compressor_main.vhdl=work,../app/matcher.vhdl=work,../app/mode_definitions.vhdl=work,../app/mode_display.vhdl=work,../app/rotary_switch.vhdl=work,../app/vu_meter.vhdl=work,../app/generated/match_rom.vhdl=work,../app/generated/version_rom.vhdl=work,../lib/multiplier.vhdl=work
 ProjectCFiles=syn_config.sdc
 CurImplementation=compressor_Implmnt
 Implementations=compressor_Implmnt
@@ -19,9 +19,9 @@ DevicePower=
 NetlistFile=compressor_Implmnt/compressor.edf
 AdditionalEDIFFile=
 IPEDIFFile=
-DesignLib=
-DesignView=
-DesignCell=
+DesignLib=compressor_Implmnt/sbt/netlist/oadb-compressor_top
+DesignView=_rt
+DesignCell=compressor_top
 SynthesisSDCFile=compressor_Implmnt/compressor.scf
 UserPinConstraintFile=
 UserSDCFile=

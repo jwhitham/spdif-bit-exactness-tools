@@ -102,7 +102,7 @@ begin
                 elsif subcode_counter /= 0 then
                     -- additional subcode bit shifted in
                     subcode_counter <= subcode_counter - 1;
-                    subcode (0) <= data (0);
+                    subcode (0) <= data (subcode_bit);
                     subcode (subcode'Left downto 1) <= subcode (subcode'Left - 1 downto 0);
                 end if;
             end if;
