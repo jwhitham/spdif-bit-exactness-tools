@@ -33,6 +33,7 @@ TEST_VHDL = \
 		test/sb_ram40_4k.vhdl \
 		test/generated/test_signal_generator.vhdl \
 		test/test_disable_compressor.vhdl \
+		test/test_volume.vhdl \
 		test/test_compressor.vhdl \
 		test/test_compressor2.vhdl \
 		test/test_compressor_main.vhdl \
@@ -56,6 +57,7 @@ run_tests:
 	python app/make_version_rom.py
 	python test/make_test_bench.py
 	ghdl -a --work=work $(VHDL) $(TEST_VHDL)
+	ghdl -r test_volume $(RFLAGS)
 	ghdl -r test_disable_compressor $(RFLAGS)
 	ghdl -r test_measure $(RFLAGS)
 	ghdl -r test_subtractor $(RFLAGS)
