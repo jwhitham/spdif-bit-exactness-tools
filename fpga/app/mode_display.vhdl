@@ -34,6 +34,9 @@ entity mode_display is
         peak_level_in       : in std_logic_vector (31 downto 0);
         adjust_1_in         : in std_logic_vector (9 downto 0);
         adjust_2_in         : in std_logic_vector (9 downto 0);
+        oe_error_in         : in std_logic;
+        adc_error_in        : in std_logic;
+        cmp_error_in        : in std_logic;
 
         -- LED outputs
         lcols_out           : out std_logic_vector (3 downto 0) := "0000";
@@ -57,6 +60,9 @@ architecture structural of mode_display is
 
     -- Registers
     signal countdown        : t_countdown := max_countdown;
+    signal oe_error_latch   : std_logic := '0';
+    signal adc_error_latch  : std_logic := '0';
+    signal cmp_error_latch  : std_logic := '0';
 
     -- Signals
     signal display_mode     : t_display_mode := BOOT;
@@ -171,8 +177,12 @@ begin
                     leds (2) <= "10101010";
                     leds (3) <= "10101010";
                 when SHOW_DBG_ADCS =>
-                    -- ADC information
+                    -- ADC information and error latches
                     leds (0) (1 downto 0) <= adjust_1_in (9 downto 8);
+                    leds (0) (7) <= oe_error_latch;     -- output encoder FIFO error
+                    leds (0) (6) <= adc_error_latch;    -- ADC capture error (timeout reading from PIC)
+                    leds (0) (5) <= cmp_error_latch;    -- compressor error (output overflow or FIFO error)
+                    leds (0) (4) <= '1';
                     leds (1) <= adjust_1_in (7 downto 0);
                     leds (2) (1 downto 0) <= adjust_2_in (9 downto 8);
                     leds (3) <= adjust_2_in (7 downto 0);
@@ -244,6 +254,16 @@ begin
                         display_mode <= SINGLE_VU_METER;
                 end case;
             end if;
+        end if;
+    end process;
+
+    process (clock_in)
+    begin
+        if clock_in'event and clock_in = '1' then
+            -- Any errors are permanently latched and shown in the debug output (ADC page)
+            oe_error_latch <= oe_error_latch or oe_error_in;
+            adc_error_latch <= adc_error_latch or adc_error_in;
+            cmp_error_latch <= cmp_error_latch or cmp_error_in;
         end if;
     end process;
 

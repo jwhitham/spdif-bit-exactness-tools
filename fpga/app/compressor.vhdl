@@ -30,6 +30,7 @@ entity compressor is
         sync_in         : in std_logic;
         sync_out        : out std_logic := '0';
         ready_out       : out std_logic := '0';
+        error_out       : out std_logic := '0';
         clock_in        : in std_logic
     );
 end compressor;
@@ -149,6 +150,8 @@ architecture structural of compressor is
     signal thresh_reached       : std_logic := '0';
     signal read_error           : std_logic := '0';
     signal write_error          : std_logic := '0';
+    signal mul_error            : std_logic := '0';
+    signal div_error            : std_logic := '0';
     signal fifo_read            : std_logic := '0';
     signal empty_out            : std_logic := '0';
     signal fifo_out             : t_fifo_data := (others => '0');
@@ -229,6 +232,7 @@ begin
 
     assert read_error = '0';
     assert write_error = '0';
+    error_out <= read_error or write_error or div_error or mul_error;
     strobe_in <= left_strobe_in or right_strobe_in;
     fifo_read <= strobe_in when state = START else '0';
     abs_fifo_out <= fifo_out (audio_bits - 2 downto 0);
@@ -266,7 +270,8 @@ begin
         -- to get the audio output value. The top bit is discarded: it must be 0 because the
         -- volume cannot be greater than 1.0 and the audio input must be less than 1.0.
         assert top_width > mul_width;
-        assert mul_result (mul_width - 1) = '0';
+        mul_error <= mul_result (mul_width - 1) and divider_start;
+        assert mul_error = '0';
         top_value (top_width - 1 downto top_width - mul_width + 1) <= mul_result (mul_width - 2 downto 0);
         top_value (top_width - mul_width downto 0) <= (others => '0');
 
@@ -284,12 +289,15 @@ begin
                 result_out => divider_result,
                 clock_in => clock_in);
 
-        -- Output from divider
+        -- Output from divider; this must fit within audio_bits - 1, so any overflow is an error.
+        -- Detect overflow by looking at bits above the result bits (should be 0)
         assert data_out'Length = audio_bits;
         left_strobe_out <= audio_divider_finish and left_flag
                                 when (state = AWAIT_AUDIO_DIVISION) else '0';
         right_strobe_out <= audio_divider_finish and not left_flag
                                 when (state = AWAIT_AUDIO_DIVISION) else '0';
+        div_error <= audio_divider_finish when divider_result (audio_bits + 2 downto audio_bits - 1) /= "0000" else '0';
+        assert div_error = '0';
 
         sm_out : entity convert_from_sign_magnitude
             generic map (value_width => audio_bits)

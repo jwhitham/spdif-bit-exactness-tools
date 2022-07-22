@@ -89,6 +89,9 @@ architecture structural of compressor_main is
     signal subcode                  : std_logic_vector (31 downto 0) := (others => '0');
     signal peak_level               : std_logic_vector (31 downto 0) := (others => '0');
     signal volume                   : std_logic_vector (10 downto 0) := (others => '0');
+    signal oe_error                 : std_logic := '0';
+    signal adc_error                : std_logic := '0';
+    signal cmp_error                : std_logic := '0';
 
     -- user mode
     signal mode_strobe              : std_logic := '0';
@@ -137,6 +140,7 @@ begin
                   peak_level_out => peak_level,
                   volume_in => volume,
                   ready_out => open,
+                  error_out => cmp_error,
                   enable_in => cmp_enable,
                   data_in => raw_data (27 downto 12),
                   left_strobe_in => raw_left_strobe,
@@ -202,7 +206,7 @@ begin
                   pulse_length_in => cmp_pulse_length,
                   sync_in => sync (7),
                   sync_out => sync (8),
-                  error_out => open,
+                  error_out => oe_error,
                   strobe_in => rg_strobe,
                   data_out => encoded_spdif);
        
@@ -288,6 +292,9 @@ begin
                   peak_level_in => peak_level,
                   adjust_1_in => adjust_1,
                   adjust_2_in => adjust_2,
+                  oe_error_in => oe_error,
+                  adc_error_in => adc_error,
+                  cmp_error_in => cmp_error,
 
                   -- LED outputs
                   lcols_out => lcols_out,
@@ -303,7 +310,7 @@ begin
                   rx_from_pic => rx_from_pic_in,
                   enable_poll_in => adc_enable_poll,
                   ready_out => open,
-                  error_out => open,
+                  error_out => adc_error,
                   adjust_1_out => adjust_1,
                   adjust_2_out => adjust_2,
                   adjust_1a_p52 => adjust_1a_out,
