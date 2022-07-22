@@ -36,7 +36,9 @@ entity mode_display is
         adjust_2_in         : in std_logic_vector (9 downto 0);
         oe_error_in         : in std_logic;
         adc_error_in        : in std_logic;
-        cmp_error_in        : in std_logic;
+        cmp_fifo_error_in   : in std_logic;
+        cmp_over_error_in   : in std_logic;
+        reset_error_in      : in std_logic;
 
         -- LED outputs
         lcols_out           : out std_logic_vector (3 downto 0) := "0000";
@@ -62,7 +64,8 @@ architecture structural of mode_display is
     signal countdown        : t_countdown := max_countdown;
     signal oe_error_latch   : std_logic := '0';
     signal adc_error_latch  : std_logic := '0';
-    signal cmp_error_latch  : std_logic := '0';
+    signal cmp_fifo_error_latch : std_logic := '0';
+    signal cmp_over_error_latch : std_logic := '0';
 
     -- Signals
     signal display_mode     : t_display_mode := BOOT;
@@ -76,12 +79,12 @@ begin
         if clock_in'event and clock_in = '1' then
             leds <= (others => (others => '0'));
             case display_mode is
-                when SHOW_DBG_VERSION | ANNOUNCE_DBG_VERSION | BOOT =>
+                when SHOW_DBG_VERSION | BOOT =>
                     -- Bootup
                     leds (0) <= version (31 downto 24);
                     leds (1) <= version (23 downto 16);
-                    leds (1) <= version (15 downto 8);
-                    leds (1) <= version (7 downto 0);
+                    leds (2) <= version (15 downto 8);
+                    leds (3) <= version (7 downto 0);
                 when DESYNC =>
                     -- Desync "dc"
                     leds (0) <= "00010000";
@@ -90,20 +93,20 @@ begin
                     leds (3) <= "01110111";
                 when ANNOUNCE_COMPRESS_MAX =>
                     -- compressed to max level "cx"
-                    leds (0) <= "00000000";
-                    leds (1) <= "11100101";
+                    leds (0) <= "11100000";
+                    leds (1) <= "10000101";
                     leds (2) <= "10000010";
                     leds (3) <= "11100101";
                 when ANNOUNCE_COMPRESS_2 =>
                     -- compressed to volume level 2 "c2"
-                    leds (0) <= "00000000";
-                    leds (1) <= "11100101";
+                    leds (0) <= "11100000";
+                    leds (1) <= "10000101";
                     leds (2) <= "10000101";
                     leds (3) <= "11100101";
                 when ANNOUNCE_COMPRESS_1 =>
                     -- compressed to volume level 1 "c1"
-                    leds (0) <= "00000000";
-                    leds (1) <= "11100010";
+                    leds (0) <= "11100000";
+                    leds (1) <= "10000010";
                     leds (2) <= "10000010";
                     leds (3) <= "11100010";
                 when ANNOUNCE_ATTENUATE_1 =>
@@ -136,10 +139,10 @@ begin
                     leds (1) <= raw_meter_right_in;
                 when ANNOUNCE_DBG_SPDIF =>
                     -- debug mode 1
-                    leds (0) <= "10000000";
-                    leds (1) <= "10000000";
-                    leds (2) <= "10000000";
-                    leds (3) <= "10000000";
+                    leds (0) <= "00100000";
+                    leds (1) <= "11100000";
+                    leds (2) <= "10100010";
+                    leds (3) <= "11100000";
                 when SHOW_DBG_SPDIF =>
                     -- S/PDIF signal information
                     leds (0) <= single_time_in;
@@ -148,10 +151,10 @@ begin
                     leds (3) <= all_sync_in;
                 when ANNOUNCE_DBG_SUBCODES =>
                     -- debug mode 2
-                    leds (0) <= "10100000";
-                    leds (1) <= "10100000";
+                    leds (0) <= "00100000";
+                    leds (1) <= "11100100";
                     leds (2) <= "10100000";
-                    leds (3) <= "10100000";
+                    leds (3) <= "11100001";
                 when SHOW_DBG_SUBCODES =>
                     -- Subcodes information
                     leds (0) <= subcode_in (31 downto 24);
@@ -160,10 +163,10 @@ begin
                     leds (3) <= subcode_in (7 downto 0);
                 when ANNOUNCE_DBG_COMPRESS =>
                     -- debug mode 3
-                    leds (0) <= "10101000";
-                    leds (1) <= "10101000";
-                    leds (2) <= "10101000";
-                    leds (3) <= "10101000";
+                    leds (0) <= "00100000";
+                    leds (1) <= "11100100";
+                    leds (2) <= "10100010";
+                    leds (3) <= "11100001";
                 when SHOW_DBG_COMPRESS =>
                     -- Compressor information
                     leds (0) <= peak_level_in (31 downto 24);
@@ -172,20 +175,27 @@ begin
                     leds (3) <= peak_level_in (7 downto 0);
                 when ANNOUNCE_DBG_ADCS =>
                     -- debug mode 4
-                    leds (0) <= "10101010";
-                    leds (1) <= "10101010";
-                    leds (2) <= "10101010";
-                    leds (3) <= "10101010";
+                    leds (0) <= "00100000";
+                    leds (1) <= "11100101";
+                    leds (2) <= "10100000";
+                    leds (3) <= "11100101";
                 when SHOW_DBG_ADCS =>
                     -- ADC information and error latches
                     leds (0) (1 downto 0) <= adjust_1_in (9 downto 8);
-                    leds (0) (7) <= oe_error_latch;     -- output encoder FIFO error
-                    leds (0) (6) <= adc_error_latch;    -- ADC capture error (timeout reading from PIC)
-                    leds (0) (5) <= cmp_error_latch;    -- compressor error (output overflow or FIFO error)
-                    leds (0) (4) <= '1';
+                    leds (0) (7) <= oe_error_latch;      -- output encoder FIFO error
+                    leds (0) (6) <= adc_error_latch;     -- ADC capture error (timeout reading from PIC)
+                    leds (0) (5) <= cmp_fifo_error_latch; -- compressor FIFO error
+                    leds (0) (4) <= cmp_over_error_latch; -- compressor overflow error
+                    leds (0) (3) <= reset_error_in;
                     leds (1) <= adjust_1_in (7 downto 0);
                     leds (2) (1 downto 0) <= adjust_2_in (9 downto 8);
                     leds (3) <= adjust_2_in (7 downto 0);
+                when ANNOUNCE_DBG_VERSION =>
+                    -- debug mode 5
+                    leds (0) <= "00100000";
+                    leds (1) <= "11100101";
+                    leds (2) <= "10100010";
+                    leds (3) <= "11100101";
             end case;
         end if;
     end process;
@@ -230,7 +240,7 @@ begin
                     countdown <= countdown - 1;
                 end if;
 
-            elsif all_sync_in (8) = '0' then
+            elsif all_sync_in /= "11111111" then
                 -- No input
                 countdown <= max_countdown;
                 display_mode <= DESYNC;
@@ -260,10 +270,17 @@ begin
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
-            -- Any errors are permanently latched and shown in the debug output (ADC page)
-            oe_error_latch <= oe_error_latch or oe_error_in;
-            adc_error_latch <= adc_error_latch or adc_error_in;
-            cmp_error_latch <= cmp_error_latch or cmp_error_in;
+            if reset_error_in = '1' or display_mode = BOOT then
+                oe_error_latch <= '0';
+                adc_error_latch <= '0';
+                cmp_fifo_error_latch <= '0';
+                cmp_over_error_latch <= '0';
+            else
+                oe_error_latch <= oe_error_latch or oe_error_in;
+                adc_error_latch <= adc_error_latch or adc_error_in;
+                cmp_over_error_latch <= cmp_over_error_latch or cmp_over_error_in;
+                cmp_fifo_error_latch <= cmp_fifo_error_latch or cmp_fifo_error_in;
+            end if;
         end if;
     end process;
 

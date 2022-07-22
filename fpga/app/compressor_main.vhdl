@@ -91,7 +91,9 @@ architecture structural of compressor_main is
     signal volume                   : std_logic_vector (10 downto 0) := (others => '0');
     signal oe_error                 : std_logic := '0';
     signal adc_error                : std_logic := '0';
-    signal cmp_error                : std_logic := '0';
+    signal cmp_fifo_error           : std_logic := '0';
+    signal cmp_over_error           : std_logic := '0';
+    signal reset_error              : std_logic := '0';
 
     -- user mode
     signal mode_strobe              : std_logic := '0';
@@ -140,7 +142,8 @@ begin
                   peak_level_out => peak_level,
                   volume_in => volume,
                   ready_out => open,
-                  error_out => cmp_error,
+                  fifo_error_out => cmp_fifo_error,
+                  over_error_out => cmp_over_error,
                   enable_in => cmp_enable,
                   data_in => raw_data (27 downto 12),
                   left_strobe_in => raw_left_strobe,
@@ -294,13 +297,16 @@ begin
                   adjust_2_in => adjust_2,
                   oe_error_in => oe_error,
                   adc_error_in => adc_error,
-                  cmp_error_in => cmp_error,
+                  cmp_fifo_error_in => cmp_fifo_error,
+                  cmp_over_error_in => cmp_over_error,
+                  reset_error_in => reset_error,
 
                   -- LED outputs
                   lcols_out => lcols_out,
                   lrows_out => lrows_out);
 
     adc_enable_poll <= not button_c11_in;
+    reset_error <= not button_c6_in;
 
     adc : entity icefun_adc_driver
         generic map (clock_frequency => clock_frequency)

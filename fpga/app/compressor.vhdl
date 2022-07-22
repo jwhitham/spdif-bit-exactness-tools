@@ -30,7 +30,8 @@ entity compressor is
         sync_in         : in std_logic;
         sync_out        : out std_logic := '0';
         ready_out       : out std_logic := '0';
-        error_out       : out std_logic := '0';
+        fifo_error_out  : out std_logic := '0';
+        over_error_out  : out std_logic := '0';
         clock_in        : in std_logic
     );
 end compressor;
@@ -232,7 +233,8 @@ begin
 
     assert read_error = '0';
     assert write_error = '0';
-    error_out <= read_error or write_error or div_error or mul_error;
+    fifo_error_out <= read_error or write_error;
+    over_error_out <= div_error or mul_error;
     strobe_in <= left_strobe_in or right_strobe_in;
     fifo_read <= strobe_in when state = START else '0';
     abs_fifo_out <= fifo_out (audio_bits - 2 downto 0);
