@@ -29,6 +29,7 @@ add_file -vhdl -lib work "../app/rotary_switch.vhdl"
 add_file -vhdl -lib work "../app/vu_meter.vhdl" 
 add_file -vhdl -lib work "../app/generated/match_rom.vhdl" 
 add_file -vhdl -lib work "../app/generated/version_rom.vhdl" 
+add_file -vhdl -lib work "../lib/multiplier.vhdl" 
 add_file -constraint -lib work "syn_config.sdc"
 #implementation: "compressor_Implmnt"
 impl -add compressor_Implmnt -type fpga
