@@ -6,9 +6,9 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 entity output_encoder is
-    generic (addr_size : Natural := 11; threshold_level : Real := 0.5);
+    generic (addr_size : Natural := 10; threshold_level : Real := 0.75);
     port (
-        pulse_length_in : in std_logic_vector (1 downto 0);
+        pulse_length_in : in std_logic_vector (3 downto 0);
         sync_in         : in std_logic;
         data_out        : out std_logic := '0';
         error_out       : out std_logic := '0';
@@ -20,13 +20,14 @@ end output_encoder;
 
 architecture structural of output_encoder is
 
-    subtype t_pulse_length is std_logic_vector (1 downto 0);
-    constant ZERO           : t_pulse_length := "00";
-    constant ONE            : t_pulse_length := "01";
-    constant TWO            : t_pulse_length := "10";
-    constant THREE          : t_pulse_length := "11";
+    subtype t_pulse_length is std_logic_vector (3 downto 0);
+    constant ZERO           : t_pulse_length := "0000";
+    constant ONE            : t_pulse_length := "0001";
+    constant TWO            : t_pulse_length := "0010";
+    constant THREE          : t_pulse_length := "0100";
+    constant ONE_ONE        : t_pulse_length := "1000";
 
-    type t_encode_state is (READY, HOLD_ONE, HOLD_TWO);
+    type t_encode_state is (READY, HOLD_ONE, HOLD_TWO, PULSE_ONE);
     signal encode_state       : t_encode_state := READY;
 
     type t_output_state is (RESET, FILLING, ACTIVE);
@@ -44,7 +45,7 @@ architecture structural of output_encoder is
 
 begin
     f : entity fifo
-        generic map (addr_size => addr_size, data_size_log_2 => 1,
+        generic map (addr_size => addr_size, data_size_log_2 => 2,
                      threshold_level => threshold_level)
         port map (
             data_in => pulse_length_in,
@@ -64,7 +65,7 @@ begin
     error_out <= fifo_write_error or fifo_read_error;
     sync_out <= '1' when output_state = ACTIVE else '0';
     fifo_reset <= '1' when output_state = RESET else '0';
-    fifo_write <= '1' when (pulse_length_in /= "00") and (output_state /= RESET) else '0';
+    fifo_write <= '1' when (pulse_length_in /= ZERO) and (output_state /= RESET) else '0';
 
     process (clock_in)
     begin
@@ -108,6 +109,9 @@ begin
                             when TWO =>
                                 encode_state <= HOLD_ONE;
                                 data_gen <= not data_gen;
+                            when ONE_ONE =>
+                                encode_state <= PULSE_ONE;
+                                data_gen <= not data_gen;
                             when ONE =>
                                 data_gen <= not data_gen;
                             when others =>
@@ -118,6 +122,10 @@ begin
                         encode_state <= HOLD_ONE;
 
                     when HOLD_ONE =>
+                        encode_state <= READY;
+
+                    when PULSE_ONE =>
+                        data_gen <= not data_gen;
                         encode_state <= READY;
                 end case;
             end if;

@@ -16,7 +16,7 @@ architecture structural of test_top_level is
     constant num_sync : Natural := 14;
 
     signal pulse_length    : std_logic_vector (1 downto 0) := "00";
-    signal pe_pulse_length : std_logic_vector (1 downto 0) := "00";
+    signal pe_pulse_length : std_logic_vector (3 downto 0) := "0000";
     signal packet_data     : std_logic := '0';
     signal packet_shift    : std_logic := '0';
     signal packet_start    : std_logic := '0';

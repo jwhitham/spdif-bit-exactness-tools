@@ -47,7 +47,7 @@ architecture structural of compressor_main is
     -- biphase mark codes, decoded
     subtype t_pulse_length is std_logic_vector (1 downto 0);
     signal raw_pulse_length         : t_pulse_length := "00";
-    signal cmp_pulse_length         : t_pulse_length := "00";
+    signal cmp_pulse_length         : std_logic_vector (3 downto 0) := "0000";
 
     -- serial S/PDIF data
     signal raw_packet_data          : std_logic := '0';
