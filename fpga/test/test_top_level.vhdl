@@ -16,7 +16,7 @@ architecture structural of test_top_level is
     constant num_sync : Natural := 14;
 
     signal pulse_length    : std_logic_vector (1 downto 0) := "00";
-    signal pe_pulse_length : std_logic_vector (1 downto 0) := "00";
+    signal pe_pulse_length : std_logic_vector (3 downto 0) := "0000";
     signal packet_data     : std_logic := '0';
     signal packet_shift    : std_logic := '0';
     signal packet_start    : std_logic := '0';
@@ -44,6 +44,7 @@ architecture structural of test_top_level is
     signal sample_rate     : std_logic_vector (15 downto 0) := (others => '0');
     signal single_time     : std_logic_vector (7 downto 0) := (others => '0');
     signal rg_strobe       : std_logic := '0';
+    signal rg_trigger      : std_logic := '0';
     signal oe_data         : std_logic := '0';
     signal oe_error        : std_logic := '0';
 
@@ -98,7 +99,8 @@ begin
                   pulse_length_in => pulse_length,
                   sync_in => sync (3),
                   sync_out => sync (6),
-                  strobe_out => rg_strobe);
+                  packet_start_strobe_out => rg_trigger,
+                  spdif_clock_strobe_out => rg_strobe);
 
     ce : entity channel_encoder
         port map (clock => clock,
@@ -128,7 +130,8 @@ begin
                   sync_in => sync (8),
                   sync_out => sync (9),
                   error_out => oe_error,
-                  strobe_in => rg_strobe,
+                  packet_start_strobe_in => rg_trigger,
+                  spdif_clock_strobe_in => rg_strobe,
                   data_out => oe_data);
 
     assert oe_error = '0';

@@ -6,7 +6,7 @@ use std.textio.all;
 
 entity packet_encoder is
     port (
-        pulse_length_out : out std_logic_vector (1 downto 0);
+        pulse_length_out : out std_logic_vector (3 downto 0);
         sync_out         : out std_logic;
         data_in          : in std_logic;
         shift_in         : in std_logic;
@@ -18,18 +18,19 @@ end packet_encoder;
 
 architecture structural of packet_encoder is
 
-    subtype t_pulse_length is std_logic_vector (1 downto 0);
-    constant ZERO           : t_pulse_length := "00";
-    constant ONE            : t_pulse_length := "01";
-    constant TWO            : t_pulse_length := "10";
-    constant THREE          : t_pulse_length := "11";
+    subtype t_pulse_length is std_logic_vector (3 downto 0);
+    constant ZERO           : t_pulse_length := "0000";
+    constant ONE            : t_pulse_length := "0001";
+    constant TWO            : t_pulse_length := "0010";
+    constant THREE          : t_pulse_length := "0100";
+    constant ONE_ONE        : t_pulse_length := "1000";
+    constant THREE_WAIT     : t_pulse_length := "1111";
 
     type t_header_type is (B_HEADER, W_HEADER, M_HEADER);
     signal header_type      : t_header_type := B_HEADER;
 
     subtype t_bit_count is Natural range 0 to 31;
     signal bit_count        : t_bit_count := 0;
-    signal repeat           : std_logic := '0';
 
 begin
     process (clock)
@@ -42,14 +43,6 @@ begin
                 -- Wait for sync
                 bit_count <= 0;
                 sync_out <= '0';
-                repeat <= '0';
-
-            elsif repeat = '1' then
-                -- Repeat ONE
-                repeat <= '0';
-                pulse_length_out <= ONE;
-                assert shift_in = '0';
-                assert start_in = '0';
 
             elsif shift_in = '1' then
                 bit_count <= t_bit_count (Natural (bit_count + 1) mod 32);
@@ -63,7 +56,7 @@ begin
                             -- B: 3113
                             -- W: 3212
                             -- M: 3311
-                            pulse_length_out <= THREE; -- Generated THREE so far
+                            pulse_length_out <= THREE_WAIT; -- Generated THREE so far
                             sync_out <= '1';
                             if data_in = '1' then
                                 header_type <= B_HEADER;
@@ -166,8 +159,7 @@ begin
                             -- Translate incoming bits to pulse lengths
                             if data_in = '1' then
                                 -- bit 1: generate ONE ONE
-                                pulse_length_out <= ONE;
-                                repeat <= '1';
+                                pulse_length_out <= ONE_ONE;
                             else
                                 -- bit 0: generate TWO
                                 pulse_length_out <= TWO;
