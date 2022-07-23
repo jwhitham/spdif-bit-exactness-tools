@@ -21,9 +21,9 @@ VHDL =  \
 		app/vu_meter.vhdl \
 		app/mode_display.vhdl \
 		spdif/channel_decoder.vhdl \
+		spdif/input_decoder.vhdl \
 		spdif/combined_encoder.vhdl \
 		spdif/clock_regenerator.vhdl \
-		spdif/input_decoder.vhdl \
 		spdif/packet_decoder.vhdl \
 		app/compressor_main.vhdl
 

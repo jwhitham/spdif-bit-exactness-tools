@@ -1,4 +1,7 @@
 
+library work;
+use work.all;
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -46,8 +49,8 @@ architecture structural of combined_encoder is
 
     -- state
     type t_state is (RESET, AWAIT_NEW_PACKET,
-                     SEND_HEADER, SEND_DATA,
-                     SEND_ONE_PULSE, SEND_NO_PULSE);
+                     SEND_HEADER,
+                     SEND_DATA, DATA_CYCLE_2);
 
     -- Registers
     signal parity           : std_logic := '0';
@@ -60,27 +63,45 @@ architecture structural of combined_encoder is
     signal state            : t_state := RESET;
     signal spdif_gen        : std_logic := '1';
     signal buffer_full      : std_logic := '0';
+    signal buffer_error     : std_logic := '0';
+    signal clock_error      : std_logic := '0';
+    signal pulse_length_out : std_logic_vector (1 downto 0) := "00";
+    signal count            : Natural := 0;
 
     -- Signals
     signal consume_buffer   : std_logic := '0';
 
 begin
 
+    error_out <= buffer_error or clock_error;
+
     -- Data input (single entry buffer)
     one_entry_buffer : process (clock_in)
         variable l : line;
     begin
         if clock_in'event and clock_in = '1' then
+            buffer_error <= '0';
+
             if sync_in = '0' then
                 -- Reset
-                error_out <= '0';
                 buffer_full <= '0';
                 subcode_counter <= 0;
                 sync_out <= '0';
 
             elsif left_strobe_in = '1' or right_strobe_in = '1' then
                 -- New packet arrives - this is the last opportunity to consume the previous buffer entry
-                error_out <= buffer_full and not consume_buffer;
+                buffer_error <= buffer_full and not consume_buffer;
+                if (buffer_full and not consume_buffer) = '1' then
+                    write (l, String'("new packet while buffer full.. count = "));
+                    write (l, count);
+                    write (l, String'(" bit counter = "));
+                    write (l, bit_counter);
+                    write (l, String'(" data = "));
+                    write (l, to_integer (unsigned (shift_data)));
+                    write (l, String'(" state = "));
+                    write (l, t_state'Image (state));
+                    writeline (output, l);
+                end if;
                 assert (buffer_full and not consume_buffer) = '0';
                 buffer_full <= '1';
 
@@ -94,16 +115,17 @@ begin
                 -- M: 3311
                 if left_strobe_in = '1' then
                     if subcode_counter = 0 or subcode_counter = b_interval then
-                        buffer_header <= THREE & ONE & ONE & THREE;
+                        buffer_header <= TWO & ONE & ONE & THREE;
                         subcode_counter <= 1;
                         sync_out <= '1';
                     else
-                        buffer_header <= THREE & TWO & ONE & TWO;
+                        buffer_header <= TWO & TWO & ONE & TWO;
                         subcode_counter <= subcode_counter + 1;
                     end if;
                 else
-                    buffer_header <= THREE & THREE & ONE & ONE;
+                    buffer_header <= TWO & THREE & ONE & ONE;
                 end if;
+                buffer_header (7 downto 6) <= THREE;
 
                 -- See https://www.minidisc.org/manuals/an22.pdf for description of subcode bits
                 -- They repeat periodically, beginning with a B packet, which is sent every b_interval.
@@ -122,7 +144,7 @@ begin
 
             elsif consume_buffer = '1' then
                 -- Existing packet is consumed (buffer becomes empty)
-                error_out <= not buffer_full;
+                buffer_error <= not buffer_full;
                 assert buffer_full = '1';
                 buffer_full <= '0';
             end if;
@@ -138,81 +160,111 @@ begin
         variable l : line;
     begin
         if clock_in'event and clock_in = '1' then
+            clock_error <= '0';
+
             case state is
                 when RESET =>
                     -- Reset counters
                     bit_counter <= bit_counter_start;
                     state <= AWAIT_NEW_PACKET;
                     spdif_gen <= '1';
+                    count <= 99;
 
                 when AWAIT_NEW_PACKET =>
                     bit_counter <= bit_counter_start;
                     shift_data <= buffer_data;
                     shift_header <= buffer_header;
                     parity <= '0';
+                    clock_error <= spdif_clock_strobe_in;
+                    assert spdif_clock_strobe_in = '0';
+                    if not (count = 64) or (count = 99) then
+                        write (l, String'("count is "));
+                        write (l, count);
+                        writeline (output, l);
+                    end if;
+                    assert (count = 64) or (count = 99);
 
                     if consume_buffer = '1' then
                         -- Start sending new packet
-                        spdif_gen <= not spdif_gen;
                         state <= SEND_HEADER;
+                        count <= 0;
+                        write (l, String'("start"));
+                        writeline (output, l);
                     end if;
 
                 when SEND_HEADER =>
-                    if spdif_clock_strobe_in = '1' then
+                    if shift_header (7 downto 6) = ZERO then
+                        -- finished sending header
+                        state <= SEND_DATA;
+                        assert spdif_clock_strobe_in = '0';
+                        clock_error <= spdif_clock_strobe_in;
+
+                    elsif spdif_clock_strobe_in = '1' then
+                        -- send next header clock pulse
                         case shift_header (7 downto 6) is
                             when THREE =>
-                                -- 2 more clocks with this output
+                                write (l, String'("header wait"));
+                                writeline (output, l);
                                 shift_header (7 downto 6) <= TWO;
                             when TWO =>
-                                -- 1 more clock with this output
+                                write (l, String'("header wait"));
+                                writeline (output, l);
                                 shift_header (7 downto 6) <= ONE;
-                            when others => 
-                                -- 0 more clocks with this output (i.e. change)
-                                if shift_header (5 downto 4) = ZERO then
-                                    -- End of header, send the actual data next
-                                    state <= SEND_DATA;
-                                end if;
+                            when others =>
+                                spdif_gen <= not spdif_gen;
+                                write (l, String'("header flip"));
+                                writeline (output, l);
                                 shift_header (7 downto 2) <= shift_header (5 downto 0);
                                 shift_header (1 downto 0) <= ZERO;
-                                spdif_gen <= not spdif_gen;
                         end case;
+                        count <= count + 1;
                     end if;
 
                 when SEND_DATA =>
-                    if spdif_clock_strobe_in = '1' then
+                    if bit_counter = 0 then
+                        -- finished sending data
+                        state <= AWAIT_NEW_PACKET;
+                        write (l, String'("done"));
+                        writeline (output, l);
+                        assert spdif_clock_strobe_in = '0';
+                        clock_error <= spdif_clock_strobe_in;
+
+                    elsif spdif_clock_strobe_in = '1' then
+                        -- send next data bit
+                        state <= DATA_CYCLE_2;
+
                         if shift_data (first_data_bit) = '1' then
                             -- bit 1: generate two pulses of length 1
                             spdif_gen <= not spdif_gen;
-                            state <= SEND_ONE_PULSE;
+                            write (l, String'("single"));
+                            writeline (output, l);
                         else
                             -- bit 0: generate one pulse of length 2
-                            spdif_gen <= not spdif_gen;
-                            state <= SEND_NO_PULSE;
+                            write (l, String'("double"));
+                            writeline (output, l);
                         end if;
 
-                        -- Next bit
+                        -- Shift next bit
                         shift_data (last_data_bit - 1 downto first_data_bit) <=
                                 shift_data (last_data_bit downto first_data_bit + 1);
                         shift_data (last_data_bit) <= '0';
                         bit_counter <= bit_counter - 1;
 
-                        -- Track parity and load it
+                        -- Track parity and load it when required
                         parity <= parity xor shift_data (first_data_bit);
                         if bit_counter = 1 then
                             shift_data (first_data_bit) <= parity xor shift_data (first_data_bit);
                         end if;
+                        count <= count + 1;
                     end if;
 
-                when SEND_ONE_PULSE | SEND_NO_PULSE =>
+                when DATA_CYCLE_2 =>
                     if spdif_clock_strobe_in = '1' then
-                        if state = SEND_ONE_PULSE then
-                            spdif_gen <= not spdif_gen;
-                        end if;
-                        if bit_counter = 0 then
-                            state <= AWAIT_NEW_PACKET;
-                        else
-                            state <= SEND_DATA;
-                        end if;
+                        write (l, String'("data"));
+                        writeline (output, l);
+                        spdif_gen <= not spdif_gen;
+                        state <= SEND_DATA;
+                        count <= count + 1;
                     end if;
             end case;
 
@@ -224,5 +276,26 @@ begin
 
     -- S/PDIF data output
     data_out <= spdif_gen;
+
+    debug : entity input_decoder
+            port map (
+        data_in => spdif_gen,
+        pulse_length_out => pulse_length_out,
+        single_time_out => open,
+        sync_out => open,
+        sync_in => sync_in,
+        clock_in => clock_in);
+
+    process (clock_in)
+        variable l : line;
+    begin
+        if clock_in'event and clock_in = '1' then
+            if pulse_length_out /= "00" then
+                write (l, String'("debug "));
+                write (l, to_integer (unsigned (pulse_length_out)));
+                writeline (output, l);
+            end if;
+        end if;
+    end process;
 
 end structural;
