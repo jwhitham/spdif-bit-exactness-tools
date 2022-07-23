@@ -5,14 +5,13 @@ use ieee.numeric_std.all;
 
 entity clock_regenerator is
     port (
-        pulse_length_in  : in std_logic_vector (1 downto 0) := "00";
-        clock_interval_out : out std_logic_vector (15 downto 0) := (others => '0');
-        sync_in          : in std_logic;
-        sync_out         : out std_logic := '0';
-        clock_in         : in std_logic;
-        packet_start_strobe_in : in std_logic;
-        spdif_clock_strobe_out : out std_logic := '0'
-    );
+        pulse_length_in         : in std_logic_vector (1 downto 0) := "00";
+        clock_interval_out      : out std_logic_vector (15 downto 0) := (others => '0');
+        sync_in                 : in std_logic;
+        sync_out                : out std_logic := '0';
+        clock_in                : in std_logic;
+        clock_enable_in         : in std_logic;
+        spdif_clock_strobe_out  : out std_logic := '0');
 end clock_regenerator;
 
 architecture structural of clock_regenerator is
@@ -41,10 +40,6 @@ architecture structural of clock_regenerator is
     type t_measurement_state is (START, IN_HEADER_1, IN_HEADER_2, IN_HEADER_3, IN_BODY);
     signal measurement_state    : t_measurement_state := START;
     signal sync_gen             : std_logic := '0';
-
-    subtype t_clock_count is unsigned ((num_clocks_per_packet_log_2 - 1) downto 0);
-    constant zero_clock_count   : t_clock_count := (others => '0');
-    signal clock_count          : t_clock_count := zero_clock_count;
 
     signal strobe_gen           : std_logic := '0';
 
@@ -114,8 +109,7 @@ begin
                 when RESET =>
                     -- Do nothing while waiting for synchronisation and the start of a packet
                     divisor <= (others => '0');
-                    clock_count <= (others => '1');
-                    if packet_start_strobe_in = '1' and sync_gen = '1' then
+                    if clock_enable_in = '1' and sync_gen = '1' then
                         -- Output: start the packet with a clock tick
                         spdif_clock_strobe_out <= '1';
                         output_state <= ADD;
@@ -124,18 +118,18 @@ begin
                     -- Advance
                     divisor <= divisor + fixed_point_one;
                     output_state <= COMPARE_SUBTRACT;
-                    if clock_count = zero_clock_count then
-                        output_state <= RESET;
-                    end if;
                 when COMPARE_SUBTRACT =>
                     -- Output: wait for the right time to send another clock tick
-                    if divisor_subtract (divisor_subtract'Left) = '0' then
-                        -- divisor >= clock_interval
-                        divisor <= divisor_subtract;
-                        spdif_clock_strobe_out <= '1';
-                        clock_count <= clock_count - 1;
+                    if clock_enable_in = '0' then
+                        output_state <= RESET;
+                    else
+                        if divisor_subtract (divisor_subtract'Left) = '0' then
+                            -- divisor >= clock_interval
+                            divisor <= divisor_subtract;
+                            spdif_clock_strobe_out <= '1';
+                        end if;
+                        output_state <= ADD;
                     end if;
-                    output_state <= ADD;
             end case;
         end if;
     end process;

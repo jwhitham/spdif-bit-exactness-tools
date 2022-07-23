@@ -1,6 +1,9 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+use std.textio.all;
 
 entity combined_encoder is
     port (
@@ -11,7 +14,7 @@ entity combined_encoder is
         left_strobe_in          : in std_logic;
         right_strobe_in         : in std_logic;
         preemph_in              : in std_logic;
-        packet_start_strobe_out : out std_logic := '0';
+        clock_enable_out        : out std_logic := '0';
         spdif_clock_strobe_in   : in std_logic;
         sync_in                 : in std_logic;
         clock_in                : in std_logic);
@@ -41,7 +44,7 @@ architecture structural of combined_encoder is
     constant ZERO              : t_header_pulse := "00";
 
     -- state
-    type t_state is (RESET, AWAIT_DATA, AWAIT_FIRST_CLOCK,
+    type t_state is (RESET, AWAIT_DATA,
                      SEND_HEADER, SEND_DATA,
                      SEND_ONE_PULSE, SEND_NO_PULSE);
 
@@ -53,23 +56,33 @@ architecture structural of combined_encoder is
     signal header           : t_header := (others => '0');
     signal state            : t_state := RESET;
     signal spdif_gen        : std_logic := '1';
+    signal error_gen        : std_logic := '0';
 
+    -- signals
+    signal new_packet       : std_logic := '0';
+
+    -- debug
+    signal timer            : Natural := 0;
 begin
-
-    -- error when a clock strobe arrives when we're not ready
-    error_out <= '1' when state = AWAIT_DATA and spdif_clock_strobe_in = '1' else '0';
-
-    -- Packet starts:
-    packet_start_strobe_out <= '1' when state = AWAIT_DATA
-                   and ((left_strobe_in or right_strobe_in) = '1') else '0';
 
     -- S/PDIF data output
     data_out <= spdif_gen;
 
+    new_packet <= (left_strobe_in or right_strobe_in) and sync_in;
+
+    error_out <= error_gen;
+    assert error_gen = '0';
+    clock_enable_out <= new_packet and sync_in when state = AWAIT_DATA
+                        else sync_in when state /= RESET
+                        else '0';
+
     process (clock_in)
+        variable l : line;
     begin
         if clock_in'event and clock_in = '1' then
-            -- New packet
+            -- By default, error if a new packet arrives and we're not ready:
+            error_gen <= '0';
+
             case state is
                 when RESET =>
                     -- Reset counters
@@ -78,12 +91,16 @@ begin
                     sync_out <= '0';
                     state <= AWAIT_DATA;
                     spdif_gen <= '1';
+                    -- No errors, no clock enable
+                    error_gen <= '0';
 
                 when AWAIT_DATA =>
-                    -- not ready for clocks
+                    -- Error if a clock pulse arrives here
                     assert spdif_clock_strobe_in = '0';
+                    error_gen <= spdif_clock_strobe_in;
+                    timer <= 0;
 
-                    if left_strobe_in = '1' or right_strobe_in = '1' then
+                    if new_packet = '1' then
                         -- Start of a new packet
                         bit_counter <= bit_counter_start;
                         data <= data_in (last_data_bit - 1 downto first_data_bit);
@@ -121,17 +138,24 @@ begin
                         data (validity_bit) <= '0'; -- can be D/A converted
                         data (user_bit) <= '0';
 
-                        state <= AWAIT_FIRST_CLOCK;
+                        state <= SEND_HEADER;
+                        --spdif_gen <= not spdif_gen;
                     end if;
 
-                when AWAIT_FIRST_CLOCK =>
-                    if spdif_clock_strobe_in = '1' then
-                        spdif_gen <= not spdif_gen;
-                        state <= SEND_HEADER;
-                    end if;
+--              when AWAIT_FIRST_CLOCK =>
+--                  assert new_packet = '0';
+--                  error_gen <= new_packet;
+--                  if spdif_clock_strobe_in = '1' then
+--                      timer <= timer + 1;
+--                      spdif_gen <= not spdif_gen;
+--                      state <= SEND_HEADER;
+--                  end if;
 
                 when SEND_HEADER =>
+                    assert new_packet = '0';
+                    error_gen <= new_packet;
                     if spdif_clock_strobe_in = '1' then
+                        timer <= timer + 1;
                         case header (7 downto 6) is
                             when THREE =>
                                 -- 2 more clocks with this output
@@ -152,7 +176,20 @@ begin
                     end if;
 
                 when SEND_DATA =>
+                    if new_packet = '1' then
+                        write (l, String'("Received packet when waiting to send "));
+                        write (l, timer);
+                        write (l, String'(" bit counter "));
+                        write (l, bit_counter);
+                        write (l, String'(" data "));
+                        write (l, to_integer (unsigned (data)));
+                        writeline (output, l);
+                        assert False;
+                    end if;
+                    assert new_packet = '0';
+                    error_gen <= new_packet;
                     if spdif_clock_strobe_in = '1' then
+                        timer <= timer + 1;
                         if data (4) = '1' then
                             -- bit 1: generate two pulses of length 1
                             spdif_gen <= not spdif_gen;
@@ -165,6 +202,7 @@ begin
 
                         -- Next bit
                         data (29 downto 4) <= data (30 downto 5);
+                        data (30) <= '0';
                         bit_counter <= bit_counter - 1;
 
                         -- Track parity and load it
@@ -175,7 +213,20 @@ begin
                     end if;
 
                 when SEND_ONE_PULSE | SEND_NO_PULSE =>
+                    if new_packet = '1' then
+                        write (l, String'("Received packet when sending "));
+                        write (l, timer);
+                        write (l, String'(" bit counter "));
+                        write (l, bit_counter);
+                        write (l, String'(" data "));
+                        write (l, to_integer (unsigned (data)));
+                        writeline (output, l);
+                        assert False;
+                    end if;
+                    assert new_packet = '0';
+                    error_gen <= new_packet;
                     if spdif_clock_strobe_in = '1' then
+                        timer <= timer + 1;
                         if state = SEND_ONE_PULSE then
                             spdif_gen <= not spdif_gen;
                         end if;

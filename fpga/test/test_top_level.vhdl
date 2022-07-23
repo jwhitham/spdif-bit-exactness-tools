@@ -43,10 +43,12 @@ architecture structural of test_top_level is
     signal sample_rate     : std_logic_vector (15 downto 0) := (others => '0');
     signal single_time     : std_logic_vector (7 downto 0) := (others => '0');
     signal rg_strobe       : std_logic := '0';
-    signal rg_start        : std_logic := '0';
+    signal rg_enable       : std_logic := '0';
     signal oe_data         : std_logic := '0';
     signal oe_error        : std_logic := '0';
-    signal zero            : std_logic := '0';
+
+    constant zero          : std_logic := '0';
+    constant one           : std_logic := '1';
 
     signal uptime          : Integer := 0;
     signal start_of_r_sync : Integer := 0;
@@ -58,6 +60,7 @@ begin
 
     dec1 : entity input_decoder
         port map (clock_in => clock, data_in => raw_data,
+                  sync_in => one,
                   sync_out => sync (1), single_time_out => single_time,
                   pulse_length_out => pulse_length);
 
@@ -95,7 +98,7 @@ begin
                   pulse_length_in => pulse_length,
                   sync_in => sync (3),
                   sync_out => sync (6),
-                  packet_start_strobe_in => rg_start,
+                  clock_enable_in => rg_enable,
                   spdif_clock_strobe_out => rg_strobe);
 
     ce : entity combined_encoder
@@ -106,7 +109,7 @@ begin
                   left_strobe_in => left_strobe,
                   right_strobe_in => right_strobe,
                   error_out => oe_error,
-                  packet_start_strobe_out => rg_start,
+                  clock_enable_out => rg_enable,
                   spdif_clock_strobe_in => rg_strobe,
                   data_out => oe_data,
                   data_in => data);
@@ -118,6 +121,7 @@ begin
 
     dec4 : entity input_decoder
         port map (clock_in => clock, data_in => oe_data,
+                  sync_in => one,
                   sync_out => sync (10), single_time_out => open,
                   pulse_length_out => pulse_length_3);
 
