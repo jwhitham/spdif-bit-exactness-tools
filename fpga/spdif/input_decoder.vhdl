@@ -3,7 +3,10 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+use std.textio.all;
+
 entity input_decoder is
+    generic (debug : Boolean := false);
     port (
         data_in          : in std_logic;
         pulse_length_out : out std_logic_vector (1 downto 0) := "00";
@@ -18,15 +21,15 @@ architecture structural of input_decoder is
 
     subtype t_sync_counter is unsigned (0 to 4);
     subtype t_transition_time is unsigned (0 to 7);
-    subtype t_watchdog_counter is Natural range 0 to 31;
+    subtype t_watchdog_counter is unsigned (0 to 2);
 
     constant zero_transition_time   : t_transition_time := (others => '0');
     constant max_transition_time    : t_transition_time := (others => '1');
     constant max_single_time        : t_transition_time := max_transition_time srl 2;
     constant zero_sync_counter      : t_sync_counter := (others => '0');
     constant max_sync_counter       : t_sync_counter := (others => '1');
-    constant zero_watchdog_counter  : t_watchdog_counter := 0;
-    constant max_watchdog_counter   : t_watchdog_counter := 31;
+    constant zero_watchdog_counter  : t_watchdog_counter := (others => '0');
+    constant max_watchdog_counter   : t_watchdog_counter := (others => '1');
 
     type t_transition_class is (NONE, SHORT, ONE, TWO, THREE, LONG);
 
@@ -47,6 +50,7 @@ begin
 
     -- detect transitions
     process (clock_in)
+        variable l : line;
     begin
         if clock_in'event and clock_in = '1' then
             delay0 <= data_in;
@@ -65,13 +69,33 @@ begin
                     timer <= next_timer;
                     if next_timer = single_time then
                         threshold <= ONE;
+                        if debug then
+                            write (l, String'("AA ONE: "));
+                            write (l, to_integer (next_timer));
+                            writeline (output, l);
+                        end if;
                     elsif next_timer = double_time then
                         threshold <= TWO;
+                        if debug then
+                            write (l, String'("AA TWO: "));
+                            write (l, to_integer (next_timer));
+                            writeline (output, l);
+                        end if;
                     elsif next_timer = triple_time then
                         threshold <= THREE;
+                        if debug then
+                            write (l, String'("AA THREE: "));
+                            write (l, to_integer (next_timer));
+                            writeline (output, l);
+                        end if;
                     elsif next_timer = quad_time then
                         threshold <= LONG;
                         transition_class <= LONG;
+                        if debug then
+                            write (l, String'("AA LONG: "));
+                            write (l, to_integer (next_timer));
+                            writeline (output, l);
+                        end if;
                     end if;
                 end if;
             else
@@ -79,6 +103,13 @@ begin
                 threshold <= SHORT;
                 transition_class <= threshold;
                 transition_time <= timer;
+                if debug then
+                    write (l, String'("AA edge; previous time "));
+                    write (l, to_integer (timer));
+                    write (l, String'(" threshold "));
+                    write (l, t_transition_class'Image (threshold));
+                    writeline (output, l);
+                end if;
             end if;
         end if;
     end process;
@@ -91,6 +122,7 @@ begin
     -- Determine the time for a single transition ("synchronise").
     -- Once synchronised, classify transitions as single, double or triple.
     process (clock_in)
+        variable l : line;
     begin
         if clock_in'event and clock_in = '1' then
             pulse_length_out <= "00";
@@ -108,45 +140,74 @@ begin
                     -- Invalid transition - start syncing again
                     sync_counter <= zero_sync_counter;
                     single_time <= max_single_time;
+                    watchdog_counter <= zero_watchdog_counter;
                 when SHORT =>
                     -- Shorter pulse seen - adjust single_time
                     single_time <= transition_time;
+                    watchdog_counter <= zero_watchdog_counter;
+                    if debug then
+                        write (l, String'("AB SHORT: set single time "));
+                        write (l, to_integer (transition_time));
+                        writeline (output, l);
+                    end if;
                 when ONE =>
                     -- Normal pulse of length 1
                     if sync_counter = max_sync_counter then
                         pulse_length_out <= "01";
+                        if debug then
+                            write (l, String'("AB ONE: output"));
+                            writeline (output, l);
+                        end if;
                     else
                         sync_counter <= next_sync_counter;
+                        if debug then
+                            write (l, String'("AB ONE: await sync"));
+                            writeline (output, l);
+                        end if;
                     end if;
+                    watchdog_counter <= zero_watchdog_counter;
                 when TWO =>
                     -- Normal pulse of length 2
                     if sync_counter = max_sync_counter then
                         pulse_length_out <= "10";
+                        if debug then
+                            write (l, String'("AB TWO: output"));
+                            writeline (output, l);
+                        end if;
                     else
                         sync_counter <= next_sync_counter;
+                        if debug then
+                            write (l, String'("AB TWO: await sync"));
+                            writeline (output, l);
+                        end if;
                     end if;
                 when THREE =>
-                    if sync_counter = max_sync_counter then
-                        pulse_length_out <= "11";
-                    else
-                        sync_counter <= next_sync_counter;
-                    end if;
-            end case;
-
-            case transition_class is
-                when NONE | SHORT | LONG | ONE =>
-                    watchdog_counter <= zero_watchdog_counter;
-                when TWO | THREE =>
+                    -- Normal pulse of length 3
                     if watchdog_counter = max_watchdog_counter then
                         -- Received only length 2 or 3 pulses for some time.
-                        -- Length 1 pulses must be received in the header at least.
                         -- Perhaps the data rate has changed slightly. Force resync.
                         sync_counter <= zero_sync_counter;
                         single_time <= max_single_time;
-                        pulse_length_out <= "00";
                         watchdog_counter <= zero_watchdog_counter;
+                        if debug then
+                            write (l, String'("AB THREE: watchdog trigger"));
+                            writeline (output, l);
+                        end if;
                     else
                         watchdog_counter <= watchdog_counter + 1;
+                        if sync_counter = max_sync_counter then
+                            pulse_length_out <= "11";
+                            if debug then
+                                write (l, String'("AB THREE: output"));
+                                writeline (output, l);
+                            end if;
+                        else
+                            sync_counter <= next_sync_counter;
+                            if debug then
+                                write (l, String'("AB THREE: await sync"));
+                                writeline (output, l);
+                            end if;
+                        end if;
                     end if;
             end case;
         end if;
