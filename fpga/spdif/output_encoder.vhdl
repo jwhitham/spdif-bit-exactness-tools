@@ -6,14 +6,15 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 entity output_encoder is
-    generic (addr_size : Natural := 10; threshold_level : Real := 0.75);
+    generic (addr_size : Natural := 10; threshold_level : Real := 0.5);
     port (
         pulse_length_in : in std_logic_vector (3 downto 0);
         sync_in         : in std_logic;
         data_out        : out std_logic := '0';
         error_out       : out std_logic := '0';
         sync_out        : out std_logic := '0';
-        strobe_in       : in std_logic;
+        packet_start_strobe_in  : in std_logic := '0';
+        spdif_clock_strobe_in   : in std_logic := '0';
         clock_in        : in std_logic
     );
 end output_encoder;
@@ -26,6 +27,7 @@ architecture structural of output_encoder is
     constant TWO            : t_pulse_length := "0010";
     constant THREE          : t_pulse_length := "0100";
     constant ONE_ONE        : t_pulse_length := "1000";
+    constant THREE_WAIT     : t_pulse_length := "1111";
 
     type t_encode_state is (READY, HOLD_ONE, HOLD_TWO, PULSE_ONE);
     signal encode_state       : t_encode_state := READY;
@@ -92,17 +94,26 @@ begin
         end if;
     end process;
 
-    fifo_read <= '1' when output_state = ACTIVE and strobe_in = '1' and encode_state = READY else '0';
+    -- fifo_read <= '1' when output_state = ACTIVE and spdif_clock_strobe_in = '1' and encode_state = READY else '0';
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
+            fifo_read <= '0';
             if output_state = RESET then
                 data_gen <= '1';
 
-            elsif output_state = ACTIVE and strobe_in = '1' then
+            elsif output_state = ACTIVE and spdif_clock_strobe_in = '1' then
                 case encode_state is
                     when READY =>
+                        fifo_read <= '1';
                         case pulse_length is
+                            when THREE_WAIT =>
+                                if packet_start_strobe_in = '1' then
+                                    encode_state <= HOLD_TWO;
+                                    data_gen <= not data_gen;
+                                else
+                                    fifo_read <= '0';
+                                end if;
                             when THREE =>
                                 encode_state <= HOLD_TWO;
                                 data_gen <= not data_gen;

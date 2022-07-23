@@ -24,6 +24,7 @@ architecture structural of packet_encoder is
     constant TWO            : t_pulse_length := "0010";
     constant THREE          : t_pulse_length := "0100";
     constant ONE_ONE        : t_pulse_length := "1000";
+    constant THREE_WAIT     : t_pulse_length := "1111";
 
     type t_header_type is (B_HEADER, W_HEADER, M_HEADER);
     signal header_type      : t_header_type := B_HEADER;
@@ -55,7 +56,7 @@ begin
                             -- B: 3113
                             -- W: 3212
                             -- M: 3311
-                            pulse_length_out <= THREE; -- Generated THREE so far
+                            pulse_length_out <= THREE_WAIT; -- Generated THREE so far
                             sync_out <= '1';
                             if data_in = '1' then
                                 header_type <= B_HEADER;

@@ -42,6 +42,7 @@ architecture structural of compressor_main is
     constant clock_frequency        : Real := 96.0e6;
 
     signal rg_strobe                : std_logic := '0';
+    signal rg_trigger               : std_logic := '0';
     signal encoded_spdif            : std_logic := '0';
 
     -- biphase mark codes, decoded
@@ -145,7 +146,8 @@ begin
                   clock_interval_out => clock_interval,
                   sync_in => sync (3),
                   sync_out => sync (4),
-                  strobe_out => rg_strobe);
+                  packet_start_strobe_out => rg_trigger,
+                  spdif_clock_strobe_out => rg_strobe);
 
     cmp : entity compressor
         port map (clock_in => clock_in,
@@ -222,7 +224,8 @@ begin
                   sync_in => sync (7),
                   sync_out => sync (8),
                   error_out => oe_error,
-                  strobe_in => rg_strobe,
+                  packet_start_strobe_in => rg_trigger,
+                  spdif_clock_strobe_in => rg_strobe,
                   data_out => encoded_spdif);
        
     process (clock_in)
