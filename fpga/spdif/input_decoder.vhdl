@@ -18,15 +18,15 @@ architecture structural of input_decoder is
 
     subtype t_sync_counter is unsigned (0 to 4);
     subtype t_transition_time is unsigned (0 to 7);
-    subtype t_watchdog_counter is unsigned (0 to 2);
+    subtype t_watchdog_counter is Natural range 0 to 31;
 
     constant zero_transition_time   : t_transition_time := (others => '0');
     constant max_transition_time    : t_transition_time := (others => '1');
     constant max_single_time        : t_transition_time := max_transition_time srl 2;
     constant zero_sync_counter      : t_sync_counter := (others => '0');
     constant max_sync_counter       : t_sync_counter := (others => '1');
-    constant zero_watchdog_counter  : t_watchdog_counter := (others => '0');
-    constant max_watchdog_counter   : t_watchdog_counter := (others => '1');
+    constant zero_watchdog_counter  : t_watchdog_counter := 0;
+    constant max_watchdog_counter   : t_watchdog_counter := 31;
 
     type t_transition_class is (NONE, SHORT, ONE, TWO, THREE, LONG);
 
@@ -108,11 +108,9 @@ begin
                     -- Invalid transition - start syncing again
                     sync_counter <= zero_sync_counter;
                     single_time <= max_single_time;
-                    watchdog_counter <= zero_watchdog_counter;
                 when SHORT =>
                     -- Shorter pulse seen - adjust single_time
                     single_time <= transition_time;
-                    watchdog_counter <= zero_watchdog_counter;
                 when ONE =>
                     -- Normal pulse of length 1
                     if sync_counter = max_sync_counter then
@@ -120,7 +118,6 @@ begin
                     else
                         sync_counter <= next_sync_counter;
                     end if;
-                    watchdog_counter <= zero_watchdog_counter;
                 when TWO =>
                     -- Normal pulse of length 2
                     if sync_counter = max_sync_counter then
@@ -129,20 +126,27 @@ begin
                         sync_counter <= next_sync_counter;
                     end if;
                 when THREE =>
-                    -- Normal pulse of length 3
+                    if sync_counter = max_sync_counter then
+                        pulse_length_out <= "11";
+                    else
+                        sync_counter <= next_sync_counter;
+                    end if;
+            end case;
+
+            case transition_class is
+                when NONE | SHORT | LONG | ONE =>
+                    watchdog_counter <= zero_watchdog_counter;
+                when TWO | THREE =>
                     if watchdog_counter = max_watchdog_counter then
                         -- Received only length 2 or 3 pulses for some time.
+                        -- Length 1 pulses must be received in the header at least.
                         -- Perhaps the data rate has changed slightly. Force resync.
                         sync_counter <= zero_sync_counter;
                         single_time <= max_single_time;
+                        pulse_length_out <= "00";
                         watchdog_counter <= zero_watchdog_counter;
                     else
                         watchdog_counter <= watchdog_counter + 1;
-                        if sync_counter = max_sync_counter then
-                            pulse_length_out <= "11";
-                        else
-                            sync_counter <= next_sync_counter;
-                        end if;
                     end if;
             end case;
         end if;
