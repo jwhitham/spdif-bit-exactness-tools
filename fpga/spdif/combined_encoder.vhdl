@@ -2,7 +2,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-entity channel_encoder is
+entity combined_encoder is
     port (
         data_out                : out std_logic := '0';
         sync_out                : out std_logic := '0';
@@ -14,11 +14,10 @@ entity channel_encoder is
         packet_start_strobe_out : out std_logic := '0';
         spdif_clock_strobe_in   : in std_logic;
         sync_in                 : in std_logic;
-        clock                   : in std_logic
-    );
-end channel_encoder;
+        clock_in                : in std_logic);
+end combined_encoder;
 
-architecture structural of channel_encoder is
+architecture structural of combined_encoder is
 
     -- subcode output
     constant b_interval     : Natural := 192;
@@ -42,7 +41,7 @@ architecture structural of channel_encoder is
     constant ZERO              : t_header_pulse := "00";
 
     -- state
-    type t_state is (AWAIT_DATA, AWAIT_FIRST_CLOCK,
+    type t_state is (RESET, AWAIT_DATA, AWAIT_FIRST_CLOCK,
                      SEND_HEADER, SEND_DATA,
                      SEND_ONE_PULSE, SEND_NO_PULSE);
 
@@ -53,6 +52,7 @@ architecture structural of channel_encoder is
     signal bit_counter      : t_bit_counter := 0;
     signal header           : t_header := (others => '0');
     signal state            : t_state := RESET;
+    signal spdif_gen        : std_logic := '1';
 
 begin
 
@@ -60,12 +60,13 @@ begin
     error_out <= '1' when state = AWAIT_DATA and spdif_clock_strobe_in = '1' else '0';
 
     -- Packet starts:
-    packet_start_strobe_out <= '1' when state = AWAIT_DATA and (left_strobe_in or right_strobe_in = '1') else '0';
+    packet_start_strobe_out <= '1' when state = AWAIT_DATA
+                   and ((left_strobe_in or right_strobe_in) = '1') else '0';
 
     -- S/PDIF data output
     data_out <= spdif_gen;
 
-    process (clock)
+    process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
             -- New packet

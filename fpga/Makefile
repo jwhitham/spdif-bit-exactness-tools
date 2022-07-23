@@ -21,12 +21,10 @@ VHDL =  \
 		app/vu_meter.vhdl \
 		app/mode_display.vhdl \
 		spdif/channel_decoder.vhdl \
-		spdif/channel_encoder.vhdl \
+		spdif/combined_encoder.vhdl \
 		spdif/clock_regenerator.vhdl \
 		spdif/input_decoder.vhdl \
-		spdif/output_encoder.vhdl \
 		spdif/packet_decoder.vhdl \
-		spdif/packet_encoder.vhdl \
 		app/compressor_main.vhdl
 
 TEST_VHDL = \
@@ -57,6 +55,8 @@ run_tests:
 	python app/make_version_rom.py
 	python test/make_test_bench.py
 	ghdl -a --work=work $(VHDL) $(TEST_VHDL)
+	ghdl -r test_top_level $(RFLAGS) > tmp.txt
+	diff -q tmp.txt test/test_top_level_out.txt
 	ghdl -r test_volume $(RFLAGS)
 	ghdl -r test_disable_compressor $(RFLAGS)
 	ghdl -r test_measure $(RFLAGS)
@@ -69,6 +69,4 @@ run_tests:
 	ghdl -r test_sign_magnitude $(RFLAGS)
 	ghdl -r test_compressor_main $(RFLAGS)
 	ghdl -r test_fifo $(RFLAGS)
-	ghdl -r test_top_level $(RFLAGS) > tmp.txt
-	diff -q tmp.txt test/test_top_level_out.txt
 	echo "tests ok"

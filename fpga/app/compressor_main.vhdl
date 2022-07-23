@@ -42,6 +42,7 @@ architecture structural of compressor_main is
     constant clock_frequency        : Real := 96.0e6;
 
     signal rg_strobe                : std_logic := '0';
+    signal rg_start                 : std_logic := '0';
     signal encoded_spdif            : std_logic := '0';
 
     -- biphase mark codes, decoded
@@ -145,7 +146,8 @@ begin
                   clock_interval_out => clock_interval,
                   sync_in => sync (3),
                   sync_out => sync (4),
-                  strobe_out => rg_strobe);
+                  packet_start_strobe_in => rg_start,
+                  spdif_clock_strobe_out => rg_strobe);
 
     cmp : entity compressor
         port map (clock_in => clock_in,
@@ -193,38 +195,24 @@ begin
         end case;
     end process;
 
-    ce : entity channel_encoder
-        port map (clock => clock_in,
-                  sync_in => sync (5),
-                  sync_out => sync (6),
-                  data_out => cmp_packet_data,
-                  start_out => cmp_packet_start,
-                  shift_out => cmp_packet_shift,
-                  preemph_in => preemph,
-                  data_in => cmp_data,
-                  left_strobe_in => cmp_left_strobe,
-                  right_strobe_in => cmp_right_strobe);
-
     preemph <= not button_c6_in;
 
-    pe : entity packet_encoder
-        port map (clock => clock_in,
-                  pulse_length_out => cmp_pulse_length,
-                  sync_in => sync (6),
-                  sync_out => sync (7),
-                  data_in => cmp_packet_data,
-                  start_in => cmp_packet_start,
-                  shift_in => cmp_packet_shift);
-
-    oe : entity output_encoder
+    ce : entity combined_encoder
         port map (clock_in => clock_in,
-                  pulse_length_in => cmp_pulse_length,
-                  sync_in => sync (7),
+                  sync_in => sync (5),
                   sync_out => sync (8),
+                  preemph_in => preemph,
+                  left_strobe_in => cmp_left_strobe,
+                  right_strobe_in => cmp_right_strobe,
                   error_out => oe_error,
-                  strobe_in => rg_strobe,
-                  data_out => encoded_spdif);
-       
+                  packet_start_strobe_out => rg_start,
+                  spdif_clock_strobe_in => rg_strobe,
+                  data_out => encoded_spdif,
+                  data_in => cmp_data);
+
+    sync (6) <= sync (8);
+    sync (7) <= sync (8);
+
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
