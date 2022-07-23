@@ -46,7 +46,9 @@ architecture structural of test_top_level is
     signal rg_strobe       : std_logic := '0';
     signal oe_data         : std_logic := '0';
     signal oe_error        : std_logic := '0';
-    signal zero            : std_logic := '0';
+
+    constant zero          : std_logic := '0';
+    constant one           : std_logic := '1';
 
     signal uptime          : Integer := 0;
     signal start_of_r_sync : Integer := 0;
@@ -58,6 +60,7 @@ begin
 
     dec1 : entity input_decoder
         port map (clock_in => clock, data_in => raw_data,
+                  sync_in => one,
                   sync_out => sync (1), single_time_out => single_time,
                   pulse_length_out => pulse_length);
 
@@ -132,6 +135,7 @@ begin
 
     dec4 : entity input_decoder
         port map (clock_in => clock, data_in => oe_data,
+                  sync_in => one,
                   sync_out => sync (10), single_time_out => open,
                   pulse_length_out => pulse_length_3);
 
