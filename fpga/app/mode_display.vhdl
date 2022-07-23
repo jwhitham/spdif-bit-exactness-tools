@@ -47,10 +47,12 @@ entity mode_display is
 end mode_display;
 
 architecture structural of mode_display is
-    -- Countdown implements a second delay
+
+    -- Countdown implements the delay for messages on the "screen"
     constant max_countdown  : Natural := 100;
     subtype t_countdown is Natural range 0 to max_countdown;
 
+    -- Here's what's shown on the screen
     type t_display_mode is (ANNOUNCE_DBG_SPDIF, ANNOUNCE_DBG_SUBCODES, ANNOUNCE_DBG_COMPRESS,
                             ANNOUNCE_DBG_ADCS, ANNOUNCE_DBG_VERSION,
                             ANNOUNCE_COMPRESS_MAX, ANNOUNCE_COMPRESS_2, ANNOUNCE_PASSTHROUGH, 
@@ -58,11 +60,18 @@ architecture structural of mode_display is
                             BOOT, DESYNC, DOUBLE_VU_METER, SINGLE_VU_METER,
                             SHOW_DBG_SPDIF, SHOW_DBG_SUBCODES, SHOW_DBG_COMPRESS,
                             SHOW_DBG_ADCS, SHOW_DBG_VERSION);
+
+    -- LED output
     subtype t_led_line is std_logic_vector (7 downto 0);
     type t_leds is array (Natural range 0 to 3) of t_led_line;
 
+    -- Desync message countdown 
+    constant max_desync_messages : Natural := 100;
+    subtype t_desync_messages is Natural range 0 to max_desync_messages;
+
     -- Registers
     signal countdown        : t_countdown := max_countdown;
+    signal desync_messages  : t_desync_messages := max_desync_messages;
     signal oe_error_latch   : std_logic := '0';
     signal adc_error_latch  : std_logic := '0';
     signal cmp_fifo_error_latch : std_logic := '0';
@@ -212,11 +221,13 @@ begin
             if reset_in = '1' then
                 -- Hold in reset
                 countdown <= max_countdown;
+                desync_messages <= max_desync_messages;
                 display_mode <= BOOT;
 
             elsif mode_strobe_in = '1' then
                 -- Change mode; announce the new mode
                 countdown <= max_countdown;
+                desync_messages <= max_desync_messages;
                 case mode_select_in is
                     when COMPRESS_MAX =>
                         display_mode <= ANNOUNCE_COMPRESS_MAX;
@@ -251,10 +262,11 @@ begin
                     countdown <= countdown - 1;
                 end if;
 
-            elsif desync_flag = '1' and display_mode /= DESYNC then
+            elsif desync_flag = '1' and display_mode /= DESYNC and desync_messages /= 0 then
                 -- Show desync display
                 countdown <= max_countdown;
                 display_mode <= DESYNC;
+                desync_messages <= desync_messages - 1;
 
             else
                 -- Stable - show normal display
@@ -278,7 +290,7 @@ begin
         end if;
     end process;
 
-    process (clock_in)
+    error_latches : process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
             if reset_in = '1' or reset_error_in = '1' then
@@ -295,7 +307,7 @@ begin
                 desync_error_latch <= desync_flag or desync_error_latch;
             end if;
         end if;
-    end process;
+    end process error_latches;
 
     vr : entity version_rom
         port map (data_out => version);

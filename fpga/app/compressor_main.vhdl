@@ -11,7 +11,6 @@ use mode_definitions.all;
 entity compressor_main is
     port (
         clock_in            : in std_logic;
-        reset_in            : in std_logic;
 
         tx_to_pic_out       : out std_logic := '0';
         rx_from_pic_in      : in std_logic;
@@ -39,6 +38,8 @@ entity compressor_main is
 end compressor_main;
 
 architecture structural of compressor_main is
+
+    constant clock_frequency        : Real := 96.0e6;
 
     signal rg_strobe                : std_logic := '0';
     signal encoded_spdif            : std_logic := '0';
@@ -100,9 +101,14 @@ architecture structural of compressor_main is
     signal mode_strobe              : std_logic := '0';
     signal mode_select              : mode_definitions.t_mode := mode_definitions.min_value;
 
-    constant clock_frequency        : Real := 96.0e6;
+    -- reset signal
+    constant bootup_time            : Natural := 3; -- about 30ms (based on 100Hz signal)
+    subtype t_bootup is Natural range 0 to bootup_time;
+    signal bootup                   : t_bootup := bootup_time;
+    signal reset                    : std_logic := '1';
+
 begin
-    sync (0) <= not reset_in;
+    sync (0) <= not reset;
 
     dec1 : entity input_decoder
         port map (clock_in => clock_in,
@@ -278,7 +284,7 @@ begin
     display : entity mode_display
         port map (clock_in => clock_in,
                   pulse_100hz_in => pulse_100hz,
-                  reset_in => reset_in,
+                  reset_in => reset,
 
                   -- mode select
                   mode_strobe_in => mode_strobe,
@@ -318,7 +324,7 @@ begin
     adc : entity icefun_adc_driver
         generic map (clock_frequency => clock_frequency)
         port map (clock_in => clock_in,
-                  reset_in => reset_in,
+                  reset_in => reset,
                   pulse_100hz_in => pulse_100hz,
                   tx_to_pic => tx_to_pic_out,
                   rx_from_pic => rx_from_pic_in,
@@ -334,7 +340,7 @@ begin
 
     rot : entity rotary_switch
         port map (clock_in => clock_in,
-                  reset_in => reset_in,
+                  reset_in => reset,
                   pulse_100hz_in => pulse_100hz,
                   rotary_024 => rotary_024_in,
                   rotary_01 => rotary_01_in,
@@ -343,5 +349,21 @@ begin
                   right_button => button_a5_in,
                   strobe_out => mode_strobe,
                   value_out => mode_select);
+
+    -- hold reset for long enough for the rotary switch inputs to stabilise
+    process (clock_in)
+    begin
+        if clock_in'event and clock_in = '1' then
+            if pulse_100hz = '1' then
+                if bootup = 0 then
+                    reset <= '0';
+                else
+                    bootup <= bootup - 1;
+                    reset <= '1';
+                end if;
+            end if;
+        end if;
+    end process;
+
 end structural;
 
