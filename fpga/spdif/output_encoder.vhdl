@@ -42,6 +42,7 @@ architecture structural of output_encoder is
     signal fifo_half_full   : std_logic := '0';
     signal fifo_read_error  : std_logic := '0';
     signal fifo_write_error : std_logic := '0';
+    signal fifo_empty       : std_logic := '0';
     signal data_gen         : std_logic := '0';
 
 
@@ -52,7 +53,7 @@ begin
         port map (
             data_in => pulse_length_in,
             data_out => pulse_length,
-            empty_out => open,
+            empty_out => fifo_empty,
             full_out => open,
             thresh_out => fifo_half_full,
             write_error => fifo_write_error,
@@ -139,6 +140,10 @@ begin
                         data_gen <= not data_gen;
                         encode_state <= READY;
                 end case;
+
+            elsif fifo_empty = '0' and spdif_clock_strobe_in = '1' and pulse_length /= THREE_WAIT then
+                -- Get THREE_WAIT at the top of the FIFO
+                fifo_read <= '1';
             end if;
         end if;
     end process;
