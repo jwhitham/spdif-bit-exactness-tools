@@ -59,9 +59,10 @@ architecture structural of input_decoder is
 
     -- Does the output make sense? Only certain sequences make sense.
     type t_history_array is array (Natural range 1 to 4) of std_logic_vector (1 downto 0);
+    type t_history_reg_array is array (Natural range 1 to 3) of std_logic_vector (1 downto 0);
     type t_sequence_valid is (NO, YES, MAYBE);
     signal sequence_valid           : t_sequence_valid := NO;
-    signal old_pulse_length         : t_history_array := (others => ZERO);
+    signal history_reg              : t_history_reg_array := (others => ZERO);
 
 begin
 
@@ -212,7 +213,6 @@ begin
     pulse_history_check : process (clock_in)
         variable l        : line;
         variable history  : t_history_array := (others => ZERO);
-        variable accepted : Boolean := false;
     begin
         if clock_in'event and clock_in = '1' then
             if pulse_length = ZERO then
@@ -222,17 +222,8 @@ begin
                 -- New pulse enters history
                 history (4) := pulse_length;
                 for i in 1 to 3 loop
-                    history (i) := old_pulse_length (i);
+                    history (i) := history_reg (i);
                 end loop;
-                if debug and False then
-                    write (l, String'("AA history is"));
-                    for i in 1 to 4 loop
-                        write (l, String'(" "));
-                        write (l, to_integer (unsigned (history (i))));
-                    end loop;
-                    writeline (output, l);
-                end if;
-                accepted := false;
 
                 -- Examine history
                 if history (1) = THREE then
@@ -263,7 +254,8 @@ begin
                             writeline (output, l);
                         end if;
                     end if;
-                    accepted := true;
+                    -- Don't process this event again
+                    history := (others => ZERO);
 
                 elsif history (2) = TWO
                         and history (3) = ONE
@@ -275,24 +267,17 @@ begin
                         write (l, String'("AA invalid body (2,1,2)"));
                         writeline (output, l);
                     end if;
-                    accepted := true;
+                    -- Don't process this event again
+                    history := (others => ZERO);
 
                 elsif sequence_valid = NO then
                     -- Sequence might be valid - can't tell until we get a valid header
                     sequence_valid <= MAYBE;
                 end if;
 
-                if accepted then
-                    -- clear history
-                    for i in 1 to 3 loop
-                        old_pulse_length (i) <= ZERO;
-                    end loop;
-                else
-                    -- save history
-                    for i in 1 to 3 loop
-                        old_pulse_length (i) <= history (i + 1);
-                    end loop;
-                end if;
+                for i in 1 to 3 loop
+                    history_reg (i) <= history (i + 1);
+                end loop;
             end if;
         end if;
     end process pulse_history_check;
