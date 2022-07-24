@@ -10,7 +10,9 @@ use std.textio.all;
 
 entity input_decoder is
     generic (
-        debug            : Boolean := false);
+        max_transition_time    : Natural := 255;
+        enough_transitions     : Natural := 31;
+        debug                  : Boolean := false);
     port (
         data_in          : in std_logic;
         pulse_length_out : out std_logic_vector (1 downto 0) := "00";
@@ -32,7 +34,6 @@ architecture structural of input_decoder is
     constant enable_packet_decoder  : std_logic := '1';
 
     -- Measuring the transition time
-    constant max_transition_time    : Natural := 255;
     subtype t_transition_time is Natural range 0 to max_transition_time;
     signal transition_time          : t_transition_time := 0;
     signal timer                    : t_transition_time := 0;
@@ -44,7 +45,6 @@ architecture structural of input_decoder is
     signal max_measured_time        : t_transition_time := 0;
 
     -- Stability counter
-    constant enough_transitions     : Natural := 31;
     subtype t_transition_counter is Natural range 0 to enough_transitions;
     signal valid_transitions : t_transition_counter := 0;
     signal min_max_is_valid         : std_logic := '0';
@@ -105,9 +105,19 @@ begin
 
             elsif transition_time_strobe = '1' then
                 -- New transition
+                if debug then
+                    write (l, String'("AA measured "));
+                    write (l, transition_time);
+                    writeline (output, l);
+                end if;
+
                 if min_max_is_valid = '0' then
                     -- Transition sequence appears valid, increase stability
                     valid_transitions <= valid_transitions + 1;
+                    if debug then
+                        write (l, String'("AA increase validity"));
+                        writeline (output, l);
+                    end if;
                 end if;
 
                 if three_counter = too_many_threes or transition_time = max_transition_time then
@@ -118,6 +128,13 @@ begin
                     min_measured_time <= max_transition_time;
                     max_measured_time <= 0;
                     valid_transitions <= 0;
+                    if debug then
+                        write (l, String'("AA reset due to three_counter="));
+                        write (l, three_counter);
+                        write (l, String'(" transition_time="));
+                        write (l, transition_time);
+                        writeline (output, l);
+                    end if;
                 else
                     -- capture minimum and maximum
                     if max_measured_time < transition_time then
