@@ -1,9 +1,16 @@
 
+library work;
+use work.all;
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+use std.textio.all;
+
 entity input_decoder is
+    generic (
+        debug            : Boolean := false);
     port (
         data_in          : in std_logic;
         pulse_length_out : out std_logic_vector (1 downto 0) := "00";
@@ -16,136 +23,184 @@ end input_decoder;
 
 architecture structural of input_decoder is
 
-    subtype t_sync_counter is unsigned (0 to 4);
-    subtype t_transition_time is unsigned (0 to 7);
-    subtype t_watchdog_counter is unsigned (0 to 2);
+    -- Outputs
+    constant ZERO   : std_logic_vector (1 downto 0) := "00";
+    constant ONE    : std_logic_vector (1 downto 0) := "01";
+    constant TWO    : std_logic_vector (1 downto 0) := "10";
+    constant THREE  : std_logic_vector (1 downto 0) := "11";
 
-    constant zero_transition_time   : t_transition_time := (others => '0');
-    constant max_transition_time    : t_transition_time := (others => '1');
-    constant max_single_time        : t_transition_time := max_transition_time srl 2;
-    constant zero_sync_counter      : t_sync_counter := (others => '0');
-    constant max_sync_counter       : t_sync_counter := (others => '1');
-    constant zero_watchdog_counter  : t_watchdog_counter := (others => '0');
-    constant max_watchdog_counter   : t_watchdog_counter := (others => '1');
+    constant enable_packet_decoder  : std_logic := '1';
 
-    type t_transition_class is (NONE, SHORT, ONE, TWO, THREE, LONG);
+    -- Measuring the transition time
+    constant max_transition_time    : Natural := 255;
+    subtype t_transition_time is Natural range 0 to max_transition_time;
+    signal transition_time          : t_transition_time := 0;
+    signal timer                    : t_transition_time := 0;
+    signal transition_time_strobe   : std_logic := '0';
+    signal delay0, delay1           : std_logic := '0';
 
-    signal delay0, delay1       : std_logic := '0';
-    signal sync_counter         : t_sync_counter := zero_sync_counter;
-    signal next_sync_counter    : t_sync_counter := zero_sync_counter;
-    signal watchdog_counter     : t_watchdog_counter := zero_watchdog_counter;
-    signal transition_time      : t_transition_time := zero_transition_time;
-    signal transition_class     : t_transition_class := NONE;
-    signal timer                : t_transition_time := zero_transition_time + 1;
-    signal next_timer           : t_transition_time := zero_transition_time + 2;
-    signal threshold            : t_transition_class := NONE;
-    signal single_time          : t_transition_time := max_single_time;
-    signal double_time          : t_transition_time := max_transition_time;
-    signal triple_time          : t_transition_time := max_transition_time;
-    signal quad_time            : t_transition_time := max_transition_time;
+    -- Determining the maximum and minimum
+    signal min_measured_time        : t_transition_time := max_transition_time;
+    signal max_measured_time        : t_transition_time := 0;
+
+    -- Stability counter
+    constant enough_transitions     : Natural := 31;
+    subtype t_transition_counter is Natural range 0 to enough_transitions;
+    signal valid_transitions : t_transition_counter := 0;
+    signal min_max_is_valid         : std_logic := '0';
+    signal min_max_was_valid        : std_logic := '0';
+
+    -- Thresholds for distinguishing pulse length
+    signal threshold_1_5            : t_transition_time := 0;
+    signal threshold_2_5            : t_transition_time := 0;
+
+    -- Pulse length is determined by comparing to thresholds
+    signal pulse_length             : std_logic_vector (1 downto 0) := ZERO;
+
 begin
 
-    -- detect transitions
-    process (clock_in)
+    measure_transition_time : process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
             delay0 <= data_in;
             delay1 <= delay0;
-            transition_time <= zero_transition_time;
-            transition_class <= NONE;
 
+            transition_time_strobe <= '0';
             if sync_in = '0' then
-                transition_class <= LONG;
+                timer <= 0;
+                transition_time <= 0;
 
             elsif delay0 = delay1 then
-                if timer = max_transition_time then
-                    threshold <= LONG;
-                    transition_class <= LONG;
-                else
-                    timer <= next_timer;
-                    if next_timer = single_time then
-                        threshold <= ONE;
-                    elsif next_timer = double_time then
-                        threshold <= TWO;
-                    elsif next_timer = triple_time then
-                        threshold <= THREE;
-                    elsif next_timer = quad_time then
-                        threshold <= LONG;
-                        transition_class <= LONG;
-                    end if;
+                -- No transition - measure time
+                if timer /= max_transition_time then
+                    timer <= timer + 1;
                 end if;
+
             else
-                timer <= zero_transition_time + 1;
-                threshold <= SHORT;
-                transition_class <= threshold;
+                -- New transition - report time
                 transition_time <= timer;
+                transition_time_strobe <= '1';
+                timer <= 1;
             end if;
         end if;
-    end process;
+    end process measure_transition_time;
 
-    next_timer <= timer + 1;
-    next_sync_counter <= sync_counter + 1;
-    single_time_out <= std_logic_vector (single_time);
-    sync_out <= '1' when sync_counter = max_sync_counter else '0';
+    min_max_is_valid <= '1' when valid_transitions = enough_transitions else '0';
 
-    -- Determine the time for a single transition ("synchronise").
-    -- Once synchronised, classify transitions as single, double or triple.
-    process (clock_in)
+    -- Determine the maximum and minimum transition time, by measurement
+    min_max_transition_time : process (clock_in)
+        variable l : line;
     begin
         if clock_in'event and clock_in = '1' then
-            pulse_length_out <= "00";
+            if sync_in = '0' then
+                -- Reset
+                min_measured_time <= max_transition_time;
+                max_measured_time <= 0;
+                valid_transitions <= 0;
 
-            double_time <= (single_time sll 1) - (single_time srl 2);  -- multiply by 1.75
-            triple_time <= (single_time sll 1) + single_time
-                                                - (single_time srl 2); -- multiply by 2.75
-            quad_time <= single_time sll 2;                            -- multiply by 4
+            elsif transition_time_strobe = '1' then
+                -- New transition
+                if min_max_is_valid = '0' then
+                    -- Transition sequence appears valid, increase stability
+                    valid_transitions <= valid_transitions + 1;
+                end if;
 
-            case transition_class is
-                when NONE =>
-                    -- No transition, do nothing
-                    null;
-                when LONG =>
-                    -- Invalid transition - start syncing again
-                    sync_counter <= zero_sync_counter;
-                    single_time <= max_single_time;
-                    watchdog_counter <= zero_watchdog_counter;
-                when SHORT =>
-                    -- Shorter pulse seen - adjust single_time
-                    single_time <= transition_time;
-                    watchdog_counter <= zero_watchdog_counter;
-                when ONE =>
-                    -- Normal pulse of length 1
-                    if sync_counter = max_sync_counter then
-                        pulse_length_out <= "01";
-                    else
-                        sync_counter <= next_sync_counter;
-                    end if;
-                    watchdog_counter <= zero_watchdog_counter;
-                when TWO =>
-                    -- Normal pulse of length 2
-                    if sync_counter = max_sync_counter then
-                        pulse_length_out <= "10";
-                    else
-                        sync_counter <= next_sync_counter;
-                    end if;
-                when THREE =>
-                    -- Normal pulse of length 3
-                    if watchdog_counter = max_watchdog_counter then
-                        -- Received only length 2 or 3 pulses for some time.
-                        -- Perhaps the data rate has changed slightly. Force resync.
-                        sync_counter <= zero_sync_counter;
-                        single_time <= max_single_time;
-                        watchdog_counter <= zero_watchdog_counter;
-                    else
-                        watchdog_counter <= watchdog_counter + 1;
-                        if sync_counter = max_sync_counter then
-                            pulse_length_out <= "11";
-                        else
-                            sync_counter <= next_sync_counter;
+                if transition_time = max_transition_time then
+                    -- invalid time: reset everything
+                    min_measured_time <= max_transition_time;
+                    max_measured_time <= 0;
+                    valid_transitions <= 0;
+                else
+                    -- capture minimum and maximum
+                    if max_measured_time < transition_time then
+                        -- new maximum does not reset measurements
+                        max_measured_time <= transition_time;
+                        if debug then
+                            write (l, String'("AA new max_measured_time="));
+                            write (l, transition_time);
+                            writeline (output, l);
                         end if;
                     end if;
-            end case;
+                    if min_measured_time > transition_time then
+                        -- new minimum resets measurements
+                        min_measured_time <= transition_time;
+                        valid_transitions <= 0;
+                        if debug then
+                            write (l, String'("AA new min_measured_time="));
+                            write (l, transition_time);
+                            writeline (output, l);
+                        end if;
+                    end if;
+                end if;
+            end if;
         end if;
-    end process;
+    end process min_max_transition_time;
+
+    threshold_calc : process (clock_in)
+        subtype t_bigger is Natural range 0 to (((max_transition_time + 1) * 2) - 1);
+        variable x0_5, x1_0, x2_0, x4_0 : t_bigger := 0;
+        variable l : line;
+    begin
+        if clock_in'event and clock_in = '1' then
+            -- Hypothesis - there is a single pulse time, X clock cycles,
+            -- and a double pulse time 2X and a triple pulse time 3X. These are the
+            -- pulse times that the transmitter intends to generate. X is not an integer,
+            -- as the transmitter's clock frequency is not our clock frequency.
+            --
+            -- There is an error time, E clock cycles, which causes all actual measurements to vary by +/- E.
+            -- This is also not an integer.
+            --
+            -- We can use our measured times to obtain X like this:
+            --            min_measured_time ~ X - E
+            --        and max_measured_time ~ 3X + E
+            --  so 4X ~ min_measured_time + max_measured_time
+            --
+            -- Threshold 1.5X can be used to distinguish between X and 2X pulses.
+            -- Threshold 2.5X can be used to distinguish between 2X and 3X pulses.
+            x4_0 := t_bigger (min_measured_time) + t_bigger (max_measured_time);
+            x2_0 := x4_0 / 2;
+            x1_0 := x2_0 / 2;
+            x0_5 := x1_0 / 2;
+            threshold_1_5 <= t_transition_time (x1_0 + x0_5);
+            threshold_2_5 <= t_transition_time (x2_0 + x0_5);
+            single_time_out <= std_logic_vector (to_unsigned (63, 8));
+            min_max_was_valid <= min_max_is_valid;
+
+            if min_max_is_valid = '1' then
+                single_time_out <= std_logic_vector (to_unsigned (x1_0 mod 256, 8));
+                if debug and min_max_was_valid = '0' then
+                    write (l, String'("AA threshold_calc min_measured_time="));
+                    write (l, min_measured_time);
+                    write (l, String'(" max_measured_time="));
+                    write (l, max_measured_time);
+                    write (l, String'(" threshold_1_5="));
+                    write (l, threshold_1_5);
+                    write (l, String'(" threshold_2_5="));
+                    write (l, threshold_2_5);
+                    writeline (output, l);
+                end if;
+            end if;
+        end if;
+    end process threshold_calc;
+
+    pulse_transition_time : process (clock_in)
+    begin
+        if clock_in'event and clock_in = '1' then
+            pulse_length_out <= ZERO;
+            sync_out <= '0';
+            if min_max_is_valid = '1' then
+                sync_out <= '1';
+                if transition_time_strobe = '1' then
+                    if threshold_1_5 >= transition_time then
+                        pulse_length_out <= ONE;
+                    elsif threshold_2_5 >= transition_time then
+                        pulse_length_out <= TWO;
+                    else
+                        pulse_length_out <= THREE;
+                    end if;
+                end if;
+            end if;
+        end if;
+    end process pulse_transition_time;
 
 end structural;
