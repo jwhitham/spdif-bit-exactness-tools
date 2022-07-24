@@ -60,6 +60,7 @@ begin
         port map (raw_data_out => raw_data, done_out => done, clock_out => clock);
 
     dec1 : entity input_decoder
+        generic map (debug => true)
         port map (clock_in => clock, data_in => raw_data,
                   sync_in => one,
                   sync_out => sync (1), single_time_out => single_time,
@@ -137,7 +138,6 @@ begin
     assert oe_error = '0';
 
     dec4 : entity input_decoder
-        generic map (debug => true)
         port map (clock_in => clock, data_in => oe_data,
                   sync_in => one,
                   sync_out => sync (10), single_time_out => open,
