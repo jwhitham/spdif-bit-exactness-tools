@@ -57,6 +57,11 @@ architecture structural of input_decoder is
     -- Pulse length is determined by comparing to thresholds
     signal pulse_length             : std_logic_vector (1 downto 0) := ZERO;
 
+    -- We can detect incorrect timings by looking at the number of sequential THREE pulses 
+    constant too_many_threes        : Natural := 3;
+    subtype t_three_counter is Natural range 0 to too_many_threes;
+    signal three_counter            : t_three_counter := 0;
+
 begin
 
     measure_transition_time : process (clock_in)
@@ -105,8 +110,11 @@ begin
                     valid_transitions <= valid_transitions + 1;
                 end if;
 
-                if transition_time = max_transition_time then
-                    -- invalid time: reset everything
+                if three_counter = too_many_threes or transition_time = max_transition_time then
+                    -- Too many transitions of length THREE have been measured;
+                    -- this shows that the measurements are wrong.
+                    -- OR. The pulse time is too long.
+                    -- -> reset everything
                     min_measured_time <= max_transition_time;
                     max_measured_time <= 0;
                     valid_transitions <= 0;
@@ -137,8 +145,9 @@ begin
     end process min_max_transition_time;
 
     threshold_calc : process (clock_in)
-        subtype t_bigger is Natural range 0 to (((max_transition_time + 1) * 2) - 1);
-        variable x0_5, x1_0, x2_0, x4_0 : t_bigger := 0;
+        constant peak : Natural := max_transition_time * 2 * 5;
+        subtype t_bigger is Natural range 0 to peak;
+        variable x4_0 : t_bigger := 0;
         variable l : line;
     begin
         if clock_in'event and clock_in = '1' then
@@ -158,16 +167,13 @@ begin
             -- Threshold 1.5X can be used to distinguish between X and 2X pulses.
             -- Threshold 2.5X can be used to distinguish between 2X and 3X pulses.
             x4_0 := t_bigger (min_measured_time) + t_bigger (max_measured_time);
-            x2_0 := x4_0 / 2;
-            x1_0 := x2_0 / 2;
-            x0_5 := x1_0 / 2;
-            threshold_1_5 <= t_transition_time (x1_0 + x0_5);
-            threshold_2_5 <= t_transition_time (x2_0 + x0_5);
+            threshold_1_5 <= t_transition_time ((x4_0 * 3) / 8);
+            threshold_2_5 <= t_transition_time ((x4_0 * 5) / 8);
             single_time_out <= std_logic_vector (to_unsigned (63, 8));
             min_max_was_valid <= min_max_is_valid;
 
             if min_max_is_valid = '1' then
-                single_time_out <= std_logic_vector (to_unsigned (x1_0 mod 256, 8));
+                single_time_out <= std_logic_vector (to_unsigned ((x4_0 / 4) mod 256, 8));
                 if debug and min_max_was_valid = '0' then
                     write (l, String'("AA threshold_calc min_measured_time="));
                     write (l, min_measured_time);
@@ -186,21 +192,39 @@ begin
     pulse_transition_time : process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
-            pulse_length_out <= ZERO;
-            sync_out <= '0';
-            if min_max_is_valid = '1' then
-                sync_out <= '1';
-                if transition_time_strobe = '1' then
-                    if threshold_1_5 >= transition_time then
-                        pulse_length_out <= ONE;
-                    elsif threshold_2_5 >= transition_time then
-                        pulse_length_out <= TWO;
-                    else
-                        pulse_length_out <= THREE;
-                    end if;
+            pulse_length <= ZERO;
+            if transition_time_strobe = '1' then
+                if threshold_1_5 >= transition_time then
+                    pulse_length <= ONE;
+                elsif threshold_2_5 >= transition_time then
+                    pulse_length <= TWO;
+                else
+                    pulse_length <= THREE;
                 end if;
             end if;
         end if;
     end process pulse_transition_time;
+
+    pulse_length_out <= pulse_length when min_max_is_valid = '1' else ZERO;
+    sync_out <= min_max_is_valid;
+
+    check_threes : process (clock_in)
+    begin
+        if clock_in'event and clock_in = '1' then
+            case pulse_length is
+                when ONE =>
+                    three_counter <= 0;
+                when THREE =>
+                    -- There must be at least one ONE in any sequence containing three THREEs
+                    if three_counter /= too_many_threes then
+                        three_counter <= three_counter + 1;
+                    end if;
+                when others =>
+                    if sync_in = '0' then
+                        three_counter <= 0;
+                    end if;
+            end case;
+        end if;
+    end process check_threes;
 
 end structural;

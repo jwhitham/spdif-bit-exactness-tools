@@ -6,37 +6,44 @@ packet decoder desynchronised
 input decoder single time = 63
 channel encoder desynchronised
 packet encoder desynchronised
+input decoder single time = 26
+input decoder single time = 23
 input decoder single time = 11
 input decoder synchronised
 packet decoder synchronised
-input decoder single time = 12
 channel decoder synchronised
 000000 8de400
 8fb400 cfb500
-Start of ../examples/20220502-44k.csv
-input decoder single time = 63
 input decoder desynchronised
+input decoder single time = 63
 packet decoder desynchronised
 channel decoder desynchronised
-input decoder single time = 8
-input decoder synchronised
-Start of ../examples/20220502-48k.csv
-input decoder single time = 63
-input decoder desynchronised
-input decoder single time = 8
-input decoder synchronised
-packet decoder synchronised
-packet decoder desynchronised
-Start of ../examples/test_48000_24_bit.csv
-input decoder single time = 63
-input decoder desynchronised
+Start of ../examples/20220502-44k.csv
 input decoder single time = 7
 input decoder synchronised
+input decoder desynchronised
+input decoder single time = 63
+input decoder single time = 8
+input decoder synchronised
 packet decoder synchronised
 packet decoder desynchronised
+input decoder desynchronised
+input decoder single time = 63
+Start of ../examples/20220502-48k.csv
+input decoder single time = 15
+input decoder single time = 7
+input decoder synchronised
+input decoder desynchronised
+input decoder single time = 63
+Start of ../examples/test_48000_24_bit.csv
+input decoder single time = 4
+input decoder single time = 63
+input decoder single time = 16
 input decoder single time = 8
+input decoder synchronised
 packet decoder synchronised
 channel decoder synchronised
+000800 fff7ff
 001000 ffefff
 002000 ffdfff
 004000 ffbfff
@@ -44,16 +51,16 @@ channel decoder synchronised
 010000 feffff
 020000 fdffff
 040000 fbffff
-080000 f7ffff
 clock regenerator synchronised
 channel encoder synchronised
 packet encoder synchronised
-100000 efffff
+080000 f7ffff
 output encoder synchronised
 second input decoder synchronised
 second packet decoder synchronised
-200000 dfffff
+100000 efffff
 second channel decoder synchronised
+200000 dfffff
 400000 bfffff
 800000 7fffff
 01e000 654321
@@ -89,24 +96,30 @@ ea6d66 3e4874
 004000 ffbfff
 008000 ff7fff
 010000 feffff
-Start of ../examples/test_44100_24_bit.csv
-input decoder single time = 63
 input decoder desynchronised
+input decoder single time = 63
 packet decoder desynchronised
 channel decoder desynchronised
-regenerator r_clocks = 4801 clocks = 87648
+regenerator r_clocks = 4903 clocks = 79788
 clock regenerator desynchronised
 channel encoder desynchronised
-second input decoder desynchronised
 packet encoder desynchronised
-second packet decoder desynchronised
 output encoder desynchronised
+second input decoder desynchronised
+second packet decoder desynchronised
 second channel decoder desynchronised
+Start of ../examples/test_44100_24_bit.csv
+input decoder single time = 4
+input decoder single time = 63
+input decoder single time = 16
+input decoder single time = 12
 input decoder single time = 8
 input decoder synchronised
 packet decoder synchronised
+packet decoder desynchronised
+packet decoder synchronised
 channel decoder synchronised
-f66900 51f300
+020000 51f300
 b61800 1d7600
 4dc100 db5e00
 40d900 9e0d00
@@ -115,15 +128,15 @@ e3b30d 0c8faf
 afe65e 4195b3
 667001 40817f
 clock regenerator synchronised
+24daf1 ebf8c9
 channel encoder synchronised
 packet encoder synchronised
-24daf1 ebf8c9
+5a20c9 75c3ea
 output encoder synchronised
 second input decoder synchronised
 second packet decoder synchronised
-5a20c9 75c3ea
-second channel decoder synchronised
 d0961c 8de3b3
+second channel decoder synchronised
 8fb408 cfb555
 ea6d66 3e4874
 000001 fffffe
@@ -155,26 +168,24 @@ c64e00 655e00
 257600 7d5600
 f66900 51f300
 b61800 1d7600
-Start of test/test_44100_data with quality = Quality.EXACT_24
-input decoder single time = 63
 input decoder desynchronised
-4dc100 db5e00
+input decoder single time = 63
 packet decoder desynchronised
 channel decoder desynchronised
-regenerator r_clocks = 4480 clocks = 88232
+regenerator r_clocks = 4356 clocks = 77164
 clock regenerator desynchronised
 channel encoder desynchronised
 packet encoder desynchronised
 output encoder desynchronised
+second input decoder desynchronised
+second packet decoder desynchronised
+second channel decoder desynchronised
+Start of test/test_44100_data with quality = Quality.EXACT_24
+input decoder single time = 27
 input decoder single time = 9
 input decoder synchronised
 packet decoder synchronised
-input decoder single time = 63
-input decoder desynchronised
-packet decoder desynchronised
 input decoder single time = 8
-input decoder synchronised
-packet decoder synchronised
 packet decoder desynchronised
 packet decoder synchronised
 channel decoder synchronised
@@ -191,9 +202,6 @@ channel encoder synchronised
 packet encoder synchronised
 000400 fffbff
 output encoder synchronised
-second input decoder desynchronised
-second packet decoder desynchronised
-second channel decoder desynchronised
 second input decoder synchronised
 second packet decoder synchronised
 000800 fff7ff
@@ -388,13 +396,12 @@ afe65e 4195b3
 5a20c9 75c3ea
 d0961c 8de3b3
 8fb408 cfb555
-Start of test/test_44100_data with quality = Quality.EXACT_16
-input decoder single time = 63
 input decoder desynchronised
+input decoder single time = 63
 packet decoder desynchronised
 channel decoder desynchronised
 matcher desynchronised
-regenerator r_clocks = 24257 clocks = 439286
+regenerator r_clocks = 24256 clocks = 429346
 clock regenerator desynchronised
 channel encoder desynchronised
 packet encoder desynchronised
@@ -403,14 +410,13 @@ second input decoder desynchronised
 second packet decoder desynchronised
 second channel decoder desynchronised
 second matcher desynchronised
+Start of test/test_44100_data with quality = Quality.EXACT_16
+input decoder single time = 27
 input decoder single time = 9
 input decoder synchronised
 packet decoder synchronised
 packet decoder desynchronised
-input decoder single time = 63
-input decoder desynchronised
 input decoder single time = 8
-input decoder synchronised
 packet decoder synchronised
 channel decoder synchronised
 ea6d66 ffff00
@@ -620,29 +626,27 @@ afe600 419500
 5a2000 75c300
 d09600 8de300
 8fb400 cfb500
-Start of test/test_44100_data with quality = Quality.ROUND_16
-input decoder single time = 63
 input decoder desynchronised
+input decoder single time = 63
 packet decoder desynchronised
 channel decoder desynchronised
 matcher desynchronised
-regenerator r_clocks = 24193 clocks = 438152
+regenerator r_clocks = 24192 clocks = 428212
 clock regenerator desynchronised
 channel encoder desynchronised
-second input decoder desynchronised
 packet encoder desynchronised
-second packet decoder desynchronised
 output encoder desynchronised
+second packet decoder desynchronised
 second channel decoder desynchronised
 second matcher desynchronised
+second input decoder desynchronised
+Start of test/test_44100_data with quality = Quality.ROUND_16
+input decoder single time = 27
 input decoder single time = 9
 input decoder synchronised
 packet decoder synchronised
 packet decoder desynchronised
-input decoder single time = 63
-input decoder desynchronised
 input decoder single time = 8
-input decoder synchronised
 packet decoder synchronised
 channel decoder synchronised
 ea6d00 000000
@@ -852,3 +856,17 @@ afe600 419600
 5a2100 75c400
 d09600 8de400
 8fb400 cfb500
+input decoder desynchronised
+input decoder single time = 63
+packet decoder desynchronised
+channel decoder desynchronised
+matcher desynchronised
+regenerator r_clocks = 24192 clocks = 428212
+clock regenerator desynchronised
+channel encoder desynchronised
+packet encoder desynchronised
+output encoder desynchronised
+second input decoder desynchronised
+second packet decoder desynchronised
+second channel decoder desynchronised
+second matcher desynchronised
