@@ -44,9 +44,9 @@ architecture structural of input_decoder is
     signal max_measured_time        : t_transition_time := 0;
 
     -- Stability counter
-    constant enough_transitions     : Natural := 31;
+    constant enough_transitions     : Natural := 7;
     subtype t_transition_counter is Natural range 0 to enough_transitions;
-    signal transitions_since_last_update : t_transition_counter := 0;
+    signal valid_transitions : t_transition_counter := 0;
     signal min_max_is_valid         : std_logic := '0';
     signal min_max_was_valid        : std_logic := '0';
 
@@ -54,10 +54,15 @@ architecture structural of input_decoder is
     signal threshold_1_5            : t_transition_time := 0;
     signal threshold_2_5            : t_transition_time := 0;
 
+    -- Pulse length is determined by comparing to thresholds
+    signal pulse_length             : std_logic_vector (1 downto 0) := ZERO;
+
     -- Does the output make sense? Only certain sequences make sense.
-    signal transitions_are_valid    : std_logic := '0';
-    signal transitions_were_valid   : std_logic := '0';
-    signal pulse_length             : std_logic_vector (1 downto 0) := "00";
+    type t_history_array is array (Natural range 1 to 4) of std_logic_vector (1 downto 0);
+    type t_sequence_valid is (NO, YES, MAYBE);
+    signal sequence_valid           : t_sequence_valid := NO;
+    signal old_pulse_length         : t_history_array := (others => ZERO);
+
 begin
 
     measure_transition_time : process (clock_in)
@@ -81,13 +86,14 @@ begin
                 -- New transition - report time
                 transition_time <= timer;
                 transition_time_strobe <= '1';
-                timer <= 0;
+                timer <= 1;
             end if;
         end if;
     end process measure_transition_time;
 
-    min_max_is_valid <= '1' when transitions_since_last_update = enough_transitions else '0';
+    min_max_is_valid <= '1' when valid_transitions = enough_transitions else '0';
 
+    -- Determine the maximum and minimum transition time, by measurement
     min_max_transition_time : process (clock_in)
         variable l : line;
     begin
@@ -96,28 +102,24 @@ begin
                 -- Reset
                 min_measured_time <= max_transition_time;
                 max_measured_time <= 0;
-                transitions_since_last_update <= 0;
+                valid_transitions <= 0;
 
             elsif transition_time_strobe = '1' then
                 -- New transition
-                if transitions_are_valid = '0' then
-                    -- invalid transition sequence - more measurements required
-                    transitions_since_last_update <= 0;
-                    if debug and transitions_were_valid = '1' then
-                        write (l, String'("AA invalid transition sequence reset"));
-                        write (l, transition_time);
-                        writeline (output, l);
-                    end if;
-                elsif min_max_is_valid = '0' then
-                    -- transition sequence is valid, increase stability
-                    transitions_since_last_update <= transitions_since_last_update + 1;
+                if sequence_valid = NO then
+                    -- Detected invalid transition sequence - more measurements required
+                    valid_transitions <= 0;
+
+                elsif min_max_is_valid = '0' and sequence_valid = YES then
+                    -- Transition sequence appears valid, increase stability
+                    valid_transitions <= valid_transitions + 1;
                 end if;
 
                 if transition_time = max_transition_time then
                     -- invalid time: reset everything
                     min_measured_time <= max_transition_time;
                     max_measured_time <= 0;
-                    transitions_since_last_update <= 0;
+                    valid_transitions <= 0;
                 else
                     -- capture minimum and maximum
                     if max_measured_time < transition_time then
@@ -132,7 +134,7 @@ begin
                     if min_measured_time > transition_time then
                         -- new minimum resets measurements
                         min_measured_time <= transition_time;
-                        transitions_since_last_update <= 0;
+                        valid_transitions <= 0;
                         if debug then
                             write (l, String'("AA new min_measured_time="));
                             write (l, transition_time);
@@ -172,6 +174,7 @@ begin
             threshold_1_5 <= t_transition_time (x1_0 + x0_5);
             threshold_2_5 <= t_transition_time (x2_0 + x0_5);
             single_time_out <= std_logic_vector (to_unsigned (63, 8));
+            min_max_was_valid <= min_max_is_valid;
 
             if min_max_is_valid = '1' then
                 single_time_out <= std_logic_vector (to_unsigned (x1_0 mod 256, 8));
@@ -195,9 +198,9 @@ begin
         if clock_in'event and clock_in = '1' then
             pulse_length <= ZERO;
             if transition_time_strobe = '1' then
-                if threshold_1_5 > transition_time then
+                if threshold_1_5 >= transition_time then
                     pulse_length <= ONE;
-                elsif threshold_2_5 > transition_time then
+                elsif threshold_2_5 >= transition_time then
                     pulse_length <= TWO;
                 else
                     pulse_length <= THREE;
@@ -206,15 +209,93 @@ begin
         end if;
     end process pulse_transition_time;
 
-    transition_decoder : entity packet_decoder
-        port map (
-        pulse_length_in => pulse_length,
-        sync_in => enable_packet_decoder,
-        clock => clock_in,
-        data_out => open,
-        shift_out => open,
-        start_out => open,
-        sync_out => transitions_are_valid);
+    pulse_history_check : process (clock_in)
+        variable l        : line;
+        variable history  : t_history_array := (others => ZERO);
+        variable accepted : Boolean := false;
+    begin
+        if clock_in'event and clock_in = '1' then
+            if pulse_length = ZERO then
+                -- No new pulses
+                null;
+            else
+                -- New pulse enters history
+                history (4) := pulse_length;
+                for i in 1 to 3 loop
+                    history (i) := old_pulse_length (i);
+                end loop;
+                if debug and False then
+                    write (l, String'("AA history is"));
+                    for i in 1 to 4 loop
+                        write (l, String'(" "));
+                        write (l, to_integer (unsigned (history (i))));
+                    end loop;
+                    writeline (output, l);
+                end if;
+                accepted := false;
+
+                -- Examine history
+                if history (1) = THREE then
+                    -- header received?
+                    if history (3) /= ONE then
+                        -- Third header pulse must be length one
+                        sequence_valid <= NO;
+                        if debug then
+                            write (l, String'("AA invalid header (3)"));
+                            writeline (output, l);
+                        end if;
+                    elsif unsigned (history (2)) + unsigned (history (4)) /= unsigned (ZERO) then
+                        -- Final header pulse is the opposite of the second
+                        -- (adding them gives ZERO)
+                        sequence_valid <= NO;
+                        if debug then
+                            write (l, String'("AA invalid header (2,4)"));
+                            for i in 1 to 4 loop
+                                write (l, String'(" "));
+                                write (l, to_integer (unsigned (history (i))));
+                            end loop;
+                            writeline (output, l);
+                        end if;
+                    else
+                        sequence_valid <= YES;
+                        if debug then
+                            write (l, String'("AA valid header"));
+                            writeline (output, l);
+                        end if;
+                    end if;
+                    accepted := true;
+
+                elsif history (2) = TWO
+                        and history (3) = ONE
+                        and history (4) = TWO then
+                    -- Sequence 2-1-2 is not allowed outside of the header
+                    -- (and history (1) is not THREE, so this isn't the header)
+                    sequence_valid <= NO;
+                    if debug then
+                        write (l, String'("AA invalid body (2,1,2)"));
+                        writeline (output, l);
+                    end if;
+                    accepted := true;
+
+                elsif sequence_valid = NO then
+                    -- Sequence might be valid - can't tell until we get a valid header
+                    sequence_valid <= MAYBE;
+                end if;
+
+                if accepted then
+                    -- clear history
+                    for i in 1 to 3 loop
+                        old_pulse_length (i) <= ZERO;
+                    end loop;
+                else
+                    -- save history
+                    for i in 1 to 3 loop
+                        old_pulse_length (i) <= history (i + 1);
+                    end loop;
+                end if;
+            end if;
+        end if;
+    end process pulse_history_check;
 
     output_registers : process (clock_in)
     begin
@@ -227,15 +308,5 @@ begin
             end if;
         end if;
     end process output_registers;
-
-    debug_delay : process (clock_in)
-    begin
-        if clock_in'event and clock_in = '1' then
-            if debug then
-                min_max_was_valid <= min_max_is_valid;
-                transitions_were_valid <= transitions_are_valid;
-            end if;
-        end if;
-    end process debug_delay;
 
 end structural;
