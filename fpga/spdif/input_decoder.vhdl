@@ -1,4 +1,7 @@
 
+library work;
+use work.all;
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -26,6 +29,8 @@ architecture structural of input_decoder is
     constant TWO    : std_logic_vector (1 downto 0) := "10";
     constant THREE  : std_logic_vector (1 downto 0) := "11";
 
+    constant enable_packet_decoder  : std_logic := '1';
+
     -- Measuring the transition time
     constant max_transition_time    : Natural := 255;
     subtype t_transition_time is Natural range 0 to max_transition_time;
@@ -48,6 +53,11 @@ architecture structural of input_decoder is
     -- Thresholds for distinguishing pulse length
     signal threshold_1_5            : t_transition_time := 0;
     signal threshold_2_5            : t_transition_time := 0;
+
+    -- Does the output make sense? Only certain sequences make sense.
+    signal transitions_are_valid    : std_logic := '0';
+    signal transitions_were_valid   : std_logic := '0';
+    signal pulse_length             : std_logic_vector (1 downto 0) := "00";
 begin
 
     measure_transition_time : process (clock_in)
@@ -77,7 +87,6 @@ begin
     end process measure_transition_time;
 
     min_max_is_valid <= '1' when transitions_since_last_update = enough_transitions else '0';
-    sync_out <= min_max_was_valid and min_max_is_valid;
 
     min_max_transition_time : process (clock_in)
         variable l : line;
@@ -91,8 +100,16 @@ begin
 
             elsif transition_time_strobe = '1' then
                 -- New transition
-                if min_max_is_valid = '0' then
-                    -- Increase stability
+                if transitions_are_valid = '0' then
+                    -- invalid transition sequence - more measurements required
+                    transitions_since_last_update <= 0;
+                    if debug and transitions_were_valid = '1' then
+                        write (l, String'("AA invalid transition sequence reset"));
+                        write (l, transition_time);
+                        writeline (output, l);
+                    end if;
+                elsif min_max_is_valid = '0' then
+                    -- transition sequence is valid, increase stability
                     transitions_since_last_update <= transitions_since_last_update + 1;
                 end if;
 
@@ -154,64 +171,71 @@ begin
             x0_5 := x1_0 / 2;
             threshold_1_5 <= t_transition_time (x1_0 + x0_5);
             threshold_2_5 <= t_transition_time (x2_0 + x0_5);
-            min_max_was_valid <= min_max_is_valid;
             single_time_out <= std_logic_vector (to_unsigned (63, 8));
 
             if min_max_is_valid = '1' then
                 single_time_out <= std_logic_vector (to_unsigned (x1_0 mod 256, 8));
-                if min_max_was_valid = '0' then
-                    if debug then
-                        write (l, String'("AA threshold_calc min_measured_time="));
-                        write (l, min_measured_time);
-                        write (l, String'(" max_measured_time="));
-                        write (l, max_measured_time);
-                        write (l, String'(" threshold_1_5="));
-                        write (l, threshold_1_5);
-                        write (l, String'(" threshold_2_5="));
-                        write (l, threshold_2_5);
-                        writeline (output, l);
-                    end if;
+                if debug and min_max_was_valid = '0' then
+                    write (l, String'("AA threshold_calc min_measured_time="));
+                    write (l, min_measured_time);
+                    write (l, String'(" max_measured_time="));
+                    write (l, max_measured_time);
+                    write (l, String'(" threshold_1_5="));
+                    write (l, threshold_1_5);
+                    write (l, String'(" threshold_2_5="));
+                    write (l, threshold_2_5);
+                    writeline (output, l);
                 end if;
             end if;
         end if;
     end process threshold_calc;
 
     pulse_transition_time : process (clock_in)
-        variable l : line;
     begin
         if clock_in'event and clock_in = '1' then
-            pulse_length_out <= ZERO;
-            if min_max_is_valid = '1' and transition_time_strobe = '1' then
-                if max_transition_time = transition_time then
-                    -- THREE would otherwise output after a desync, because min_max_is_valid doesn't immediately go to 0.
-                    null;
-                elsif threshold_1_5 > transition_time then
-                    pulse_length_out <= ONE;
-                    if debug then
-                        write (l, String'("AA output "));
-                        write (l, transition_time);
-                        write (l, String'(" is ONE"));
-                        writeline (output, l);
-                    end if;
+            pulse_length <= ZERO;
+            if transition_time_strobe = '1' then
+                if threshold_1_5 > transition_time then
+                    pulse_length <= ONE;
                 elsif threshold_2_5 > transition_time then
-                    pulse_length_out <= TWO;
-                    if debug then
-                        write (l, String'("AA output "));
-                        write (l, transition_time);
-                        write (l, String'(" is TWO"));
-                        writeline (output, l);
-                    end if;
+                    pulse_length <= TWO;
                 else
-                    pulse_length_out <= THREE;
-                    if debug then
-                        write (l, String'("AA output "));
-                        write (l, transition_time);
-                        write (l, String'(" is THREE"));
-                        writeline (output, l);
-                    end if;
+                    pulse_length <= THREE;
                 end if;
             end if;
         end if;
     end process pulse_transition_time;
+
+    transition_decoder : entity packet_decoder
+        port map (
+        pulse_length_in => pulse_length,
+        sync_in => enable_packet_decoder,
+        clock => clock_in,
+        data_out => open,
+        shift_out => open,
+        start_out => open,
+        sync_out => transitions_are_valid);
+
+    output_registers : process (clock_in)
+    begin
+        if clock_in'event and clock_in = '1' then
+            sync_out <= '0';
+            pulse_length_out <= ZERO;
+            if min_max_is_valid = '1' then
+                sync_out <= '1';
+                pulse_length_out <= pulse_length;
+            end if;
+        end if;
+    end process output_registers;
+
+    debug_delay : process (clock_in)
+    begin
+        if clock_in'event and clock_in = '1' then
+            if debug then
+                min_max_was_valid <= min_max_is_valid;
+                transitions_were_valid <= transitions_are_valid;
+            end if;
+        end if;
+    end process debug_delay;
 
 end structural;
