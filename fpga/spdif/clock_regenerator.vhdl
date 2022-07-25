@@ -114,7 +114,7 @@ begin
             case output_state is
                 when RESET =>
                     -- Do nothing while waiting for synchronisation and the start of a packet
-                    divisor <= (others => '0');
+                    divisor <= fixed_point_one + fixed_point_one;
                     out_clock_count <= (2 ** num_clocks_per_packet_log_2) - 2;
                     if packet_start_strobe = '1' and sync_gen = '1' then
                         -- Output: start the packet with a clock tick

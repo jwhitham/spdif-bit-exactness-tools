@@ -33,6 +33,7 @@ TEST_VHDL = \
 		test/sb_ram40_4k.vhdl \
 		test/generated/test_signal_generator.vhdl \
 		test/test_disable_compressor.vhdl \
+		test/test_clock_regenerator.vhdl \
 		test/test_volume.vhdl \
 		test/test_compressor.vhdl \
 		test/test_compressor2.vhdl \
@@ -58,6 +59,7 @@ run_tests:
 	python app/make_version_rom.py
 	python test/make_test_bench.py
 	ghdl -a --work=work $(VHDL) $(TEST_VHDL)
+	ghdl -r test_clock_regenerator $(RFLAGS)
 	ghdl -r test_top_level $(RFLAGS) > tmp.txt
 	diff -q tmp.txt test/test_top_level_out.txt
 	ghdl -r test_input_decoder $(RFLAGS)
