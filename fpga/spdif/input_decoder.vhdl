@@ -10,7 +10,6 @@ use std.textio.all;
 
 entity input_decoder is
     generic (
-        max_transition_time    : Natural := 255;
         enough_transitions     : Natural := 31;
         debug                  : Boolean := false);
     port (
@@ -32,8 +31,13 @@ architecture structural of input_decoder is
     constant THREE  : std_logic_vector (1 downto 0) := "11";
 
     -- Need to hold the transition time for at least this number of clock
-    -- cycles in order to reach the end of the pipeline.
+    -- cycles in order to reach the end of the pipeline. Also, very small
+    -- measurements are strongly affected by errors and can't be reliably
+    -- distinguished.
     constant min_transition_time    : Natural := 4;
+
+    -- The maximum transition time is the length of a THREE pulse
+    constant max_transition_time    : Natural := 255;
 
     -- Measuring the transition time (stage 1)
     subtype t_transition_time is Natural range 0 to max_transition_time;
@@ -63,6 +67,13 @@ architecture structural of input_decoder is
     constant too_many_threes        : Natural := 3;
     subtype t_three_counter is Natural range 0 to too_many_threes;
     signal three_counter            : t_three_counter := 0;
+    signal invalid_333              : std_logic := '0';
+
+    -- We can also detect incorrect timings by detecting the invalid 212 sequence
+    -- (stage 5)
+    type t_previous is array (Natural range 1 to 4) of std_logic_vector (1 downto 0);
+    signal previous                 : t_previous := (others => ZERO);
+    signal invalid_212              : std_logic := '0';
 
 begin
 
@@ -124,7 +135,8 @@ begin
                     end if;
                 end if;
 
-                if three_counter = too_many_threes
+                if invalid_333 = '1'
+                        or invalid_212 = '1'
                         or transition_time = max_transition_time 
                         or transition_time < min_transition_time then
                     -- Too many transitions of length THREE have been measured;
@@ -135,8 +147,13 @@ begin
                     max_measured_time <= min_transition_time;
                     valid_transitions <= 0;
                     if debug then
-                        write (l, String'("AA reset due to three_counter="));
-                        write (l, three_counter);
+                        write (l, String'("AA reset due to"));
+                        if invalid_333 = '1' then
+                            write (l, String'(" 333"));
+                        end if;
+                        if invalid_212 = '1' then
+                            write (l, String'(" 212"));
+                        end if;
                         write (l, String'(" transition_time="));
                         write (l, transition_time);
                         writeline (output, l);
@@ -153,9 +170,8 @@ begin
                         end if;
                     end if;
                     if min_measured_time > transition_time then
-                        -- new minimum resets measurements
+                        -- new minimum does not reset measurements
                         min_measured_time <= transition_time;
-                        valid_transitions <= 0;
                         if debug then
                             write (l, String'("AA new min_measured_time="));
                             write (l, transition_time);
@@ -171,9 +187,11 @@ begin
     end process min_max_transition_time;
 
     threshold_calc : process (clock_in)
-        constant peak : Natural := max_transition_time * 2 * 5;
-        subtype t_bigger is Natural range 0 to peak;
-        variable x4_0 : t_bigger := 0;
+        -- abs_peak is the absolute maximum value that may be generated in the threshold calculations
+        constant abs_peak : Natural := max_transition_time * 2 * 5;
+        subtype t_bigger is Natural range 0 to abs_peak;
+
+        variable x1_5, x2_5, x4_0 : t_bigger := 0;
     begin
         if clock_in'event and clock_in = '1' then
             -- Hypothesis - there is a single pulse time, X clock cycles,
@@ -191,9 +209,15 @@ begin
             --
             -- Threshold 1.5X can be used to distinguish between X and 2X pulses.
             -- Threshold 2.5X can be used to distinguish between 2X and 3X pulses.
+            --
             x4_0 := t_bigger (min_measured_time) + t_bigger (max_measured_time);
-            threshold_1_5 <= t_transition_time ((x4_0 * 3) / 8);
-            threshold_2_5 <= t_transition_time ((x4_0 * 5) / 8);
+            x1_5 := (x4_0 * 3) / 8;
+            x2_5 := (x4_0 * 5) / 8;
+
+            -- Threshold 2.5X can overflow in initial measurements and pathological cases.
+            -- In these cases the threshold will be temporarily invalid and unusable.
+            threshold_2_5 <= t_transition_time (x2_5 mod (max_transition_time + 1));
+            threshold_1_5 <= t_transition_time (x1_5);
             single_time_out <= std_logic_vector (to_unsigned (63, 8));
 
             if min_max_is_valid = '1' then
@@ -240,6 +264,8 @@ begin
     pulse_length_out <= pulse_length when min_max_is_valid = '1' else ZERO;
     sync_out <= min_max_is_valid;
 
+    -- There must be at least one ONE in any sequence containing three THREEs.
+    -- Detect this condition by counting threes.
     check_threes : process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
@@ -247,16 +273,38 @@ begin
                 when ONE =>
                     three_counter <= 0;
                 when THREE =>
-                    -- There must be at least one ONE in any sequence containing three THREEs
                     if three_counter /= too_many_threes then
                         three_counter <= three_counter + 1;
                     end if;
                 when others =>
-                    if sync_in = '0' then
+                    if valid_transitions = 0 then
                         three_counter <= 0;
                     end if;
             end case;
         end if;
     end process check_threes;
+
+    invalid_333 <= '1' when three_counter = too_many_threes else '0';
+
+    -- The sequence 3212 is valid (header) but 1212 and 2212 are not.
+    -- Detect this condition by tracking the last 4 pulse lengths.
+    check_212 : process (clock_in)
+    begin
+        if clock_in'event and clock_in = '1' then
+            if pulse_length /= ZERO then
+                for i in 1 to 3 loop
+                    previous (i) <= previous (i + 1);
+                end loop;
+                previous (4) <= pulse_length;
+            end if;
+            if valid_transitions = 0 then
+                previous (4) <= ZERO;
+            end if;
+        end if;
+    end process check_212;
+
+    invalid_212 <= '1' when (previous (1) = ONE or previous (1) = TWO)
+                   and previous (2) = TWO and previous (3) = ONE
+                   and previous (4) = TWO else '0';
 
 end structural;
