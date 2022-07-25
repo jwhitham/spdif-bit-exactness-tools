@@ -58,9 +58,9 @@ run_tests:
 	python app/make_version_rom.py
 	python test/make_test_bench.py
 	ghdl -a --work=work $(VHDL) $(TEST_VHDL)
-	ghdl -r test_input_decoder $(RFLAGS)
 	ghdl -r test_top_level $(RFLAGS) > tmp.txt
 	diff -q tmp.txt test/test_top_level_out.txt
+	ghdl -r test_input_decoder $(RFLAGS)
 	ghdl -r test_volume $(RFLAGS)
 	ghdl -r test_disable_compressor $(RFLAGS)
 	ghdl -r test_measure $(RFLAGS)

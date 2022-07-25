@@ -32,7 +32,7 @@ architecture structural of clock_regenerator is
     signal packet_counter       : t_packet_counter := zero_packets;
     signal clock_counter        : t_clock_counter := (others => '0');
     signal clock_interval       : t_clock_counter := (others => '0');
-    signal divisor_subtract     : t_clock_counter := (others => '0');
+    signal fixed_point_one_minus_clock_interval : t_clock_counter := (others => '0');
 
     signal divisor              : t_clock_counter := (others => '0');
     constant fixed_point_one    : t_clock_counter := (fixed_point_bits => '1', others => '0');
@@ -41,14 +41,13 @@ architecture structural of clock_regenerator is
     signal measurement_state    : t_measurement_state := START;
     signal sync_gen             : std_logic := '0';
 
-    subtype t_clock_count is unsigned ((num_clocks_per_packet_log_2 - 1) downto 0);
-    constant zero_clock_count   : t_clock_count := (others => '0');
-    signal clock_count          : t_clock_count := zero_clock_count;
+    subtype t_out_clock_count is Natural range 0 to (2 ** num_clocks_per_packet_log_2) - 1;
+    signal out_clock_count      : t_out_clock_count := 0;
     signal packet_start_strobe  : std_logic := '0';
 
     signal strobe_gen           : std_logic := '0';
 
-    type t_output_state is (RESET, ADD, COMPARE_SUBTRACT);
+    type t_output_state is (RESET, ADD, SUBTRACT);
     signal output_state         : t_output_state := RESET;
 begin
     process (clock_in)
@@ -87,7 +86,7 @@ begin
                     if pulse_length_in = "11" then
                         if packet_counter = zero_packets then
                             -- counting is complete
-                            clock_interval <= clock_counter srl 1;
+                            clock_interval <= clock_counter;
                             clock_counter <= zero_clocks + 1;
                             sync_gen <= '1';
                         end if;
@@ -105,39 +104,37 @@ begin
 
     sync_out <= sync_gen;
     clock_interval_out <= std_logic_vector (clock_interval (15 downto 0));
-    divisor_subtract <= divisor - clock_interval;
 
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
             strobe_out <= '0';
+            fixed_point_one_minus_clock_interval <= fixed_point_one - clock_interval;
 
             case output_state is
                 when RESET =>
                     -- Do nothing while waiting for synchronisation and the start of a packet
                     divisor <= (others => '0');
-                    clock_count <= (others => '1');
+                    out_clock_count <= (2 ** num_clocks_per_packet_log_2) - 2;
                     if packet_start_strobe = '1' and sync_gen = '1' then
                         -- Output: start the packet with a clock tick
                         strobe_out <= '1';
                         output_state <= ADD;
                     end if;
                 when ADD =>
-                    -- Advance
                     divisor <= divisor + fixed_point_one;
-                    output_state <= COMPARE_SUBTRACT;
-                    if clock_count = zero_clock_count then
+                    if divisor >= clock_interval then
+                        output_state <= SUBTRACT;
+                    end if;
+                when SUBTRACT =>
+                    divisor <= divisor + fixed_point_one_minus_clock_interval;
+                    strobe_out <= '1';
+                    if out_clock_count = 0 then
                         output_state <= RESET;
+                    else
+                        out_clock_count <= out_clock_count - 1;
+                        output_state <= ADD;
                     end if;
-                when COMPARE_SUBTRACT =>
-                    -- Output: wait for the right time to send another clock tick
-                    if divisor_subtract (divisor_subtract'Left) = '0' then
-                        -- divisor >= clock_interval
-                        divisor <= divisor_subtract;
-                        strobe_out <= '1';
-                        clock_count <= clock_count - 1;
-                    end if;
-                    output_state <= ADD;
             end case;
         end if;
     end process;
