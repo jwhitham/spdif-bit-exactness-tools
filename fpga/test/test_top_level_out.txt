@@ -7,12 +7,12 @@ input decoder single time = 63
 channel encoder desynchronised
 packet encoder desynchronised
 input decoder synchronised
-input decoder single time = 11
-packet decoder synchronised
 input decoder single time = 12
+packet decoder synchronised
+packet decoder desynchronised
+packet decoder synchronised
 channel decoder synchronised
-000000 8de400
-8fb400 cfb500
+000000 cfb500
 Start of ../examples/20220502-44k.csv
 input decoder desynchronised
 input decoder single time = 63
@@ -20,6 +20,8 @@ packet decoder desynchronised
 channel decoder desynchronised
 input decoder synchronised
 input decoder single time = 8
+packet decoder synchronised
+packet decoder desynchronised
 input decoder single time = 9
 Start of ../examples/20220502-48k.csv
 input decoder desynchronised
@@ -94,7 +96,7 @@ input decoder desynchronised
 input decoder single time = 63
 packet decoder desynchronised
 channel decoder desynchronised
-regenerator r_clocks = 4928 clocks = 89726
+regenerator r_clocks = 4928 clocks = 89722
 clock regenerator desynchronised
 channel encoder desynchronised
 packet encoder desynchronised
@@ -108,6 +110,7 @@ packet decoder synchronised
 packet decoder desynchronised
 packet decoder synchronised
 channel decoder synchronised
+b61800 1d7600
 4dc100 db5e00
 40d900 9e0d00
 508a00 48dd00
@@ -115,16 +118,18 @@ e3b30d 0c8faf
 afe65e 4195b3
 667001 40817f
 24daf1 ebf8c9
-5a20c9 75c3ea
 clock regenerator synchronised
 channel encoder synchronised
 packet encoder synchronised
-d0961c 8de3b3
+5a20c9 75c3ea
 output encoder synchronised
 second input decoder synchronised
 second packet decoder synchronised
-8fb408 cfb555
+second packet decoder desynchronised
+second packet decoder synchronised
+d0961c 8de3b3
 second channel decoder synchronised
+8fb408 cfb555
 ea6d66 3e4874
 000001 fffffe
 000002 fffffd
@@ -160,22 +165,20 @@ input decoder desynchronised
 input decoder single time = 63
 packet decoder desynchronised
 channel decoder desynchronised
-regenerator r_clocks = 4224 clocks = 83702
+regenerator r_clocks = 4352 clocks = 85962
 clock regenerator desynchronised
 channel encoder desynchronised
 packet encoder desynchronised
 output encoder desynchronised
+second input decoder desynchronised
+second packet decoder desynchronised
+second channel decoder desynchronised
 input decoder synchronised
 input decoder single time = 9
 packet decoder synchronised
-input decoder desynchronised
-input decoder single time = 63
-packet decoder desynchronised
-input decoder synchronised
 input decoder single time = 8
-packet decoder synchronised
 channel decoder synchronised
-4dc100 fffffd
+000002 fffffd
 000004 fffffb
 000008 fffff7
 000010 ffffef
@@ -184,18 +187,15 @@ channel decoder synchronised
 000080 ffff7f
 000100 fffeff
 clock regenerator synchronised
-000200 fffdff
 channel encoder synchronised
 packet encoder synchronised
-000400 fffbff
+000200 fffdff
 output encoder synchronised
-second input decoder desynchronised
-second packet decoder desynchronised
-second channel decoder desynchronised
 second input decoder synchronised
 second packet decoder synchronised
-000800 fff7ff
+000400 fffbff
 second channel decoder synchronised
+000800 fff7ff
 001000 ffefff
 002000 ffdfff
 004000 ffbfff
@@ -392,20 +392,19 @@ input decoder single time = 63
 packet decoder desynchronised
 channel decoder desynchronised
 matcher desynchronised
-regenerator r_clocks = 24320 clocks = 440416
+regenerator r_clocks = 24384 clocks = 441544
 clock regenerator desynchronised
 channel encoder desynchronised
 packet encoder desynchronised
 output encoder desynchronised
+second input decoder desynchronised
+second packet decoder desynchronised
+second channel decoder desynchronised
+second matcher desynchronised
 input decoder synchronised
 input decoder single time = 9
 packet decoder synchronised
-input decoder desynchronised
-input decoder single time = 63
-packet decoder desynchronised
-input decoder synchronised
 input decoder single time = 8
-packet decoder synchronised
 channel decoder synchronised
 ea6d66 ffff00
 000000 ffff00
@@ -413,22 +412,19 @@ ea6d66 ffff00
 000000 ffff00
 000000 ffff00
 000000 ffff00
+000000 ffff00
 000100 fffe00
-000200 fffd00
 clock regenerator synchronised
-000400 fffb00
+000200 fffd00
 channel encoder synchronised
 packet encoder synchronised
-000800 fff700
+000400 fffb00
 output encoder synchronised
-second input decoder desynchronised
-second packet decoder desynchronised
-second channel decoder desynchronised
-second matcher desynchronised
 second input decoder synchronised
 second packet decoder synchronised
-001000 ffef00
+000800 fff700
 second channel decoder synchronised
+001000 ffef00
 002000 ffdf00
 004000 ffbf00
 008000 ff7f00
@@ -624,43 +620,39 @@ input decoder single time = 63
 packet decoder desynchronised
 channel decoder desynchronised
 matcher desynchronised
-regenerator r_clocks = 24192 clocks = 438150
+regenerator r_clocks = 24320 clocks = 440412
 clock regenerator desynchronised
 channel encoder desynchronised
 packet encoder desynchronised
 output encoder desynchronised
-second input decoder desynchronised
-second packet decoder desynchronised
-second channel decoder desynchronised
-second matcher desynchronised
 input decoder synchronised
 input decoder single time = 9
 packet decoder synchronised
-input decoder desynchronised
-input decoder single time = 63
-packet decoder desynchronised
-input decoder synchronised
 input decoder single time = 8
-packet decoder synchronised
 channel decoder synchronised
 ea6d00 000000
 000000 000000
 000000 000000
 000000 000000
 000000 000000
+000000 000000
 000000 ffff00
 000100 ffff00
-000200 fffe00
 clock regenerator synchronised
-000400 fffc00
+000200 fffe00
 channel encoder synchronised
 packet encoder synchronised
-000800 fff800
+000400 fffc00
 output encoder synchronised
+second input decoder desynchronised
+second packet decoder desynchronised
+second channel decoder desynchronised
+second matcher desynchronised
 second input decoder synchronised
 second packet decoder synchronised
-001000 fff000
+000800 fff800
 second channel decoder synchronised
+001000 fff000
 002000 ffe000
 004000 ffc000
 008000 ff8000
