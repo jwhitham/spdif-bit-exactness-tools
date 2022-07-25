@@ -14,6 +14,11 @@ end test_input_decoder;
 
 architecture test of test_input_decoder is
 
+    constant ZERO   : std_logic_vector (1 downto 0) := "00";
+    constant ONE    : std_logic_vector (1 downto 0) := "01";
+    constant TWO    : std_logic_vector (1 downto 0) := "10";
+    constant THREE  : std_logic_vector (1 downto 0) := "11";
+
     constant max_transition_time    : Natural := 255;
     constant enough_transitions     : Natural := 15;
     constant test_pulse_count       : Natural := 100;
@@ -25,7 +30,8 @@ architecture test of test_input_decoder is
     signal sync_out         : std_logic := '0';
     signal sync_in          : std_logic := '0';
 
-    type t_test_id is (INIT, DONE, SAME_LENGTH);
+    type t_test_id is (INIT, DONE, SINGLE_LENGTH, DOUBLE_LENGTH, TRIPLE_LENGTH,
+                       TRIANGLE);
     signal test_id          : t_test_id := INIT;
 
 begin
@@ -65,12 +71,44 @@ begin
         sync_in <= '1';
 
         -- In this first test we will generate 100 pulses of the same length
-        test_id <= SAME_LENGTH;
+        test_id <= SINGLE_LENGTH;
         for i in 1 to (test_pulse_count / 2) loop
             data_in <= '1';
             wait for 10 us;
             data_in <= '0';
             wait for 10 us;
+        end loop;
+
+        -- In this test we will generate 100 pulses of double length
+        test_id <= DOUBLE_LENGTH;
+        for i in 1 to (test_pulse_count / 2) loop
+            data_in <= not data_in;
+            wait for 20 us;
+            data_in <= not data_in;
+            wait for 20 us;
+        end loop;
+
+        -- Now, one pulse of length 3
+        test_id <= TRIPLE_LENGTH;
+        data_in <= not data_in;
+        wait for 30 us;
+        -- followed by 100 double length pulses
+        for i in 1 to (test_pulse_count / 2) loop
+            data_in <= not data_in;
+            wait for 20 us;
+            data_in <= not data_in;
+            wait for 20 us;
+        end loop;
+
+        -- triangular ONE TWO THREE sequence
+        test_id <= TRIANGLE;
+        for i in 1 to (test_pulse_count / 2) loop
+            data_in <= not data_in;
+            wait for 30 us;
+            data_in <= not data_in;
+            wait for 10 us;
+            data_in <= not data_in;
+            wait for 20 us;
         end loop;
 
         test_id <= DONE;
@@ -79,29 +117,111 @@ begin
 
     debug : process
         variable l          : line;
-        variable count      : Natural := 0;
+        variable count1     : Natural := 0;
+        variable count2     : Natural := 0;
+        variable count3     : Natural := 0;
         variable expected   : Natural := 0;
+        variable previous   : std_logic_vector (1 downto 0) := ZERO;
     begin
-        wait until test_id = SAME_LENGTH;
+        wait until test_id = SINGLE_LENGTH;
 
-        write (l, String'("same length test"));
-        writeline (output, l);
-
-        while test_id = SAME_LENGTH loop
+        count2 := 0;
+        assert test_id = SINGLE_LENGTH;
+        while test_id = SINGLE_LENGTH loop
             wait until pulse_length_out'event or test_id'event;
-            assert pulse_length_out = "00" or pulse_length_out = "10";
-            if pulse_length_out = "10" then
-                count := count + 1;
+            assert pulse_length_out = ZERO or pulse_length_out = TWO;
+            if pulse_length_out = TWO then
+                count2 := count2 + 1;
             end if;
         end loop;
 
         expected := test_pulse_count - 1 - enough_transitions;
         write (l, String'("same length test: pulse length 2 count = "));
-        write (l, count);
+        write (l, count2);
         write (l, String'(" expected = "));
         write (l, expected);
         writeline (output, l);
-        assert count = expected;
+        assert count2 = expected;
+
+        -- In this test we double the pulse length and this triggers
+        -- the "three_counter" reset condition. Before that happens, some
+        -- pulses of length THREE are received. The input decoder recalibrates
+        -- and the pulse length returns to TWO.
+        count2 := 0;
+        count3 := 0;
+        assert test_id = DOUBLE_LENGTH;
+        while test_id = DOUBLE_LENGTH loop
+            wait until pulse_length_out'event or test_id'event;
+            assert pulse_length_out /= ONE;
+            if pulse_length_out = THREE then
+                count3 := count3 + 1;
+            end if;
+            if pulse_length_out = TWO then
+                count2 := count2 + 1;
+            end if;
+        end loop;
+
+        write (l, String'("double length test: pulse length 2 count = "));
+        write (l, count2);
+        write (l, String'(" pulse length 3 count = "));
+        write (l, count3);
+        write (l, String'(" expected total = "));
+        write (l, expected);
+        writeline (output, l);
+        assert count3 > 0;
+        assert count3 < 10;
+        assert (count2 + count3) = expected;
+
+        -- In this test we generate a triple-length pulse and then lots of double-length pulses.
+        -- None of this requires any sort of recalibration, everything is captured perfectly.
+        count2 := 0;
+        count3 := 0;
+        assert test_id = TRIPLE_LENGTH;
+        while test_id = TRIPLE_LENGTH loop
+            wait until pulse_length_out'event or test_id'event;
+            assert pulse_length_out /= ONE;
+            if pulse_length_out = THREE then
+                count3 := count3 + 1;
+            end if;
+            if pulse_length_out = TWO then
+                count2 := count2 + 1;
+            end if;
+        end loop;
+        write (l, String'("triple length test: pulse length 2 count = "));
+        write (l, count2);
+        write (l, String'(" pulse length 3 count = "));
+        write (l, count3);
+        writeline (output, l);
+        assert count3 = 1;
+        assert count2 = test_pulse_count;
+
+        -- 1, 2, 3 pulses now
+        assert test_id = TRIANGLE;
+        count2 := 0;
+        previous := ONE;
+        while test_id = TRIANGLE loop
+            wait until pulse_length_out'event or test_id'event;
+            if pulse_length_out /= ZERO then
+                write (l, String'("triangle "));
+                write (l, to_integer (unsigned (pulse_length_out)));
+                writeline (output, l);
+            end if;
+            case pulse_length_out is
+                when ONE =>
+                    assert previous = THREE;
+                    previous := ONE;
+                when TWO =>
+                    assert previous = ONE or previous = TWO;
+                    count2 := count2 + 1;
+                    previous := TWO;
+                when THREE =>
+                    assert previous = TWO;
+                    previous := THREE;
+                when others =>
+                    null;
+            end case;
+        end loop;
+        assert count2 = test_pulse_count;
 
         assert False;
 

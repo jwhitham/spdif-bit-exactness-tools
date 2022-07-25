@@ -165,7 +165,6 @@ begin
         constant peak : Natural := max_transition_time * 2 * 5;
         subtype t_bigger is Natural range 0 to peak;
         variable x4_0 : t_bigger := 0;
-        variable l : line;
     begin
         if clock_in'event and clock_in = '1' then
             -- Hypothesis - there is a single pulse time, X clock cycles,
@@ -187,24 +186,26 @@ begin
             threshold_1_5 <= t_transition_time ((x4_0 * 3) / 8);
             threshold_2_5 <= t_transition_time ((x4_0 * 5) / 8);
             single_time_out <= std_logic_vector (to_unsigned (63, 8));
-            min_max_was_valid <= min_max_is_valid;
 
             if min_max_is_valid = '1' then
                 single_time_out <= std_logic_vector (to_unsigned ((x4_0 / 4) mod 256, 8));
-                if debug and min_max_was_valid = '0' then
-                    write (l, String'("AA threshold_calc min_measured_time="));
-                    write (l, min_measured_time);
-                    write (l, String'(" max_measured_time="));
-                    write (l, max_measured_time);
-                    write (l, String'(" threshold_1_5="));
-                    write (l, threshold_1_5);
-                    write (l, String'(" threshold_2_5="));
-                    write (l, threshold_2_5);
-                    writeline (output, l);
-                end if;
             end if;
         end if;
     end process threshold_calc;
+
+    process (threshold_1_5, threshold_2_5, min_measured_time, max_measured_time)
+        variable l : line;
+    begin
+        write (l, String'("AA threshold_calc min_measured_time="));
+        write (l, min_measured_time);
+        write (l, String'(" max_measured_time="));
+        write (l, max_measured_time);
+        write (l, String'(" threshold_1_5="));
+        write (l, threshold_1_5);
+        write (l, String'(" threshold_2_5="));
+        write (l, threshold_2_5);
+        writeline (output, l);
+    end process;
 
     pulse_transition_time : process (clock_in)
     begin
