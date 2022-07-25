@@ -31,33 +31,35 @@ architecture structural of input_decoder is
     constant TWO    : std_logic_vector (1 downto 0) := "10";
     constant THREE  : std_logic_vector (1 downto 0) := "11";
 
-    constant enable_packet_decoder  : std_logic := '1';
+    -- Need to hold the transition time for at least this number of clock
+    -- cycles in order to reach the end of the pipeline.
+    constant min_transition_time    : Natural := 4;
 
-    -- Measuring the transition time
+    -- Measuring the transition time (stage 1)
     subtype t_transition_time is Natural range 0 to max_transition_time;
     signal transition_time          : t_transition_time := 0;
     signal timer                    : t_transition_time := 0;
     signal transition_time_strobe   : std_logic := '0';
     signal delay0, delay1           : std_logic := '0';
 
-    -- Determining the maximum and minimum
+    -- Determining the maximum and minimum; stability counter (stage 2)
     signal min_measured_time        : t_transition_time := max_transition_time;
-    signal max_measured_time        : t_transition_time := 0;
-
-    -- Stability counter
-    subtype t_transition_counter is Natural range 0 to enough_transitions;
-    signal valid_transitions : t_transition_counter := 0;
+    signal max_measured_time        : t_transition_time := min_transition_time;
+    signal min_max_strobe           : std_logic := '0';
     signal min_max_is_valid         : std_logic := '0';
-    signal min_max_was_valid        : std_logic := '0';
+    subtype t_transition_counter is Natural range 0 to enough_transitions;
+    signal valid_transitions        : t_transition_counter := 0;
 
-    -- Thresholds for distinguishing pulse length
+    -- Thresholds for distinguishing pulse length (stage 3)
     signal threshold_1_5            : t_transition_time := 0;
     signal threshold_2_5            : t_transition_time := 0;
+    signal threshold_strobe         : std_logic := '0';
 
-    -- Pulse length is determined by comparing to thresholds
+    -- Pulse length is determined by comparing to thresholds (stage 4)
     signal pulse_length             : std_logic_vector (1 downto 0) := ZERO;
 
-    -- We can detect incorrect timings by looking at the number of sequential THREE pulses 
+    -- We can detect incorrect timings by looking at the number of
+    -- sequential THREE pulses (stage 5)
     constant too_many_threes        : Natural := 3;
     subtype t_three_counter is Natural range 0 to too_many_threes;
     signal three_counter            : t_three_counter := 0;
@@ -97,10 +99,12 @@ begin
         variable l : line;
     begin
         if clock_in'event and clock_in = '1' then
+            min_max_strobe <= '0';
+
             if sync_in = '0' then
                 -- Reset
                 min_measured_time <= max_transition_time;
-                max_measured_time <= 0;
+                max_measured_time <= min_transition_time;
                 valid_transitions <= 0;
 
             elsif transition_time_strobe = '1' then
@@ -120,13 +124,15 @@ begin
                     end if;
                 end if;
 
-                if three_counter = too_many_threes or transition_time = max_transition_time then
+                if three_counter = too_many_threes
+                        or transition_time = max_transition_time 
+                        or transition_time < min_transition_time then
                     -- Too many transitions of length THREE have been measured;
                     -- this shows that the measurements are wrong.
-                    -- OR. The pulse time is too long.
+                    -- OR. The pulse time is too long or too short
                     -- -> reset everything
                     min_measured_time <= max_transition_time;
-                    max_measured_time <= 0;
+                    max_measured_time <= min_transition_time;
                     valid_transitions <= 0;
                     if debug then
                         write (l, String'("AA reset due to three_counter="));
@@ -157,6 +163,9 @@ begin
                         end if;
                     end if;
                 end if;
+
+                -- signal readiness to the next stage
+                min_max_strobe <= '1';
             end if;
         end if;
     end process min_max_transition_time;
@@ -190,28 +199,33 @@ begin
             if min_max_is_valid = '1' then
                 single_time_out <= std_logic_vector (to_unsigned ((x4_0 / 4) mod 256, 8));
             end if;
+
+            -- signal readiness to the next stage
+            threshold_strobe <= min_max_strobe;
         end if;
     end process threshold_calc;
 
-    process (threshold_1_5, threshold_2_5, min_measured_time, max_measured_time)
+    debug_thresholds : process (threshold_1_5, threshold_2_5, min_measured_time, max_measured_time)
         variable l : line;
     begin
-        write (l, String'("AA threshold_calc min_measured_time="));
-        write (l, min_measured_time);
-        write (l, String'(" max_measured_time="));
-        write (l, max_measured_time);
-        write (l, String'(" threshold_1_5="));
-        write (l, threshold_1_5);
-        write (l, String'(" threshold_2_5="));
-        write (l, threshold_2_5);
-        writeline (output, l);
-    end process;
+        if debug then
+            write (l, String'("AA threshold_calc min_measured_time="));
+            write (l, min_measured_time);
+            write (l, String'(" max_measured_time="));
+            write (l, max_measured_time);
+            write (l, String'(" threshold_1_5="));
+            write (l, threshold_1_5);
+            write (l, String'(" threshold_2_5="));
+            write (l, threshold_2_5);
+            writeline (output, l);
+        end if;
+    end process debug_thresholds;
 
     pulse_transition_time : process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
             pulse_length <= ZERO;
-            if transition_time_strobe = '1' then
+            if threshold_strobe = '1' then
                 if threshold_1_5 >= transition_time then
                     pulse_length <= ONE;
                 elsif threshold_2_5 >= transition_time then

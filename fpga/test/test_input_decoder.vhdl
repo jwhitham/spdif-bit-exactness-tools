@@ -88,27 +88,29 @@ begin
             wait for 20 us;
         end loop;
 
-        -- Now, one pulse of length 3
+        -- Now, some longer pulses mixed in
         test_id <= TRIPLE_LENGTH;
         data_in <= not data_in;
-        wait for 30 us;
-        -- followed by 100 double length pulses
         for i in 1 to (test_pulse_count / 2) loop
             data_in <= not data_in;
-            wait for 20 us;
+            if (i mod 10) = 1 then
+                wait for 30 us;
+            else
+                wait for 20 us;
+            end if;
             data_in <= not data_in;
             wait for 20 us;
         end loop;
 
         -- triangular ONE TWO THREE sequence
         test_id <= TRIANGLE;
-        for i in 1 to (test_pulse_count / 2) loop
-            data_in <= not data_in;
-            wait for 30 us;
+        for i in 1 to test_pulse_count loop
             data_in <= not data_in;
             wait for 10 us;
             data_in <= not data_in;
             wait for 20 us;
+            data_in <= not data_in;
+            wait for 30 us;
         end loop;
 
         test_id <= DONE;
@@ -122,6 +124,8 @@ begin
         variable count3     : Natural := 0;
         variable expected   : Natural := 0;
         variable previous   : std_logic_vector (1 downto 0) := ZERO;
+
+        constant epsilon    : Natural := 3;
     begin
         wait until test_id = SINGLE_LENGTH;
 
@@ -141,7 +145,7 @@ begin
         write (l, String'(" expected = "));
         write (l, expected);
         writeline (output, l);
-        assert count2 = expected;
+        assert count2 > (expected - epsilon);
 
         -- In this test we double the pulse length and this triggers
         -- the "three_counter" reset condition. Before that happens, some
@@ -170,37 +174,49 @@ begin
         writeline (output, l);
         assert count3 > 0;
         assert count3 < 10;
-        assert (count2 + count3) = expected;
+        assert (count2 + count3) > (expected - epsilon);
 
-        -- In this test we generate a triple-length pulse and then lots of double-length pulses.
-        -- None of this requires any sort of recalibration, everything is captured perfectly.
+        -- In this test we generate a mixture of triple-length and double-length pulses,
+        -- but they're all treated as double-length because minimum 20 and maximum 30
+        -- has a 2.5 threshold of (20 + 30) * 2.5 / 4 = 31.
         count2 := 0;
         count3 := 0;
         assert test_id = TRIPLE_LENGTH;
         while test_id = TRIPLE_LENGTH loop
             wait until pulse_length_out'event or test_id'event;
             assert pulse_length_out /= ONE;
-            if pulse_length_out = THREE then
-                count3 := count3 + 1;
-            end if;
+            assert pulse_length_out /= THREE;
             if pulse_length_out = TWO then
                 count2 := count2 + 1;
             end if;
         end loop;
         write (l, String'("triple length test: pulse length 2 count = "));
         write (l, count2);
-        write (l, String'(" pulse length 3 count = "));
-        write (l, count3);
         writeline (output, l);
-        assert count3 = 1;
         assert count2 = test_pulse_count;
 
-        -- 1, 2, 3 pulses now
-        assert test_id = TRIANGLE;
+
+        -- 1, 2, 3 pulses now. As soon as the 10 microsecond pulse is seen, the
+        -- decoder has a new minimum transition time, and this causes it to recalibrate.
+        -- Await recalibration.
+        while sync_out = '1' loop
+            wait until pulse_length_out'event or test_id'event or sync_out'event;
+            assert pulse_length_out = ZERO or pulse_length_out = TWO;
+            assert test_id = TRIANGLE;
+        end loop;
+
+        while sync_out = '0' loop
+            wait until pulse_length_out'event or test_id'event or sync_out'event;
+            assert pulse_length_out = ZERO;
+            assert test_id = TRIANGLE;
+        end loop;
+
+        -- Now we are recalibrated and the decoder should be producing the 1, 2, 3 sequence
         count2 := 0;
-        previous := ONE;
+        previous := THREE;
         while test_id = TRIANGLE loop
             wait until pulse_length_out'event or test_id'event;
+            assert sync_out = '1';
             if pulse_length_out /= ZERO then
                 write (l, String'("triangle "));
                 write (l, to_integer (unsigned (pulse_length_out)));
@@ -211,7 +227,7 @@ begin
                     assert previous = THREE;
                     previous := ONE;
                 when TWO =>
-                    assert previous = ONE or previous = TWO;
+                    assert previous = ONE;
                     count2 := count2 + 1;
                     previous := TWO;
                 when THREE =>
@@ -221,7 +237,13 @@ begin
                     null;
             end case;
         end loop;
-        assert count2 = test_pulse_count;
+        expected := test_pulse_count - (enough_transitions / 3);
+        write (l, String'("triangle test: pulse length 1, 2, 3 count = "));
+        write (l, count2);
+        write (l, String'(" expected = "));
+        write (l, expected);
+        writeline (output, l);
+        assert count2 > (expected - epsilon);
 
         assert False;
 
