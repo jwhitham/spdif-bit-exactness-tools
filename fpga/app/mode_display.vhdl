@@ -66,7 +66,7 @@ architecture structural of mode_display is
     type t_leds is array (Natural range 0 to 3) of t_led_line;
 
     -- Desync message countdown 
-    constant max_desync_messages : Natural := 100;
+    constant max_desync_messages : Natural := 5;
     subtype t_desync_messages is Natural range 0 to max_desync_messages;
 
     -- Registers
@@ -262,7 +262,7 @@ begin
                     countdown <= countdown - 1;
                 end if;
 
-            elsif desync_flag = '1' and display_mode /= DESYNC and desync_messages /= 0 then
+            elsif desync_flag = '1' and desync_messages /= 0 then
                 -- Show desync display
                 countdown <= max_countdown;
                 display_mode <= DESYNC;

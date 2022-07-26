@@ -166,7 +166,7 @@ begin
     -- Signals decoded from the state machine
     ready_out <= '1' when state = WAIT_START else '0';
     error_out <= uart_reset;
-    uart_reset <= '1' when state = TIMEOUT_ERROR else reset_in;
+    uart_reset <= '1' when state = TIMEOUT_ERROR else '0';
     strobe_to_pic <= '1' when state = SEND_REQUEST_1 or state = SEND_REQUEST_2 else '0';
     data_to_pic <= std_logic_vector (to_unsigned (16#a1#, 8)) when state = SEND_REQUEST_1
               else std_logic_vector (to_unsigned (16#a2#, 8));
