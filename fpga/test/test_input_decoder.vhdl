@@ -31,7 +31,8 @@ architecture test of test_input_decoder is
 
     type t_test_id is (INIT, DONE, SINGLE_LENGTH, DOUBLE_LENGTH, TRIPLE_LENGTH,
                        TRIANGLE, TOLERANCE, RESYNC_NOW, RESYNC_TOLERANCE,
-                       SEND_FASTER, SPEED_UP, SEND_TOO_FAST, SEND_SLOW);
+                       SEND_FASTER, SPEED_UP, SEND_TOO_FAST, SEND_SLOW,
+                       BEFORE_LARGE_MAXIMUM, AFTER_LARGE_MAXIMUM);
     signal test_id          : t_test_id := INIT;
 
 begin
@@ -241,6 +242,36 @@ begin
             data_in <= not data_in;
             wait for 254 us;        -- shortest and longest possible THREE pulse
         end loop;
+
+        -- "Large maximum" recovery
+        -- Test a failure mode when a very large maximum is captured
+        -- due to some input glitch e.g. the cable being connected,
+        -- and then everything else just appears to be ONE. The decoder
+        -- should resynchronise in this case
+        test_id <= BEFORE_LARGE_MAXIMUM;
+        wait for 3000 us; -- force a reset, then normal operation for a while
+        for j in 1 to test_pulse_count loop
+            data_in <= not data_in;
+            wait for 30 us;
+            data_in <= not data_in;
+            wait for 10 us;
+            data_in <= not data_in;
+            wait for 20 us;
+        end loop;
+        -- Here we generate a surprisingly large input (but not too large to force a reset)
+        data_in <= not data_in;
+        wait for 254 us;
+        test_id <= AFTER_LARGE_MAXIMUM;
+        -- Back to normal - but now everything looks like ONE
+        for j in 1 to test_pulse_count loop
+            data_in <= not data_in;
+            wait for 30 us;
+            data_in <= not data_in;
+            wait for 10 us;
+            data_in <= not data_in;
+            wait for 20 us;
+        end loop;
+
 
         test_id <= DONE;
         wait;
@@ -560,6 +591,87 @@ begin
         assert correct_count > (test_pulse_count * 2);
         assert lost >= 0;
         assert lost < test_pulse_count;
+
+        -- "Large maximum" recovery
+        assert test_id = BEFORE_LARGE_MAXIMUM;
+        count1 := 0;
+        count2 := 0;
+        count3 := 0;
+
+        -- here we wait through a warm-up phase where everything is working normally
+        while test_id = BEFORE_LARGE_MAXIMUM loop
+            wait until pulse_length_out'event or test_id'event;
+        end loop;
+
+        -- now the event has been triggered, we should just see ONE until recovery begins
+        -- no TWOs (or just 1)
+        -- 1 or 2 THREEs
+        assert sync_out = '1';
+        assert test_id = AFTER_LARGE_MAXIMUM;
+        while test_id = AFTER_LARGE_MAXIMUM and sync_out = '1' loop
+            wait until pulse_length_out'event or test_id'event or sync_out'event;
+            case pulse_length_out is
+                when ONE =>
+                    count1 := count1 + 1;
+                when TWO =>
+                    count2 := count2 + 1;
+                when THREE =>
+                    count3 := count3 + 1;
+                when others =>
+                    null;
+            end case;
+        end loop;
+        write (l, String'("failure mode: before recovery: "));
+        write (l, count1);
+        write (l, String'(" ones "));
+        write (l, count2);
+        write (l, String'(" twos "));
+        write (l, count3);
+        write (l, String'(" threes"));
+        writeline (output, l);
+        assert count1 > 5;
+        assert count2 <= 1;
+        assert count3 <= 2;
+
+        -- now we wait until the recovery completes
+        assert test_id = AFTER_LARGE_MAXIMUM;
+        assert sync_out = '0';
+        while test_id = AFTER_LARGE_MAXIMUM and sync_out = '0' loop
+            wait until pulse_length_out'event or test_id'event or sync_out'event;
+        end loop;
+
+        -- recovery completed, normal operation should be restored
+        count1 := 0;
+        count2 := 0;
+        count3 := 0;
+        assert test_id = AFTER_LARGE_MAXIMUM;
+        assert sync_out = '0';
+        while test_id = AFTER_LARGE_MAXIMUM and sync_out = '1' loop
+            case pulse_length_out is
+                when ONE =>
+                    count1 := count1 + 1;
+                when TWO =>
+                    count2 := count2 + 1;
+                when THREE =>
+                    count3 := count3 + 1;
+                when others =>
+                    null;
+            end case;
+        end loop;
+        write (l, String'("failure mode: after recovery: "));
+        write (l, count1);
+        write (l, String'(" ones "));
+        write (l, count2);
+        write (l, String'(" twos "));
+        write (l, count3);
+        write (l, String'(" threes"));
+        writeline (output, l);
+        assert count1 > (test_pulse_count / 2);
+        assert count2 > (test_pulse_count / 2);
+        assert count3 > (test_pulse_count / 2);
+        assert abs (count3 - count2) < 5;
+        assert abs (count2 - count1) < 5;
+        assert abs (count3 - count1) < 5;
 
         assert test_id = DONE;
         wait;
