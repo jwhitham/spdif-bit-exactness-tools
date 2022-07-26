@@ -68,7 +68,7 @@ begin
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
-            if pulse_100hz_in = '1' and countdown /= 0 then
+            if pulse_100hz_in = '1' and countdown /= 0 and reset_in = '0' then
                 countdown <= countdown - 1;
             end if;
             case state is
@@ -145,9 +145,6 @@ begin
                         end if;
                     end if;
             end case;
-            if reset_in = '1' then
-                state <= RESET;
-            end if;
         end if;
     end process;
 
