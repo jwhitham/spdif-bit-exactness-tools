@@ -19,6 +19,7 @@ architecture test of test_clock_regenerator is
     constant TWO    : std_logic_vector (1 downto 0) := "10";
     constant THREE  : std_logic_vector (1 downto 0) := "11";
 
+    constant enabled        : std_logic := '1';
 
     signal pulse_length     : std_logic_vector (1 downto 0) := "00";
     signal clock_interval_out : std_logic_vector (15 downto 0) := (others => '0');
@@ -72,6 +73,7 @@ begin
             data_in => data_in,
             pulse_length_out => pulse_length,
             single_time_out => open,
+            enable_123_check_in => enabled,
             sync_out => open,
             sync_in => sync_in,
             clock_in => clock);

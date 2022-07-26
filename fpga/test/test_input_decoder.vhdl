@@ -28,6 +28,7 @@ architecture test of test_input_decoder is
     signal single_time_out  : std_logic_vector (7 downto 0) := (others => '0');
     signal sync_out         : std_logic := '0';
     signal sync_in          : std_logic := '0';
+    signal enable_123_check_in : std_logic := '1';
 
     type t_test_id is (INIT, DONE, SINGLE_LENGTH, DOUBLE_LENGTH, TRIPLE_LENGTH,
                        TRIANGLE, TOLERANCE, RESYNC_NOW, RESYNC_TOLERANCE,
@@ -57,6 +58,7 @@ begin
             data_in => data_in,
             pulse_length_out => pulse_length_out,
             single_time_out => single_time_out,
+            enable_123_check_in => enable_123_check_in,
             sync_out => sync_out,
             sync_in => sync_in,
             clock_in => clock);
@@ -113,6 +115,7 @@ begin
         test_id <= INIT;
         sync_in <= '0';
         data_in <= '1';
+        enable_123_check_in <= '0';
         wait for 2 us;
         wait until clock'event and clock = '1';
         sync_in <= '1';
@@ -148,6 +151,10 @@ begin
             data_in <= not data_in;
             wait for 20 us;
         end loop;
+
+        -- This completes the part of the test where we don't have all three pulse lengths
+        -- so we can enable the '123' check.
+        enable_123_check_in <= '1';
 
         -- triangular ONE TWO THREE sequence
         -- Begin with an additional ONE pulse to avoid a 2-1-2 sequence
@@ -309,6 +316,7 @@ begin
         write (l, expected);
         writeline (output, l);
         assert count2 > (expected - epsilon);
+        assert sync_out = '1';
 
         -- In this test we double the pulse length and this triggers
         -- the "three_counter" reset condition. Before that happens, some
@@ -320,12 +328,16 @@ begin
         while test_id = DOUBLE_LENGTH loop
             wait until pulse_length_out'event or test_id'event;
             assert pulse_length_out /= ONE;
-            if pulse_length_out = THREE then
-                count3 := count3 + 1;
-            end if;
-            if pulse_length_out = TWO then
-                count2 := count2 + 1;
-            end if;
+            case pulse_length_out is
+                when THREE =>
+                    count3 := count3 + 1;
+                when TWO =>
+                    count2 := count2 + 1;
+                when ONE =>
+                    assert False;
+                when others =>
+                    null;
+            end case;
         end loop;
 
         expected := test_pulse_count - enough_transitions;
@@ -339,6 +351,7 @@ begin
         assert count3 > 0;
         assert count3 < 10;
         assert (count2 + count3) > (expected - epsilon);
+        assert sync_out = '1';
 
         -- In this test we generate a mixture of triple-length and double-length pulses,
         -- but they're all treated as double-length because minimum 20 and maximum 30
@@ -548,6 +561,7 @@ begin
         write (l, correct_count);
         writeline (output, l);
         assert correct_count <= 1;
+        assert sync_out = '0';
 
         -- Send as slowly as possible
         assert test_id = SEND_SLOW;
@@ -603,9 +617,9 @@ begin
             wait until pulse_length_out'event or test_id'event;
         end loop;
 
-        -- now the event has been triggered, we should just see ONE until recovery begins
-        -- no TWOs (or just 1)
-        -- 1 or 2 THREEs
+        -- now the event has been triggered, we should just see ONE until recovery begins:
+        -- many ONEs, almost no TWOs, almost no THREEs.
+        -- The number of ONEs is limited to around 64 by max_last_seen.
         assert sync_out = '1';
         assert test_id = AFTER_LARGE_MAXIMUM;
         while test_id = AFTER_LARGE_MAXIMUM and sync_out = '1' loop
@@ -632,21 +646,24 @@ begin
         assert count1 > 5;
         assert count2 <= 1;
         assert count3 <= 2;
+        assert count1 <= (64 + epsilon);
 
         -- now we wait until the recovery completes
         assert test_id = AFTER_LARGE_MAXIMUM;
         assert sync_out = '0';
-        while test_id = AFTER_LARGE_MAXIMUM and sync_out = '0' loop
+        while test_id = AFTER_LARGE_MAXIMUM and sync_out = '1' loop
             wait until pulse_length_out'event or test_id'event or sync_out'event;
         end loop;
 
         -- recovery completed, normal operation should be restored
+        -- Almost equal numbers of ONEs, TWOs, THREEs are obtained.
         count1 := 0;
         count2 := 0;
         count3 := 0;
         assert test_id = AFTER_LARGE_MAXIMUM;
         assert sync_out = '0';
-        while test_id = AFTER_LARGE_MAXIMUM and sync_out = '1' loop
+        while test_id = AFTER_LARGE_MAXIMUM loop
+            wait until pulse_length_out'event or test_id'event or sync_out'event;
             case pulse_length_out is
                 when ONE =>
                     count1 := count1 + 1;
@@ -669,9 +686,10 @@ begin
         assert count1 > (test_pulse_count / 2);
         assert count2 > (test_pulse_count / 2);
         assert count3 > (test_pulse_count / 2);
-        assert abs (count3 - count2) < 5;
-        assert abs (count2 - count1) < 5;
-        assert abs (count3 - count1) < 5;
+        assert abs (count3 - count2) < 2;
+        assert abs (count2 - count1) < 2;
+        assert abs (count3 - count1) < 2;
+        assert sync_out = '1';
 
         assert test_id = DONE;
         wait;

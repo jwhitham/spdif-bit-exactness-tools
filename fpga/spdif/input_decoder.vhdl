@@ -17,6 +17,7 @@ entity input_decoder is
         pulse_length_out : out std_logic_vector (1 downto 0) := "00";
         single_time_out  : out std_logic_vector (7 downto 0) := (others => '0');
         sync_out         : out std_logic := '0';
+        enable_123_check_in : in std_logic := '0';
         sync_in          : in std_logic := '0';
         clock_in         : in std_logic
     );
@@ -74,6 +75,14 @@ architecture structural of input_decoder is
     type t_previous is array (Natural range 1 to 4) of std_logic_vector (1 downto 0);
     signal previous                 : t_previous := (others => ZERO);
     signal invalid_212              : std_logic := '0';
+
+    -- We can also detect incorrect timings by detecting packets which don't contain
+    -- a mixture of ONE and TWO pulses (stage 5)
+    constant max_last_seen          : Natural := 63;
+    subtype t_last_seen is Natural range 0 to max_last_seen;
+    type t_last_seen_array is array (Natural range 1 to 3) of t_last_seen;
+    signal last_seen                : t_last_seen_array := (others => 0);
+    signal invalid_123              : std_logic := '0';
 
 begin
 
@@ -137,11 +146,11 @@ begin
 
                 if invalid_333 = '1'
                         or invalid_212 = '1'
+                        or invalid_123 = '1'
                         or transition_time = max_transition_time 
                         or transition_time < min_transition_time then
-                    -- Too many transitions of length THREE have been measured;
-                    -- this shows that the measurements are wrong.
-                    -- OR. The pulse time is too long or too short
+                    -- The pulse sequence is not valid
+                    -- or the pulse time is too long/short
                     -- -> reset everything
                     min_measured_time <= max_transition_time;
                     max_measured_time <= min_transition_time;
@@ -153,6 +162,9 @@ begin
                         end if;
                         if invalid_212 = '1' then
                             write (l, String'(" 212"));
+                        end if;
+                        if invalid_123 = '1' then
+                            write (l, String'(" 123"));
                         end if;
                         write (l, String'(" transition_time="));
                         write (l, transition_time);
@@ -281,10 +293,12 @@ begin
                         three_counter <= 0;
                     end if;
             end case;
+            invalid_333 <= '0';
+            if three_counter = too_many_threes then
+                invalid_333 <= '1';
+            end if;
         end if;
     end process check_threes;
-
-    invalid_333 <= '1' when three_counter = too_many_threes else '0';
 
     -- The sequence 3212 is valid (header) but 1212 and 2212 are not.
     -- Detect this condition by tracking the last 4 pulse lengths.
@@ -300,11 +314,49 @@ begin
             if valid_transitions = 0 then
                 previous (4) <= ZERO;
             end if;
+            invalid_212 <= '0';
+            if (previous (1) = ONE or previous (1) = TWO)
+                    and previous (2) = TWO and previous (3) = ONE
+                    and previous (4) = TWO then
+                invalid_212 <= '1';
+            end if;
         end if;
     end process check_212;
 
-    invalid_212 <= '1' when (previous (1) = ONE or previous (1) = TWO)
-                   and previous (2) = TWO and previous (3) = ONE
-                   and previous (4) = TWO else '0';
+    -- Every packet should contain at least one of each pulse length.
+    check_123 : process (clock_in)
+    begin
+        if clock_in'event and clock_in = '1' then
+            invalid_123 <= '0';
+            for i in 1 to 3 loop
+                if valid_transitions = 0 or enable_123_check_in = '0' then
+                    -- reset all counters
+                    last_seen (i) <= 0;
+                elsif last_seen (i) = max_last_seen then
+                    -- It has been too long since we saw this type of pulse
+                    -- The time for each packet is 64X (where X is the time for ONE)
+                    -- and in this time there must be at least one THREE and
+                    -- at least one TWO, so we expect the maximum interval between
+                    -- any pair of pulses of the same length to be 63
+                    invalid_123 <= '1';
+                elsif pulse_length /= ZERO then
+                    -- Increase counter
+                    last_seen (i) <= last_seen (i) + 1;
+                end if;
+            end loop;
+
+            -- Receiving a specific pulse length resets the counter
+            case pulse_length is
+                when ONE =>
+                    last_seen (1) <= 0;
+                when TWO =>
+                    last_seen (2) <= 0;
+                when THREE =>
+                    last_seen (3) <= 0;
+                when others =>
+                    null;
+            end case;
+        end if;
+    end process check_123;
 
 end structural;

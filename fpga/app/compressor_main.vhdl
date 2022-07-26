@@ -43,6 +43,7 @@ architecture structural of compressor_main is
 
     signal rg_strobe                : std_logic := '0';
     signal encoded_spdif            : std_logic := '0';
+    constant enabled                : std_logic := '1';
 
     -- biphase mark codes, decoded
     subtype t_pulse_length is std_logic_vector (1 downto 0);
@@ -115,6 +116,7 @@ begin
                   data_in => spdif_rx_in,
                   sync_in => sync (0),
                   sync_out => sync (1),
+                  enable_123_check_in => enabled,
                   single_time_out => single_time,
                   pulse_length_out => raw_pulse_length);
 
