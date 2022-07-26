@@ -50,9 +50,9 @@ architecture structural of icefun_adc_driver is
     signal data_to_pic      : std_logic_vector (7 downto 0);
     signal strobe_from_pic  : std_logic;
     signal strobe_to_pic    : std_logic;
-    signal uart_reset       : std_logic := '0';
     signal measure_enable   : std_logic := '0';
 
+    constant uart_reset     : std_logic := '0';
 begin
 
     -- Each analogue input is connected to the middle of a potentiometer
@@ -68,7 +68,7 @@ begin
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
-            if pulse_100hz_in = '1' and countdown /= 0 and reset_in = '0' then
+            if pulse_100hz_in = '1' and countdown /= 0 then
                 countdown <= countdown - 1;
             end if;
             case state is
@@ -145,6 +145,9 @@ begin
                         end if;
                     end if;
             end case;
+            if reset_in = '1' then
+                state <= RESET;
+            end if;
         end if;
     end process;
 
@@ -162,8 +165,7 @@ begin
 
     -- Signals decoded from the state machine
     ready_out <= '1' when state = WAIT_START else '0';
-    error_out <= uart_reset;
-    uart_reset <= '1' when state = TIMEOUT_ERROR else '0';
+    error_out <= '1' when state = TIMEOUT_ERROR else '0';
     strobe_to_pic <= '1' when state = SEND_REQUEST_1 or state = SEND_REQUEST_2 else '0';
     data_to_pic <= std_logic_vector (to_unsigned (16#a1#, 8)) when state = SEND_REQUEST_1
               else std_logic_vector (to_unsigned (16#a2#, 8));
