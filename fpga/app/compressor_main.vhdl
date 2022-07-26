@@ -103,9 +103,6 @@ architecture structural of compressor_main is
     signal mode_select              : mode_definitions.t_mode := mode_definitions.min_value;
 
     -- reset signal
-    constant bootup_time            : Natural := 3; -- about 30ms (based on 100Hz signal)
-    subtype t_bootup is Natural range 0 to bootup_time;
-    signal bootup                   : t_bootup := bootup_time;
     signal reset                    : std_logic := '1';
 
 begin
@@ -277,12 +274,6 @@ begin
                   sync_in => sync (8),
                   data_in => cmp_data (27 downto 19));
 
-    pulse_100hz_gen : entity pulse_gen
-        generic map (clock_frequency => clock_frequency,
-                     pulse_frequency => 100.0)
-        port map (clock_in => clock_in,
-                  pulse_out => pulse_100hz);
-
     display : entity mode_display
         port map (clock_in => clock_in,
                   pulse_100hz_in => pulse_100hz,
@@ -323,15 +314,14 @@ begin
     adc_enable_poll <= not button_c11_in;
     reset_error <= not button_c6_in;
 
-    adc : entity icefun_adc_driver
+    adc : entity adc_driver
         generic map (clock_frequency => clock_frequency)
         port map (clock_in => clock_in,
-                  reset_in => reset,
-                  pulse_100hz_in => pulse_100hz,
+                  reset_out => reset,
+                  pulse_100hz_out => pulse_100hz,
                   tx_to_pic => tx_to_pic_out,
                   rx_from_pic => rx_from_pic_in,
                   enable_poll_in => adc_enable_poll,
-                  ready_out => open,
                   error_out => adc_error,
                   adjust_1_out => adjust_1,
                   adjust_2_out => adjust_2,
@@ -351,21 +341,6 @@ begin
                   right_button => button_a5_in,
                   strobe_out => mode_strobe,
                   value_out => mode_select);
-
-    -- hold reset for long enough for the rotary switch inputs to stabilise
-    process (clock_in)
-    begin
-        if clock_in'event and clock_in = '1' then
-            if pulse_100hz = '1' then
-                if bootup = 0 then
-                    reset <= '0';
-                else
-                    bootup <= bootup - 1;
-                    reset <= '1';
-                end if;
-            end if;
-        end if;
-    end process;
 
 end structural;
 

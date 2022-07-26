@@ -11,8 +11,8 @@ VHDL =  \
 		lib/convert_to_sign_magnitude.vhdl \
 		lib/pulse_gen.vhdl \
 		lib/uart.vhdl \
-		lib/icefun_adc_driver.vhdl \
 		app/mode_definitions.vhdl \
+		app/icefun_adc_driver.vhdl \
 		app/rotary_switch.vhdl \
 		app/compressor.vhdl \
 		app/generated/version_rom.vhdl \

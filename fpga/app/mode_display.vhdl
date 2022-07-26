@@ -69,6 +69,10 @@ architecture structural of mode_display is
     constant max_desync_messages : Natural := 5;
     subtype t_desync_messages is Natural range 0 to max_desync_messages;
 
+    -- Only update some debug registers periodically since they change so fast.
+    constant max_interval_update : Natural := 50;
+    subtype t_interval_update is Natural range 0 to max_interval_update;
+
     -- Registers
     signal countdown        : t_countdown := max_countdown;
     signal desync_messages  : t_desync_messages := max_desync_messages;
@@ -77,6 +81,9 @@ architecture structural of mode_display is
     signal cmp_fifo_error_latch : std_logic := '0';
     signal cmp_over_error_latch : std_logic := '0';
     signal desync_error_latch : std_logic := '0';
+    signal interval_update  : t_interval_update := 0;
+    signal clock_interval   : std_logic_vector (15 downto 0) := (others => '0');
+    signal peak_level       : std_logic_vector (31 downto 0) := (others => '0');
 
     -- Signals
     signal display_mode     : t_display_mode := BOOT;
@@ -160,8 +167,8 @@ begin
                 when SHOW_DBG_SPDIF =>
                     -- S/PDIF signal information
                     leds (0) <= single_time_in;
-                    leds (1) <= clock_interval_in (15 downto 8);
-                    leds (2) <= clock_interval_in (7 downto 0);
+                    leds (1) <= clock_interval (15 downto 8);
+                    leds (2) <= clock_interval (7 downto 0);
                     leds (3) <= all_sync_in (8 downto 1);
                 when ANNOUNCE_DBG_SUBCODES =>
                     -- debug mode 2
@@ -183,10 +190,10 @@ begin
                     leds (3) <= "11100001";
                 when SHOW_DBG_COMPRESS =>
                     -- Compressor information
-                    leds (0) <= peak_level_in (31 downto 24);
-                    leds (1) <= peak_level_in (23 downto 16);
-                    leds (2) <= peak_level_in (15 downto 8);
-                    leds (3) <= peak_level_in (7 downto 0);
+                    leds (0) <= peak_level (31 downto 24);
+                    leds (1) <= peak_level (23 downto 16);
+                    leds (2) <= peak_level (15 downto 8);
+                    leds (3) <= peak_level (7 downto 0);
                 when ANNOUNCE_DBG_ADCS =>
                     -- debug mode 4
                     leds (0) <= "00100000";
@@ -308,6 +315,21 @@ begin
             end if;
         end if;
     end process error_latches;
+
+    ci_reg : process (clock_in)
+    begin
+        if clock_in'event and clock_in = '1' then
+            if pulse_100hz_in = '1' then
+                if interval_update = 0 then
+                    interval_update <= max_interval_update;
+                    clock_interval <= clock_interval_in;
+                    peak_level <= peak_level_in;
+                else
+                    interval_update <= interval_update - 1;
+                end if;
+            end if;
+        end if;
+    end process ci_reg;
 
     vr : entity version_rom
         port map (data_out => version);
