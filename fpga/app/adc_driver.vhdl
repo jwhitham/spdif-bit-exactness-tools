@@ -38,7 +38,7 @@ architecture structural of adc_driver is
     subtype t_countdown is Natural range 0 to max_countdown;
 
     -- For reset, we have to use an up-counter, because the default value is always 0
-    constant max_reset_counter : Natural := 3;
+    constant max_reset_counter : Natural := 200000000;
     subtype t_reset_counter is Natural range 0 to max_reset_counter;
 
     -- Registers
@@ -200,10 +200,8 @@ begin
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
-            if pulse_100hz = '1' then
-                if reset_counter /= max_reset_counter then
-                    reset_counter <= reset_counter + 1;
-                end if;
+            if reset_counter /= max_reset_counter then
+                reset_counter <= reset_counter + 1;
             end if;
         end if;
     end process;
