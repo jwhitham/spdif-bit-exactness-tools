@@ -1,3 +1,4 @@
+-- S/PDIF input decoder: the input is raw data from the optical receiver.
 
 library work;
 use work.all;
@@ -7,6 +8,25 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 use std.textio.all;
+
+-- The "single pulse time" X is the smallest possible number of clock cycles that the
+-- input stays in either the 1 state or the 0 state. The S/PDIF signals use a mixture
+-- of pulses of length X, 2X and 3X to transfer data.
+-- 
+-- In this application we will normally be using X values in the range 7 .. 24. To
+-- get the range of X, divide the system clock frequency by the sample rate, and divide
+-- again by 128 as there are two packets per sample (stereo) and each is 64 single times.
+-- 
+-- The system clock frequency is 96MHz, so "ideal" X values are:
+-- e.g. 48kHz: single time = 96e6 / (48e3 * 64 * 2) = 15.6 clocks
+--   or 32kHz: single time 23.4 clocks
+--   or 96kHz: single time 7.8 clocks
+--
+-- Realistic single times may vary due to clock speed inaccuracies and the
+-- decoder is such that no specific X value is expected, provided that X is
+-- within the minimum/maximum permitted range. The minimum is 4 (min_transition_time)
+-- and the theoretical maximum is 101 (though up to 254 can be measured) because
+-- 101 will result in a minimum length for a 3X pulse of 253 clock cycles.
 
 entity input_decoder is
     generic (
@@ -129,7 +149,7 @@ begin
             elsif transition_time_strobe = '1' then
                 -- New transition
                 if debug then
-                    write (l, String'("AA measured "));
+                    write (l, String'("input decoder measured "));
                     write (l, transition_time);
                     writeline (output, l);
                 end if;
@@ -138,7 +158,7 @@ begin
                     -- Transition sequence appears valid, increase stability
                     valid_transitions <= valid_transitions + 1;
                     if debug then
-                        write (l, String'("AA increase validity"));
+                        write (l, String'("input decoder increase validity"));
                         writeline (output, l);
                     end if;
                 end if;
@@ -155,7 +175,7 @@ begin
                     max_measured_time <= min_transition_time;
                     valid_transitions <= 0;
                     if debug then
-                        write (l, String'("AA reset due to"));
+                        write (l, String'("input decoder reset due to"));
                         if invalid_333 = '1' then
                             write (l, String'(" 333"));
                         end if;
@@ -175,7 +195,7 @@ begin
                         -- new maximum does not reset measurements
                         max_measured_time <= transition_time;
                         if debug then
-                            write (l, String'("AA new max_measured_time="));
+                            write (l, String'("input decoder new max_measured_time="));
                             write (l, transition_time);
                             writeline (output, l);
                         end if;
@@ -184,7 +204,7 @@ begin
                         -- new minimum does not reset measurements
                         min_measured_time <= transition_time;
                         if debug then
-                            write (l, String'("AA new min_measured_time="));
+                            write (l, String'("input decoder new min_measured_time="));
                             write (l, transition_time);
                             writeline (output, l);
                         end if;
@@ -244,7 +264,7 @@ begin
         variable l : line;
     begin
         if debug then
-            write (l, String'("AA threshold_calc min_measured_time="));
+            write (l, String'("input decoder threshold_calc min_measured_time="));
             write (l, min_measured_time);
             write (l, String'(" max_measured_time="));
             write (l, max_measured_time);
