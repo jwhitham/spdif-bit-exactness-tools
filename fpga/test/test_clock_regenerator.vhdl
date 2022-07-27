@@ -19,9 +19,9 @@ architecture test of test_clock_regenerator is
     constant TWO    : std_logic_vector (1 downto 0) := "10";
     constant THREE  : std_logic_vector (1 downto 0) := "11";
 
-    constant enabled        : std_logic := '1';
-
-    signal pulse_length     : std_logic_vector (1 downto 0) := "00";
+    signal pulse_length_in  : std_logic_vector (1 downto 0) := ZERO;
+    signal pulse_length_gen : std_logic_vector (1 downto 0) := ZERO;
+    signal pulse_length_old : std_logic_vector (1 downto 0) := ZERO;
     signal clock_interval_out : std_logic_vector (15 downto 0) := (others => '0');
     signal sync_in          : std_logic;
     signal sync_out         : std_logic := '0';
@@ -67,20 +67,23 @@ begin
         wait;
     end process;
 
-    id : entity input_decoder 
-        generic map (enough_transitions => 3)
-        port map (
-            data_in => data_in,
-            pulse_length_out => pulse_length,
-            single_time_out => open,
-            enable_123_check_in => enabled,
-            sync_out => open,
-            sync_in => sync_in,
-            clock_in => clock);
+    pulse_length_sync : process (clock)
+    begin
+        -- The signal generator doesn't use the clock and may generate
+        -- pulses at any time. However, the clock regenerator expects input
+        -- to be synchronised to the clock. Hence, synchronise the pulse.
+        if clock'event and clock = '1' then
+            pulse_length_in <= ZERO;
+            if pulse_length_gen /= pulse_length_old then
+                pulse_length_in <= pulse_length_gen;
+                pulse_length_old <= pulse_length_gen;
+            end if;
+        end if;
+    end process pulse_length_sync;
 
     dut : entity clock_regenerator
         port map (
-            pulse_length_in => pulse_length,
+            pulse_length_in => pulse_length_in,
             clock_interval_out => clock_interval_out,
             sync_in => sync_in,
             sync_out => sync_out,
@@ -101,18 +104,23 @@ begin
         for i in test_table'Range loop
             test_id <= i;
             test := test_table (i);
+            assert test.single_time > 2 us; -- need to hold pulse_length_gen for 1 us for the clock
 
             for j in 1 to test.num_packets loop
                 -- send two triple pulses
-                data_in <= not data_in;
-                wait for test.single_time * 3;
-                data_in <= not data_in;
-                wait for test.single_time * 3;
+                for k in 1 to 2 loop
+                    pulse_length_gen <= THREE;
+                    wait for 1 us;
+                    pulse_length_gen <= ZERO;
+                    wait for (test.single_time * 3) - 1 us;
+                end loop;
 
                 -- send the rest of the packet (58 single pulses - this is not valid S/PDIF)
                 for k in 1 to 58 loop
-                    data_in <= not data_in;
-                    wait for test.single_time;
+                    pulse_length_gen <= ONE;
+                    wait for 1 us;
+                    pulse_length_gen <= ZERO;
+                    wait for test.single_time - 1 us;
                 end loop;
             end loop;
 
