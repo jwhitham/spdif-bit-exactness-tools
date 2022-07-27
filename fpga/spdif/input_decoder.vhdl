@@ -94,17 +94,16 @@ begin
 
             transition_time_strobe <= '0';
             if sync_in = '0' then
-                timer <= 0;
-                transition_time <= 0;
+                timer <= 1;
 
-            elsif delay0 = delay1 then
+            elsif delay0 = delay1 and timer /= max_transition_time then
                 -- No transition - measure time
-                if timer /= max_transition_time then
-                    timer <= timer + 1;
-                end if;
+                timer <= timer + 1;
 
             else
-                -- New transition - report time
+                -- New transition or overflow: Report the time.
+                -- If the timer = max_transition_time, this will cause a fast desync, as the
+                -- input signal has been lost.
                 transition_time <= timer;
                 transition_time_strobe <= '1';
                 timer <= 1;
@@ -230,7 +229,7 @@ begin
             -- In these cases the threshold will be temporarily invalid and unusable.
             threshold_2_5 <= t_transition_time (x2_5 mod (max_transition_time + 1));
             threshold_1_5 <= t_transition_time (x1_5);
-            single_time_out <= std_logic_vector (to_unsigned (63, 8));
+            single_time_out <= std_logic_vector (to_unsigned (0, 8));
 
             if min_max_is_valid = '1' then
                 single_time_out <= std_logic_vector (to_unsigned ((x4_0 / 4) mod 256, 8));
