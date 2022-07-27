@@ -59,7 +59,7 @@ architecture structural of mode_display is
                             ANNOUNCE_COMPRESS_1, ANNOUNCE_ATTENUATE_1, ANNOUNCE_ATTENUATE_2,
                             BOOT, DESYNC, DOUBLE_VU_METER, SINGLE_VU_METER,
                             SHOW_DBG_SPDIF, SHOW_DBG_SUBCODES, SHOW_DBG_COMPRESS,
-                            SHOW_DBG_ADCS, SHOW_DBG_VERSION);
+                            SHOW_DBG_ADCS, SHOW_DBG_VERSION, SHOW_MATCHER);
 
     -- LED output
     subtype t_led_line is std_logic_vector (7 downto 0);
@@ -70,7 +70,7 @@ architecture structural of mode_display is
     subtype t_desync_messages is Natural range 0 to max_desync_messages;
 
     -- Only update some debug registers periodically since they change so fast.
-    constant max_interval_update : Natural := 50;
+    constant max_interval_update : Natural := 10;
     subtype t_interval_update is Natural range 0 to max_interval_update;
 
     -- Registers
@@ -82,8 +82,6 @@ architecture structural of mode_display is
     signal cmp_over_error_latch : std_logic := '0';
     signal desync_error_latch : std_logic := '0';
     signal interval_update  : t_interval_update := 0;
-    signal clock_interval   : std_logic_vector (15 downto 0) := (others => '0');
-    signal peak_level       : std_logic_vector (31 downto 0) := (others => '0');
 
     -- Signals
     signal display_mode     : t_display_mode := BOOT;
@@ -166,10 +164,12 @@ begin
                     leds (3) <= "11100000";
                 when SHOW_DBG_SPDIF =>
                     -- S/PDIF signal information
-                    leds (0) <= single_time_in;
-                    leds (1) <= clock_interval (15 downto 8);
-                    leds (2) <= clock_interval (7 downto 0);
-                    leds (3) <= all_sync_in (8 downto 1);
+                    if interval_update = 0 then
+                        leds (0) <= single_time_in;
+                        leds (1) <= clock_interval_in (15 downto 8);
+                        leds (2) <= clock_interval_in (7 downto 0);
+                        leds (3) <= all_sync_in (8 downto 1);
+                    end if;
                 when ANNOUNCE_DBG_SUBCODES =>
                     -- debug mode 2
                     leds (0) <= "00100000";
@@ -190,10 +190,12 @@ begin
                     leds (3) <= "11100001";
                 when SHOW_DBG_COMPRESS =>
                     -- Compressor information
-                    leds (0) <= peak_level (31 downto 24);
-                    leds (1) <= peak_level (23 downto 16);
-                    leds (2) <= peak_level (15 downto 8);
-                    leds (3) <= peak_level (7 downto 0);
+                    if interval_update = 0 then
+                        leds (0) <= peak_level_in (31 downto 24);
+                        leds (1) <= peak_level_in (23 downto 16);
+                        leds (2) <= peak_level_in (15 downto 8);
+                        leds (3) <= peak_level_in (7 downto 0);
+                    end if;
                 when ANNOUNCE_DBG_ADCS =>
                     -- debug mode 4
                     leds (0) <= "00100000";
@@ -218,6 +220,16 @@ begin
                     leds (1) <= "11100101";
                     leds (2) <= "10100010";
                     leds (3) <= "11100101";
+                when SHOW_MATCHER =>
+                    -- Matcher state
+                    leds (0) <= "10100000";
+                    leds (1) <= "01010000";
+                    leds (2) <= "10100000";
+                    leds (3) <= sample_rate_in (11 downto 4);
+                    for i in 0 to 2 loop
+                        leds (i) (5) <= matcher_sync_in (1);
+                        leds (i) (7) <= matcher_sync_in (0);
+                    end loop;
             end case;
         end if;
     end process;
@@ -275,6 +287,10 @@ begin
                 display_mode <= DESYNC;
                 desync_messages <= desync_messages - 1;
 
+            elsif matcher_sync_in /= "00" then
+                -- Show the matcher information when something is matched
+                display_mode <= SHOW_MATCHER;
+
             else
                 -- Stable - show normal display
                 case mode_select_in is
@@ -316,20 +332,18 @@ begin
         end if;
     end process error_latches;
 
-    ci_reg : process (clock_in)
+    interval_update_reg : process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
             if pulse_100hz_in = '1' then
                 if interval_update = 0 then
                     interval_update <= max_interval_update;
-                    clock_interval <= clock_interval_in;
-                    peak_level <= peak_level_in;
                 else
                     interval_update <= interval_update - 1;
                 end if;
             end if;
         end if;
-    end process ci_reg;
+    end process interval_update_reg;
 
     vr : entity version_rom
         port map (data_out => version);

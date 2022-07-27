@@ -12,7 +12,7 @@ VHDL =  \
 		lib/pulse_gen.vhdl \
 		lib/uart.vhdl \
 		app/mode_definitions.vhdl \
-		app/icefun_adc_driver.vhdl \
+		app/adc_driver.vhdl \
 		app/rotary_switch.vhdl \
 		app/compressor.vhdl \
 		app/generated/version_rom.vhdl \
