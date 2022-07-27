@@ -105,6 +105,12 @@ architecture structural of compressor_main is
     -- reset signal
     signal reset                    : std_logic := '1';
 
+    -- For reset, we have to use an up-counter, because the default value is always 0
+    constant max_reset_counter : Natural := 10;
+    subtype t_reset_counter is Natural range 0 to max_reset_counter;
+    signal reset_counter    : t_reset_counter := max_reset_counter;
+
+
 begin
     sync (0) <= not reset;
 
@@ -317,8 +323,8 @@ begin
     adc : entity adc_driver
         generic map (clock_frequency => clock_frequency)
         port map (clock_in => clock_in,
-                  reset_out => reset,
-                  pulse_100hz_out => pulse_100hz,
+                  reset_in => reset,
+                  pulse_100hz_in => pulse_100hz,
                   tx_to_pic => tx_to_pic_out,
                   rx_from_pic => rx_from_pic_in,
                   enable_poll_in => adc_enable_poll,
@@ -341,6 +347,25 @@ begin
                   right_button => button_a5_in,
                   strobe_out => mode_strobe,
                   value_out => mode_select);
+
+    -- 100 Hz pulse generator drives various UI tasks and timers
+    pulse_100hz_gen : entity pulse_gen
+        generic map (clock_frequency => clock_frequency,
+                     pulse_frequency => 100.0)
+        port map (clock_in => clock_in,
+                  pulse_out => pulse_100hz);
+
+    -- reset generator
+    process (clock_in)
+    begin
+        if clock_in'event and clock_in = '1' then
+            if reset_counter /= max_reset_counter and pulse_100hz = '1' then
+                reset_counter <= reset_counter + 1;
+            end if;
+        end if;
+    end process;
+
+    reset <= '1' when reset_counter /= max_reset_counter else '0';
 
 end structural;
 

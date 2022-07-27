@@ -10,8 +10,8 @@ entity adc_driver is
     generic (clock_frequency : Real);
     port (
         clock_in            : in std_logic;
-        reset_out           : out std_logic := '1';
-        pulse_100hz_out     : out std_logic := '0';
+        reset_in            : in std_logic := '1';
+        pulse_100hz_in      : in std_logic := '0';
         tx_to_pic           : out std_logic := '0';
         rx_from_pic         : in std_logic;
         enable_poll_in      : in std_logic;
@@ -37,17 +37,11 @@ architecture structural of adc_driver is
     constant max_countdown  : Natural := 3;
     subtype t_countdown is Natural range 0 to max_countdown;
 
-    -- For reset, we have to use an up-counter, because the default value is always 0
-    constant max_reset_counter : Natural := 200000000;
-    subtype t_reset_counter is Natural range 0 to max_reset_counter;
-
     -- Registers
     signal countdown        : t_countdown := max_countdown;
-    signal reset_counter    : t_reset_counter := max_reset_counter;
     signal state            : t_state := START;
     signal adjust_1_tmp     : std_logic_vector (9 downto 0) := (others => '0');
     signal adjust_2_tmp     : std_logic_vector (9 downto 0) := (others => '0');
-    signal reset            : std_logic := '0';
 
     -- Signals
     signal data_from_pic    : std_logic_vector (7 downto 0);
@@ -56,7 +50,6 @@ architecture structural of adc_driver is
     signal strobe_to_pic    : std_logic;
     signal uart_reset       : std_logic := '0';
     signal measure_enable   : std_logic := '0';
-    signal pulse_100hz      : std_logic := '0';
 
 begin
 
@@ -73,7 +66,7 @@ begin
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
-            if pulse_100hz = '1' and countdown /= 0 then
+            if pulse_100hz_in = '1' and countdown /= 0 then
                 countdown <= countdown - 1;
             end if;
             case state is
@@ -146,7 +139,7 @@ begin
                         end if;
                     end if;
             end case;
-            if reset = '1' then
+            if reset_in = '1' then
                 state <= START;
             end if;
         end if;
@@ -186,27 +179,5 @@ begin
             serial_in => rx_from_pic,
             serial_out => tx_to_pic,
             clock_in => clock_in);
-
-    -- 100 Hz pulse generator drives various UI tasks and timers
-    pulse_100hz_gen : entity pulse_gen
-        generic map (clock_frequency => clock_frequency,
-                     pulse_frequency => 100.0)
-        port map (clock_in => clock_in,
-                  pulse_out => pulse_100hz);
-
-    pulse_100hz_out <= pulse_100hz;
-
-    -- reset generator
-    process (clock_in)
-    begin
-        if clock_in'event and clock_in = '1' then
-            if reset_counter /= max_reset_counter then
-                reset_counter <= reset_counter + 1;
-            end if;
-        end if;
-    end process;
-
-    reset_out <= reset;
-    reset <= '1' when reset_counter /= max_reset_counter else '0';
 
 end architecture structural;
