@@ -96,7 +96,6 @@ begin
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
-            leds <= (others => (others => '0'));
             case display_mode is
                 when SHOW_DBG_VERSION | BOOT =>
                     -- Bootup
@@ -156,6 +155,8 @@ begin
                     -- Passthrough and attenuated modes
                     leds (0) <= raw_meter_left_in;
                     leds (1) <= raw_meter_right_in;
+                    leds (2) <= (others => '0');
+                    leds (3) <= (others => '0');
                 when ANNOUNCE_DBG_SPDIF =>
                     -- debug mode 1
                     leds (0) <= "00100000";
@@ -227,8 +228,20 @@ begin
                     leds (2) <= "10100000";
                     leds (3) <= sample_rate_in (11 downto 4);
                     for i in 0 to 2 loop
-                        leds (i) (5) <= matcher_sync_in (1);
-                        leds (i) (7) <= matcher_sync_in (0);
+                        case matcher_sync_in is
+                            when "11" =>
+                                -- EXACT_24
+                                leds (i) (2) <= '1';
+                                leds (i) (1) <= '1';
+                                leds (i) (0) <= '1';
+                            when "10" =>
+                                -- EXACT_16
+                                leds (i) (1) <= '1';
+                                leds (i) (0) <= '1';
+                            when others =>
+                                -- ROUND_16
+                                leds (i) (0) <= '1';
+                        end case;
                     end loop;
             end case;
         end if;
