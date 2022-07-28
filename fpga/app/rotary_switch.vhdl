@@ -82,7 +82,7 @@ begin
                 updated_rotary <= '0';
                 old_button_value <= new_button_value;
                 old_rotary_value <= new_rotary_value;
-                countdown <= 0;
+                countdown <= max_countdown;
 
             elsif new_button_value /= old_button_value then
                 countdown <= max_countdown;

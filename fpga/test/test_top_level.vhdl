@@ -60,6 +60,7 @@ begin
 
     dec1 : entity input_decoder
         port map (clock_in => clock, data_in => raw_data,
+                  enable_123_check_in => one,
                   sync_in => one,
                   sync_out => sync (1), single_time_out => single_time,
                   pulse_length_out => pulse_length);

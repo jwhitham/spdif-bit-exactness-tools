@@ -44,6 +44,7 @@ architecture structural of compressor_main is
     signal rg_strobe                : std_logic := '0';
     signal rg_start                 : std_logic := '0';
     signal encoded_spdif            : std_logic := '0';
+    constant enabled                : std_logic := '1';
 
     -- biphase mark codes, decoded
     subtype t_pulse_length is std_logic_vector (1 downto 0);
@@ -103,10 +104,13 @@ architecture structural of compressor_main is
     signal mode_select              : mode_definitions.t_mode := mode_definitions.min_value;
 
     -- reset signal
-    constant bootup_time            : Natural := 3; -- about 30ms (based on 100Hz signal)
-    subtype t_bootup is Natural range 0 to bootup_time;
-    signal bootup                   : t_bootup := bootup_time;
     signal reset                    : std_logic := '1';
+
+    -- For reset, we have to use an up-counter, because the default value is always 0
+    constant max_reset_counter : Natural := 10;
+    subtype t_reset_counter is Natural range 0 to max_reset_counter;
+    signal reset_counter    : t_reset_counter := max_reset_counter;
+
 
 begin
     sync (0) <= not reset;
@@ -116,6 +120,7 @@ begin
                   data_in => spdif_rx_in,
                   sync_in => sync (0),
                   sync_out => sync (1),
+                  enable_123_check_in => enabled,
                   single_time_out => single_time,
                   pulse_length_out => raw_pulse_length);
 
@@ -263,12 +268,6 @@ begin
                   sync_in => sync (8),
                   data_in => cmp_data (27 downto 19));
 
-    pulse_100hz_gen : entity pulse_gen
-        generic map (clock_frequency => clock_frequency,
-                     pulse_frequency => 100.0)
-        port map (clock_in => clock_in,
-                  pulse_out => pulse_100hz);
-
     display : entity mode_display
         port map (clock_in => clock_in,
                   pulse_100hz_in => pulse_100hz,
@@ -309,7 +308,7 @@ begin
     adc_enable_poll <= not button_c11_in;
     reset_error <= not button_c6_in;
 
-    adc : entity icefun_adc_driver
+    adc : entity adc_driver
         generic map (clock_frequency => clock_frequency)
         port map (clock_in => clock_in,
                   reset_in => reset,
@@ -317,7 +316,6 @@ begin
                   tx_to_pic => tx_to_pic_out,
                   rx_from_pic => rx_from_pic_in,
                   enable_poll_in => adc_enable_poll,
-                  ready_out => open,
                   error_out => adc_error,
                   adjust_1_out => adjust_1,
                   adjust_2_out => adjust_2,
@@ -338,20 +336,24 @@ begin
                   strobe_out => mode_strobe,
                   value_out => mode_select);
 
-    -- hold reset for long enough for the rotary switch inputs to stabilise
+    -- 100 Hz pulse generator drives various UI tasks and timers
+    pulse_100hz_gen : entity pulse_gen
+        generic map (clock_frequency => clock_frequency,
+                     pulse_frequency => 100.0)
+        port map (clock_in => clock_in,
+                  pulse_out => pulse_100hz);
+
+    -- reset generator
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
-            if pulse_100hz = '1' then
-                if bootup = 0 then
-                    reset <= '0';
-                else
-                    bootup <= bootup - 1;
-                    reset <= '1';
-                end if;
+            if reset_counter /= max_reset_counter and pulse_100hz = '1' then
+                reset_counter <= reset_counter + 1;
             end if;
         end if;
     end process;
+
+    reset <= '1' when reset_counter /= max_reset_counter else '0';
 
 end structural;
 

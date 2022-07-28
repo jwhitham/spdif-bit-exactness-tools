@@ -14,22 +14,22 @@ end pulse_gen;
 
 architecture structural of pulse_gen is
 
-    constant countdown_max  : Natural :=
+    constant counter_max  : Natural :=
             Natural (clock_frequency / pulse_frequency) - 1;
-    subtype t_countdown is Natural range 0 to countdown_max;
+    subtype t_counter is Natural range 0 to counter_max;
 
-    signal countdown        : t_countdown := countdown_max;
+    signal counter        : t_counter := 0;
 
 begin
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
             pulse_out <= '0';
-            if countdown = 0 then
-                countdown <= countdown_max;
+            if counter = counter_max then
+                counter <= 0;
                 pulse_out <= '1';
             else
-                countdown <= countdown - 1;
+                counter <= counter + 1;
             end if;
         end if;
     end process;

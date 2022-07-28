@@ -1,7 +1,18 @@
+-- S/PDIF clock regenerator: produce clock pulses that match the input signal
 
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+
+-- The "single pulse time" X is the smallest possible number of clock cycles that the
+-- output stays in either the 1 state or the 0 state. This component generates clock
+-- pulses with interval X in order to match the input signal. It measures the time
+-- for a complete packet to be received by looking for the 3X pulse at the beginning
+-- of each packet header.
+--
+-- X does not have to be an integer number of clock cycles but must be within the
+-- permitted range. The maximum value of X is 62 clock cycles (see "overflow_point").
+-- The minimum value of X is 2 clock cycles.
 
 entity clock_regenerator is
     port (
@@ -32,22 +43,27 @@ architecture structural of clock_regenerator is
     signal packet_counter       : t_packet_counter := zero_packets;
     signal clock_counter        : t_clock_counter := (others => '0');
     signal clock_interval       : t_clock_counter := (others => '0');
-    signal divisor_subtract     : t_clock_counter := (others => '0');
+    signal fixed_point_one_minus_clock_interval : t_clock_counter := (others => '0');
 
     signal divisor              : t_clock_counter := (others => '0');
     constant fixed_point_one    : t_clock_counter := (fixed_point_bits => '1', others => '0');
+
+    -- This is the true maximum value allowed for clock_counter, in order to ensure
+    -- that overflows can be reliably detected when adding to divisor
+    constant overflow_point     : t_clock_counter :=
+        to_unsigned ((2 ** counter_bits) - 2, counter_bits) - fixed_point_one;
 
     type t_measurement_state is (START, IN_HEADER_1, IN_HEADER_2, IN_HEADER_3, IN_BODY);
     signal measurement_state    : t_measurement_state := START;
     signal sync_gen             : std_logic := '0';
 
-    subtype t_clock_count is unsigned ((num_clocks_per_packet_log_2 - 1) downto 0);
-    constant zero_clock_count   : t_clock_count := (others => '0');
-    signal clock_count          : t_clock_count := zero_clock_count;
+    subtype t_out_clock_count is Natural range 0 to (2 ** num_clocks_per_packet_log_2) - 1;
+    signal out_clock_count      : t_out_clock_count := 0;
+    signal packet_start_strobe  : std_logic := '0';
 
     signal strobe_gen           : std_logic := '0';
 
-    type t_output_state is (RESET, ADD, COMPARE_SUBTRACT);
+    type t_output_state is (RESET, ADD, SUBTRACT);
     signal output_state         : t_output_state := RESET;
 begin
     process (clock_in)
@@ -85,9 +101,15 @@ begin
                     if pulse_length_in = "11" then
                         if packet_counter = zero_packets then
                             -- counting is complete
-                            clock_interval <= clock_counter srl 1;
+                            if to_integer (clock_counter (counter_bits - 1 downto fixed_point_bits + 1)) = 0 then
+                                -- The total count is less than 2 * fixed_point_one. The input is too fast;
+                                -- we cannot generate clock pulses at this rate.
+                                measurement_state <= START;
+                            else
+                                sync_gen <= '1';
+                            end if;
+                            clock_interval <= clock_counter;
                             clock_counter <= zero_clocks + 1;
-                            sync_gen <= '1';
                         end if;
                         -- back to the header
                         measurement_state <= IN_HEADER_1;
@@ -97,44 +119,48 @@ begin
                 -- reset on desync
                 measurement_state <= START;
             end if;
+            if clock_counter = overflow_point then
+                -- Counting won't be reliable. In particular, when we add fixed_point_one to divisor,
+                -- we won't be able to determine if the result is greater than clock_interval,
+                -- because it might have overflowed 2 ** counter_bits. The input is too slow.
+                measurement_state <= START;
+            end if;
         end if;
     end process;
 
     sync_out <= sync_gen;
     clock_interval_out <= std_logic_vector (clock_interval (15 downto 0));
-    divisor_subtract <= divisor - clock_interval;
 
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
             spdif_clock_strobe_out <= '0';
+            fixed_point_one_minus_clock_interval <= fixed_point_one - clock_interval;
 
             case output_state is
                 when RESET =>
                     -- Do nothing while waiting for synchronisation and the start of a packet
-                    divisor <= (others => '0');
-                    clock_count <= (others => '1');
+                    divisor <= fixed_point_one + fixed_point_one;
+                    out_clock_count <= (2 ** num_clocks_per_packet_log_2) - 2;
                     if packet_start_strobe_in = '1' and sync_gen = '1' then
                         -- Output: start the packet with a clock tick
                         spdif_clock_strobe_out <= '1';
                         output_state <= ADD;
                     end if;
                 when ADD =>
-                    -- Advance
                     divisor <= divisor + fixed_point_one;
-                    output_state <= COMPARE_SUBTRACT;
-                    if clock_count = zero_clock_count then
+                    if divisor >= clock_interval then
+                        output_state <= SUBTRACT;
+                    end if;
+                when SUBTRACT =>
+                    divisor <= divisor + fixed_point_one_minus_clock_interval;
+                    spdif_clock_strobe_out <= '1';
+                    if out_clock_count = 0 then
                         output_state <= RESET;
+                    else
+                        out_clock_count <= out_clock_count - 1;
+                        output_state <= ADD;
                     end if;
-                when COMPARE_SUBTRACT =>
-                    -- Output: wait for the right time to send another clock tick
-                    if divisor_subtract (divisor_subtract'Left) = '0' then
-                        -- divisor >= clock_interval
-                        divisor <= divisor_subtract;
-                        spdif_clock_strobe_out <= '1';
-                        clock_count <= clock_count - 1;
-                    end if;
-                    output_state <= ADD;
             end case;
         end if;
     end process;

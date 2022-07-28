@@ -11,8 +11,8 @@ VHDL =  \
 		lib/convert_to_sign_magnitude.vhdl \
 		lib/pulse_gen.vhdl \
 		lib/uart.vhdl \
-		lib/icefun_adc_driver.vhdl \
 		app/mode_definitions.vhdl \
+		app/adc_driver.vhdl \
 		app/rotary_switch.vhdl \
 		app/compressor.vhdl \
 		app/generated/version_rom.vhdl \
@@ -21,16 +21,17 @@ VHDL =  \
 		app/vu_meter.vhdl \
 		app/mode_display.vhdl \
 		spdif/channel_decoder.vhdl \
-		spdif/input_decoder.vhdl \
-		spdif/combined_encoder.vhdl \
 		spdif/clock_regenerator.vhdl \
+		spdif/input_decoder.vhdl \
 		spdif/packet_decoder.vhdl \
+		spdif/combined_encoder.vhdl \
 		app/compressor_main.vhdl
 
 TEST_VHDL = \
 		test/sb_ram40_4k.vhdl \
 		test/generated/test_signal_generator.vhdl \
 		test/test_disable_compressor.vhdl \
+		test/test_clock_regenerator.vhdl \
 		test/test_volume.vhdl \
 		test/test_compressor.vhdl \
 		test/test_compressor2.vhdl \
@@ -40,6 +41,7 @@ TEST_VHDL = \
 		test/test_subtractor.vhdl \
 		test/test_sign_magnitude.vhdl \
 		test/test_fifo.vhdl \
+		test/test_input_decoder.vhdl \
 		test/test_measure.vhdl \
 		test/test_uart.vhdl \
 		test/test_top_level.vhdl
@@ -55,8 +57,10 @@ run_tests:
 	python app/make_version_rom.py
 	python test/make_test_bench.py
 	ghdl -a --work=work $(VHDL) $(TEST_VHDL)
+	ghdl -r test_clock_regenerator $(RFLAGS)
 	ghdl -r test_top_level $(RFLAGS) > tmp.txt
 	diff -q tmp.txt test/test_top_level_out.txt
+	ghdl -r test_input_decoder $(RFLAGS)
 	ghdl -r test_volume $(RFLAGS)
 	ghdl -r test_disable_compressor $(RFLAGS)
 	ghdl -r test_measure $(RFLAGS)

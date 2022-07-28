@@ -59,15 +59,19 @@ architecture structural of mode_display is
                             ANNOUNCE_COMPRESS_1, ANNOUNCE_ATTENUATE_1, ANNOUNCE_ATTENUATE_2,
                             BOOT, DESYNC, DOUBLE_VU_METER, SINGLE_VU_METER,
                             SHOW_DBG_SPDIF, SHOW_DBG_SUBCODES, SHOW_DBG_COMPRESS,
-                            SHOW_DBG_ADCS, SHOW_DBG_VERSION);
+                            SHOW_DBG_ADCS, SHOW_DBG_VERSION, SHOW_MATCHER);
 
     -- LED output
     subtype t_led_line is std_logic_vector (7 downto 0);
     type t_leds is array (Natural range 0 to 3) of t_led_line;
 
     -- Desync message countdown 
-    constant max_desync_messages : Natural := 100;
+    constant max_desync_messages : Natural := 5;
     subtype t_desync_messages is Natural range 0 to max_desync_messages;
+
+    -- Only update some debug registers periodically since they change so fast.
+    constant max_interval_update : Natural := 10;
+    subtype t_interval_update is Natural range 0 to max_interval_update;
 
     -- Registers
     signal countdown        : t_countdown := max_countdown;
@@ -77,6 +81,7 @@ architecture structural of mode_display is
     signal cmp_fifo_error_latch : std_logic := '0';
     signal cmp_over_error_latch : std_logic := '0';
     signal desync_error_latch : std_logic := '0';
+    signal interval_update  : t_interval_update := 0;
 
     -- Signals
     signal display_mode     : t_display_mode := BOOT;
@@ -91,7 +96,6 @@ begin
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
-            leds <= (others => (others => '0'));
             case display_mode is
                 when SHOW_DBG_VERSION | BOOT =>
                     -- Bootup
@@ -151,6 +155,8 @@ begin
                     -- Passthrough and attenuated modes
                     leds (0) <= raw_meter_left_in;
                     leds (1) <= raw_meter_right_in;
+                    leds (2) <= (others => '0');
+                    leds (3) <= (others => '0');
                 when ANNOUNCE_DBG_SPDIF =>
                     -- debug mode 1
                     leds (0) <= "00100000";
@@ -159,10 +165,12 @@ begin
                     leds (3) <= "11100000";
                 when SHOW_DBG_SPDIF =>
                     -- S/PDIF signal information
-                    leds (0) <= single_time_in;
-                    leds (1) <= clock_interval_in (15 downto 8);
-                    leds (2) <= clock_interval_in (7 downto 0);
-                    leds (3) <= all_sync_in (8 downto 1);
+                    if interval_update = 0 then
+                        leds (0) <= single_time_in;
+                        leds (1) <= clock_interval_in (15 downto 8);
+                        leds (2) <= clock_interval_in (7 downto 0);
+                        leds (3) <= all_sync_in (8 downto 1);
+                    end if;
                 when ANNOUNCE_DBG_SUBCODES =>
                     -- debug mode 2
                     leds (0) <= "00100000";
@@ -183,10 +191,12 @@ begin
                     leds (3) <= "11100001";
                 when SHOW_DBG_COMPRESS =>
                     -- Compressor information
-                    leds (0) <= peak_level_in (31 downto 24);
-                    leds (1) <= peak_level_in (23 downto 16);
-                    leds (2) <= peak_level_in (15 downto 8);
-                    leds (3) <= peak_level_in (7 downto 0);
+                    if interval_update = 0 then
+                        leds (0) <= peak_level_in (31 downto 24);
+                        leds (1) <= peak_level_in (23 downto 16);
+                        leds (2) <= peak_level_in (15 downto 8);
+                        leds (3) <= peak_level_in (7 downto 0);
+                    end if;
                 when ANNOUNCE_DBG_ADCS =>
                     -- debug mode 4
                     leds (0) <= "00100000";
@@ -211,6 +221,28 @@ begin
                     leds (1) <= "11100101";
                     leds (2) <= "10100010";
                     leds (3) <= "11100101";
+                when SHOW_MATCHER =>
+                    -- Matcher state
+                    leds (0) <= "10100000";
+                    leds (1) <= "01010000";
+                    leds (2) <= "10100000";
+                    leds (3) <= sample_rate_in (11 downto 4);
+                    for i in 0 to 2 loop
+                        case matcher_sync_in is
+                            when "11" =>
+                                -- EXACT_24
+                                leds (i) (2) <= '1';
+                                leds (i) (1) <= '1';
+                                leds (i) (0) <= '1';
+                            when "10" =>
+                                -- EXACT_16
+                                leds (i) (1) <= '1';
+                                leds (i) (0) <= '1';
+                            when others =>
+                                -- ROUND_16
+                                leds (i) (0) <= '1';
+                        end case;
+                    end loop;
             end case;
         end if;
     end process;
@@ -262,11 +294,15 @@ begin
                     countdown <= countdown - 1;
                 end if;
 
-            elsif desync_flag = '1' and display_mode /= DESYNC and desync_messages /= 0 then
+            elsif desync_flag = '1' and desync_messages /= 0 then
                 -- Show desync display
                 countdown <= max_countdown;
                 display_mode <= DESYNC;
                 desync_messages <= desync_messages - 1;
+
+            elsif matcher_sync_in /= "00" then
+                -- Show the matcher information when something is matched
+                display_mode <= SHOW_MATCHER;
 
             else
                 -- Stable - show normal display
@@ -308,6 +344,19 @@ begin
             end if;
         end if;
     end process error_latches;
+
+    interval_update_reg : process (clock_in)
+    begin
+        if clock_in'event and clock_in = '1' then
+            if pulse_100hz_in = '1' then
+                if interval_update = 0 then
+                    interval_update <= max_interval_update;
+                else
+                    interval_update <= interval_update - 1;
+                end if;
+            end if;
+        end if;
+    end process interval_update_reg;
 
     vr : entity version_rom
         port map (data_out => version);
