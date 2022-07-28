@@ -30,6 +30,7 @@ architecture test of test_clock_regenerator is
     signal data_in          : std_logic := '0';
     signal report_results   : std_logic := '0';
     signal sync_out_was_one : std_logic := '0';
+    signal packet_start_strobe_in : std_logic := '0';
 
 
     type t_test is record
@@ -89,6 +90,11 @@ begin
                 pulse_length_in <= pulse_length_gen;
                 pulse_length_old <= pulse_length_gen;
             end if;
+
+            packet_start_strobe_in <= '0';
+            if pulse_length_in /= "00" then
+                packet_start_strobe_in <= '1';
+            end if;
         end if;
     end process pulse_length_sync;
 
@@ -99,7 +105,8 @@ begin
             sync_in => sync_in,
             sync_out => sync_out,
             clock_in => clock,
-            strobe_out => strobe_out);
+            packet_start_strobe_in => packet_start_strobe_in,
+            spdif_clock_strobe_out => strobe_out);
 
     signal_generator : process
         variable single_time : Time := 0 us;

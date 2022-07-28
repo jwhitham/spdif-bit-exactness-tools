@@ -3,6 +3,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+use std.textio.all;
+
 entity packet_decoder is
     port (
         pulse_length_in : in std_logic_vector (1 downto 0);
@@ -42,6 +44,7 @@ begin
     sync_out <= synced;
 
     process (clock)
+        variable l : line;
     begin
         if clock'event and clock = '1' then
 
@@ -76,6 +79,8 @@ begin
                             sync_state <= SYNC;
                         when TWO =>
                             -- Not valid after 1
+                            write (l, String'("desync in data"));
+                            writeline (output, l);
                             sync_state <= DESYNC;
                         when ONE =>
                             -- Ordinary data (1) skipped
@@ -106,6 +111,8 @@ begin
                 when M_HEADER =>
                     case pulse_length_in is
                         when TWO | THREE =>
+                            write (l, String'("desync M header"));
+                            writeline (output, l);
                             sync_state <= DESYNC; -- expected 10
                         when ONE =>
                             sync_state <= M_MID; -- 0 remaining, shift 010
@@ -122,6 +129,8 @@ begin
                 when M_FOOTER =>
                     case pulse_length_in is
                         when TWO | THREE =>
+                            write (l, String'("desync M footer"));
+                            writeline (output, l);
                             sync_state <= DESYNC; -- expected 0
                         when ONE =>
                             sync_state <= NORMAL; -- begin M packet, shift 0
@@ -133,6 +142,8 @@ begin
                 when W_HEADER =>
                     case pulse_length_in is
                         when TWO | THREE =>
+                            write (l, String'("desync W header"));
+                            writeline (output, l);
                             sync_state <= DESYNC; -- expected 100
                         when ONE =>
                             sync_state <= W_MID; -- 00 remaining, shift 100
@@ -149,6 +160,8 @@ begin
                 when W_FOOTER =>
                     case pulse_length_in is
                         when ONE | THREE =>
+                            write (l, String'("desync W footer"));
+                            writeline (output, l);
                             sync_state <= DESYNC; -- expected 00
                         when TWO =>
                             sync_state <= NORMAL; -- begin W packet, shift 0
@@ -160,6 +173,8 @@ begin
                 when B_HEADER =>
                     case pulse_length_in is
                         when TWO | THREE =>
+                            write (l, String'("desync B header"));
+                            writeline (output, l);
                             sync_state <= DESYNC; -- expected 1000
                         when ONE =>
                             sync_state <= B_MID; -- 000 remaining, shift 000
@@ -175,6 +190,8 @@ begin
                 when B_FOOTER =>
                     case pulse_length_in is
                         when ONE | TWO =>
+                            write (l, String'("desync B footer"));
+                            writeline (output, l);
                             sync_state <= DESYNC; -- expected 000
                         when THREE =>
                             sync_state <= NORMAL; -- begin B packet, shift 0

@@ -16,13 +16,13 @@ use ieee.numeric_std.all;
 
 entity clock_regenerator is
     port (
-        pulse_length_in  : in std_logic_vector (1 downto 0) := "00";
-        clock_interval_out : out std_logic_vector (15 downto 0) := (others => '0');
-        sync_in          : in std_logic;
-        sync_out         : out std_logic := '0';
-        clock_in         : in std_logic;
-        strobe_out       : out std_logic := '0'
-    );
+        pulse_length_in         : in std_logic_vector (1 downto 0) := "00";
+        clock_interval_out      : out std_logic_vector (15 downto 0) := (others => '0');
+        sync_in                 : in std_logic;
+        sync_out                : out std_logic := '0';
+        clock_in                : in std_logic;
+        packet_start_strobe_in  : in std_logic := '0';
+        spdif_clock_strobe_out  : out std_logic := '0');
 end clock_regenerator;
 
 architecture structural of clock_regenerator is
@@ -34,7 +34,7 @@ architecture structural of clock_regenerator is
     constant counter_bits                : Integer := fixed_point_bits + max_transition_time_log_2;
 
     -- Count the number of clock_in cycles required for 2**num_packets_log_2 packets
-    -- Use this to make a fixed point clock divider to convert clock_in to strobe_out
+    -- Use this to make a fixed point clock divider to convert clock_in to spdif_clock_strobe_out
     subtype t_packet_counter is unsigned ((num_packets_log_2 - 1) downto 0);
     subtype t_clock_counter is unsigned ((counter_bits - 1) downto 0);
     constant zero_packets       : t_packet_counter := (others => '0');
@@ -70,7 +70,6 @@ begin
     begin
         if clock_in'event and clock_in = '1' then
             clock_counter <= clock_counter + 1;
-            packet_start_strobe <= '0';
             case measurement_state is
                 when START =>
                     -- wait for the start of a new packet
@@ -114,7 +113,6 @@ begin
                         end if;
                         -- back to the header
                         measurement_state <= IN_HEADER_1;
-                        packet_start_strobe <= '1';
                     end if;
             end case;
             if sync_in = '0' then
@@ -136,7 +134,7 @@ begin
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
-            strobe_out <= '0';
+            spdif_clock_strobe_out <= '0';
             fixed_point_one_minus_clock_interval <= fixed_point_one - clock_interval;
 
             case output_state is
@@ -144,9 +142,9 @@ begin
                     -- Do nothing while waiting for synchronisation and the start of a packet
                     divisor <= fixed_point_one + fixed_point_one;
                     out_clock_count <= (2 ** num_clocks_per_packet_log_2) - 2;
-                    if packet_start_strobe = '1' and sync_gen = '1' then
+                    if packet_start_strobe_in = '1' and sync_gen = '1' then
                         -- Output: start the packet with a clock tick
-                        strobe_out <= '1';
+                        spdif_clock_strobe_out <= '1';
                         output_state <= ADD;
                     end if;
                 when ADD =>
@@ -156,7 +154,7 @@ begin
                     end if;
                 when SUBTRACT =>
                     divisor <= divisor + fixed_point_one_minus_clock_interval;
-                    strobe_out <= '1';
+                    spdif_clock_strobe_out <= '1';
                     if out_clock_count = 0 then
                         output_state <= RESET;
                     else

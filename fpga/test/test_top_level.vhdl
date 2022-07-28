@@ -16,7 +16,6 @@ architecture structural of test_top_level is
     constant num_sync : Natural := 14;
 
     signal pulse_length    : std_logic_vector (1 downto 0) := "00";
-    signal pe_pulse_length : std_logic_vector (1 downto 0) := "00";
     signal packet_data     : std_logic := '0';
     signal packet_shift    : std_logic := '0';
     signal packet_start    : std_logic := '0';
@@ -44,6 +43,7 @@ architecture structural of test_top_level is
     signal sample_rate     : std_logic_vector (15 downto 0) := (others => '0');
     signal single_time     : std_logic_vector (7 downto 0) := (others => '0');
     signal rg_strobe       : std_logic := '0';
+    signal rg_start        : std_logic := '0';
     signal oe_data         : std_logic := '0';
     signal oe_error        : std_logic := '0';
 
@@ -99,38 +99,24 @@ begin
                   pulse_length_in => pulse_length,
                   sync_in => sync (3),
                   sync_out => sync (6),
-                  strobe_out => rg_strobe);
+                  packet_start_strobe_in => rg_start,
+                  spdif_clock_strobe_out => rg_strobe);
 
-    ce : entity channel_encoder
-        port map (clock => clock,
+    ce : entity combined_encoder
+        port map (clock_in => clock,
                   sync_in => sync (6),
-                  sync_out => sync (7),
-                  data_out => packet_data_2,
-                  start_out => packet_start_2,
-                  shift_out => packet_shift_2,
+                  sync_out => sync (9),
                   preemph_in => zero,
                   left_strobe_in => left_strobe,
                   right_strobe_in => right_strobe,
+                  error_out => oe_error,
+                  packet_start_strobe_out => rg_start,
+                  spdif_clock_strobe_in => rg_strobe,
+                  data_out => oe_data,
                   data_in => data);
 
-    pe : entity packet_encoder
-        port map (clock => clock,
-                  pulse_length_out => pe_pulse_length,
-                  sync_in => sync (7),
-                  sync_out => sync (8),
-                  data_in => packet_data_2,
-                  start_in => packet_start_2,
-                  shift_in => packet_shift_2);
-
-    oe : entity output_encoder
-        generic map (addr_size => 7, threshold_level => 0.5)
-        port map (clock_in => clock,
-                  pulse_length_in => pe_pulse_length,
-                  sync_in => sync (8),
-                  sync_out => sync (9),
-                  error_out => oe_error,
-                  strobe_in => rg_strobe,
-                  data_out => oe_data);
+    sync (7) <= sync (9);
+    sync (8) <= sync (9);
 
     assert oe_error = '0';
 
