@@ -16,6 +16,7 @@ architecture test of test_encoder is
 
     signal clock_in                 : std_logic := '0';
     signal done                     : std_logic := '0';
+    signal middle_data              : std_logic := '0';
 
     subtype t_pulse_length is std_logic_vector (1 downto 0);
     subtype t_data is std_logic_vector (31 downto 0);
@@ -55,9 +56,9 @@ architecture test of test_encoder is
     begin
         data := (others => '0');
         data (11 downto 4) := std_logic_vector (to_unsigned (index mod 256, 8));
-        data ((index mod 12) + 12) := '1';
+        data ((index mod 16) + 12) := '1';
         if not left then
-            data (((index + 1) mod 12) + 12) := '1';
+            data (((index + 1) mod 16) + 12) := '1';
         end if;
         return data;
     end generate_test_data;
@@ -148,10 +149,53 @@ begin
                   left_strobe_out => dec_left_strobe,
                   right_strobe_out => dec_right_strobe);
 
+    process
+        variable enc_packet_count : Natural := 0;
+        variable enc_pulse_count : Natural := 0;
+        variable dec_pulse_count : Natural := 0;
+        variable dec_packet_count : Natural := 0;
+        variable l : line;
+    begin
+        while done = '0' loop
+            wait until enc_packet_start'event or enc_pulse_length'event
+                        or dec_pulse_length'event or dec_packet_start'event
+                        or done'event;
+            if middle_data = '1' then
+                if enc_packet_start'event and enc_packet_start = '1' then
+                    enc_packet_count := enc_packet_count + 1;
+                end if;
+                if enc_pulse_length'event and enc_pulse_length /= "00" then
+                    enc_pulse_count := enc_pulse_count + 1;
+                end if;
+                if dec_pulse_length'event and dec_pulse_length /= "00" then
+                    dec_pulse_count := dec_pulse_count + 1;
+                end if;
+                if dec_packet_start'event and dec_packet_start = '1' then
+                    dec_packet_count := dec_packet_count + 1;
+                end if;
+            end if;
+        end loop;
+        write (l, String'("enc_packet_count = "));
+        write (l, enc_packet_count);
+        writeline (output, l);
+        write (l, String'("enc_pulse_count = "));
+        write (l, enc_pulse_count);
+        writeline (output, l);
+        write (l, String'("dec_pulse_count = "));
+        write (l, dec_pulse_count);
+        writeline (output, l);
+        write (l, String'("dec_packet_count = "));
+        write (l, dec_packet_count);
+        writeline (output, l);
+        wait;
+    end process;
+            
+
     signal_generator : process
     begin
         -- Resetting
         done <= '0';
+        middle_data <= '0';
         sync (1) <= '0';
         enc_data <= (others => '0');
         enc_left_strobe <= '0';
@@ -189,6 +233,14 @@ begin
             wait for 1 us;
             enc_right_strobe <= '0';
             wait for packet_time - 1 us;
+
+            -- During steady state transmission, capture some data from within the pipeline
+            if i = (num_tests / 4) then
+                middle_data <= '1';
+            end if;
+            if i = ((3 * num_tests) / 4) then
+                middle_data <= '0';
+            end if;
         end loop;
 
         -- Send zeroes after tests
