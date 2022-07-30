@@ -140,6 +140,11 @@ begin
                     end if;
                 end if;
 
+                -- There is no transition at the start of the header. The actual
+                -- timing for the first pulse is just two S/PDIF strobes, not three,
+                -- because the first pulse really begins at the end of the previous packet.
+                buffer_header (7 downto 6) <= TWO;
+
                 -- See https://www.minidisc.org/manuals/an22.pdf for description of subcode bits
                 -- They repeat periodically, beginning with a B packet, which is sent every b_interval.
                 case subcode_counter is
@@ -166,7 +171,6 @@ begin
 
     -- Triggered at the start of a packet
     consume_buffer <= buffer_full when state = AWAIT_NEW_PACKET else '0';
-    packet_start_strobe_out <= consume_buffer;
 
     -- Packet output as S/PDIF
     spdif_generator : process (clock_in)
@@ -174,6 +178,7 @@ begin
     begin
         if clock_in'event and clock_in = '1' then
             clock_error <= '0';
+            packet_start_strobe_out <= '0';
 
             case state is
                 when RESET =>
@@ -189,10 +194,14 @@ begin
                     shift_header <= buffer_header;
                     parity <= '0';
 
+                    -- clock pulses at this time are too early
+                    assert spdif_clock_strobe_in = '0';
+                    clock_error <= spdif_clock_strobe_in;
+
                     if consume_buffer = '1' then
                         -- Start sending new packet
                         state <= SEND_HEADER;
-                        count <= 0;
+                        count <= 1;
                         if debug then
                             write (l, String'("start: "));
                             for i in first_data_bit to last_data_bit loop
@@ -208,6 +217,7 @@ begin
                             writeline (output, l);
                         end if;
                         assert (count = 64) or (count = 99);
+                        packet_start_strobe_out <= '1';
                     end if;
 
                 when SEND_HEADER =>
@@ -271,13 +281,15 @@ begin
                             -- bit 1: generate two pulses of length 1
                             spdif_gen <= not spdif_gen;
                             if debug then
-                                write (l, String'("data 1"));
+                                write (l, String'("data 1 bit counter "));
+                                write (l, bit_counter);
                                 writeline (output, l);
                             end if;
                         else
                             -- bit 0: generate one pulse of length 2
                             if debug then
-                                write (l, String'("data 0"));
+                                write (l, String'("data 0 bit counter "));
+                                write (l, bit_counter);
                                 writeline (output, l);
                             end if;
                         end if;

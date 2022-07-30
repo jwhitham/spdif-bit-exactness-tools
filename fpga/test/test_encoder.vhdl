@@ -18,6 +18,7 @@ architecture test of test_encoder is
     signal done                     : std_logic := '0';
     signal middle_data              : std_logic := '0';
     signal start_data               : std_logic := '0';
+    signal pulse_ready              : std_logic := '0';
 
     subtype t_pulse_length is std_logic_vector (1 downto 0);
     subtype t_data is std_logic_vector (31 downto 0);
@@ -76,16 +77,43 @@ begin
     end process;
 
     -- S/PDIF pulses (setting the single time, X, as 4 microseconds)
+    -- This is a simplified model of clock_regenerator
     spdif_pulses : process
     begin
         while done = '0' loop
-            rg_strobe <= '0';
-            wait for single_time - 1 us;
-            rg_strobe <= '1';
-            wait for 1 us;
+            pulse_ready <= '1';
+            wait until enc_packet_start'event or done'event;
+            wait for 1 ps;
+            pulse_ready <= '0';
+            if enc_packet_start = '1' then
+                wait until clock_in'event and clock_in = '1';
+                for i in 1 to 63 loop
+                    rg_strobe <= '1';
+                    wait for 1 us;
+                    rg_strobe <= '0';
+                    wait for single_time - 1 us;
+                end loop;
+                rg_strobe <= '1';
+                wait for 1 us;
+                rg_strobe <= '0';
+                wait for 1 us;
+            end if;
         end loop;
         wait;
     end process spdif_pulses;
+
+    -- ensure that each packet start arrives at a time it can be accepted
+    packet_start_too_soon : process
+    begin
+        while done = '0' loop
+            wait until enc_packet_start'event or done'event;
+            if enc_packet_start = '1' then
+                assert pulse_ready = '1';
+            end if;
+        end loop;
+        wait;
+    end process packet_start_too_soon;
+
 
     sync (3) <= sync (2);
     sync (4) <= sync (2);
