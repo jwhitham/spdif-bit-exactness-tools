@@ -17,14 +17,11 @@ architecture test of test_encoder is
     signal clock_in                 : std_logic := '0';
     signal done                     : std_logic := '0';
     signal middle_data              : std_logic := '0';
+    signal start_data               : std_logic := '0';
 
     subtype t_pulse_length is std_logic_vector (1 downto 0);
     subtype t_data is std_logic_vector (31 downto 0);
 
-    signal enc_packet_data          : std_logic := '0';
-    signal enc_packet_shift         : std_logic := '0';
-    signal enc_packet_start         : std_logic := '0';
-    signal enc_pulse_length         : t_pulse_length := "00";
     signal enc_data                 : t_data := (others => '0');
     signal enc_left_strobe          : std_logic := '0';
     signal enc_right_strobe         : std_logic := '0';
@@ -107,7 +104,6 @@ begin
                   right_strobe_in => enc_right_strobe);
 
     id : entity input_decoder
-        generic map (debug => true)
         port map (data_in => encoded_spdif,
                   pulse_length_out => dec_pulse_length,
                   single_time_out => open,
@@ -142,49 +138,42 @@ begin
     begin
         wait for 10 us;
         while done = '0' loop
-            wait until sync'event;
-            if sync (7)'event and sync (7) = '0' then
-                write (l, String'("channel_decoder desync"));
-                writeline (output, l);
+            wait until sync'event or done'event;
+            if start_data = '1' then
+                if sync (7)'event and sync (7) = '0' then
+                    write (l, String'("channel_decoder desync"));
+                    writeline (output, l);
+                end if;
+                if sync (6)'event and sync (6) = '0' then
+                    write (l, String'("packet_decoder desync"));
+                    writeline (output, l);
+                end if;
+                if sync (5)'event and sync (5) = '0' then
+                    write (l, String'("input_decoder desync"));
+                    writeline (output, l);
+                end if;
+                if sync (2)'event and sync (2) = '0' then
+                    write (l, String'("combined_encoder desync"));
+                    writeline (output, l);
+                end if;
+                assert not (sync (7)'event and sync (7) = '0');
+                assert not (sync (6)'event and sync (6) = '0');
+                assert not (sync (5)'event and sync (5) = '0');
+                assert not (sync (2)'event and sync (2) = '0');
             end if;
-            if sync (6)'event and sync (6) = '0' then
-                write (l, String'("packet_decoder desync"));
-                writeline (output, l);
-            end if;
-            if sync (5)'event and sync (5) = '0' then
-                write (l, String'("input_decoder desync"));
-                writeline (output, l);
-            end if;
-            if sync (2)'event and sync (2) = '0' then
-                write (l, String'("combined_encoder desync"));
-                writeline (output, l);
-            end if;
-            assert not (sync (7)'event and sync (7) = '0');
-            assert not (sync (6)'event and sync (6) = '0');
-            assert not (sync (5)'event and sync (5) = '0');
-            assert not (sync (2)'event and sync (2) = '0');
         end loop;
         wait;
     end process;
 
     process
-        variable enc_packet_count : Natural := 0;
-        variable enc_pulse_count : Natural := 0;
         variable dec_pulse_count : Natural := 0;
         variable dec_packet_count : Natural := 0;
         variable l : line;
     begin
         while done = '0' loop
-            wait until enc_packet_start'event or enc_pulse_length'event
-                        or dec_pulse_length'event or dec_packet_start'event
+            wait until dec_pulse_length'event or dec_packet_start'event
                         or done'event;
             if middle_data = '1' then
-                if enc_packet_start'event and enc_packet_start = '1' then
-                    enc_packet_count := enc_packet_count + 1;
-                end if;
-                if enc_pulse_length'event and enc_pulse_length /= "00" then
-                    enc_pulse_count := enc_pulse_count + 1;
-                end if;
                 if dec_pulse_length'event and dec_pulse_length /= "00" then
                     dec_pulse_count := dec_pulse_count + 1;
                 end if;
@@ -193,12 +182,6 @@ begin
                 end if;
             end if;
         end loop;
-        write (l, String'("enc_packet_count = "));
-        write (l, enc_packet_count);
-        writeline (output, l);
-        write (l, String'("enc_pulse_count = "));
-        write (l, enc_pulse_count);
-        writeline (output, l);
         write (l, String'("dec_pulse_count = "));
         write (l, dec_pulse_count);
         writeline (output, l);
@@ -214,17 +197,14 @@ begin
         -- Resetting
         done <= '0';
         middle_data <= '0';
+        start_data <= '0';
         sync (1) <= '0';
         enc_data <= (others => '0');
         enc_left_strobe <= '0';
         enc_right_strobe <= '0';
         wait for 10 us;
-
-        -- Input decoder and combined encoder come out of reset
         sync (1) <= '1';
-
-        -- The first input decoder measurement will definitely reach the maximum
-        wait for 255 us;
+        wait for 10 us;
 
         -- Send zeroes before tests begin
         for i in 0 to 9 loop
@@ -238,6 +218,8 @@ begin
             enc_right_strobe <= '0';
             wait for packet_time - 1 us;
         end loop;
+
+        start_data <= '1';
 
         -- Send test data
         for i in 0 to num_tests - 1 loop
@@ -279,6 +261,7 @@ begin
             wait for packet_time - 1 us;
         end loop;
 
+        start_data <= '0';
         done <= '1';
         wait;
     end process signal_generator;
@@ -334,6 +317,10 @@ begin
                     test_number := test_number + 1;
                 end if;
             end if;
+        end loop;
+
+        for i in 1 to 7 loop
+            assert sync (i) = '1';
         end loop;
 
         write (l, String'("completed "));
