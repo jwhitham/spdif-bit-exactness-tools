@@ -37,6 +37,7 @@ architecture test of test_encoder is
     signal sync                     : std_logic_vector (7 downto 1) := (others => '0');
     signal oe_error                 : std_logic := '0';
     signal rg_strobe                : std_logic := '0';
+    signal enc_packet_start         : std_logic := '0';
     signal encoded_spdif            : std_logic := '0';
 
     constant disable                : std_logic := '0';
@@ -94,7 +95,7 @@ begin
                   sync_in => sync (1),
                   sync_out => sync (2),
                   error_out => oe_error,
-                  packet_start_strobe_out => open,
+                  packet_start_strobe_out => enc_packet_start,
                   spdif_clock_strobe_in => rg_strobe,
                   data_out => encoded_spdif,
                   preemph_in => disable,
@@ -132,46 +133,30 @@ begin
                   left_strobe_out => dec_left_strobe,
                   right_strobe_out => dec_right_strobe);
 
-    process
+    sync_check : process
         variable l : line;
     begin
-        wait for 10 us;
         while done = '0' loop
             wait until sync'event or done'event;
             if start_data = '1' then
-                if sync (7)'event and sync (7) = '0' then
-                    write (l, String'("channel_decoder desync"));
-                    writeline (output, l);
-                end if;
-                if sync (6)'event and sync (6) = '0' then
-                    write (l, String'("packet_decoder desync"));
-                    writeline (output, l);
-                end if;
-                if sync (5)'event and sync (5) = '0' then
-                    write (l, String'("input_decoder desync"));
-                    writeline (output, l);
-                end if;
-                if sync (2)'event and sync (2) = '0' then
-                    write (l, String'("combined_encoder desync"));
-                    writeline (output, l);
-                end if;
-                assert not (sync (7)'event and sync (7) = '0');
-                assert not (sync (6)'event and sync (6) = '0');
-                assert not (sync (5)'event and sync (5) = '0');
-                assert not (sync (2)'event and sync (2) = '0');
+                assert sync (7) = '1';
+                assert sync (6) = '1';
+                assert sync (5) = '1';
+                assert sync (2) = '1';
             end if;
         end loop;
         wait;
-    end process;
+    end process sync_check;
 
-    process
+    activity_counters : process
         variable dec_pulse_count : Natural := 0;
         variable dec_packet_count : Natural := 0;
+        variable enc_packet_count : Natural := 0;
         variable l : line;
     begin
         while done = '0' loop
             wait until dec_pulse_length'event or dec_packet_start'event
-                        or done'event;
+                        or enc_packet_start'Event or done'event;
             if middle_data = '1' then
                 if dec_pulse_length'event and dec_pulse_length /= "00" then
                     dec_pulse_count := dec_pulse_count + 1;
@@ -179,8 +164,14 @@ begin
                 if dec_packet_start'event and dec_packet_start = '1' then
                     dec_packet_count := dec_packet_count + 1;
                 end if;
+                if enc_packet_start'event and enc_packet_start = '1' then
+                    enc_packet_count := enc_packet_count + 1;
+                end if;
             end if;
         end loop;
+        write (l, String'("enc_packet_count = "));
+        write (l, enc_packet_count);
+        writeline (output, l);
         write (l, String'("dec_pulse_count = "));
         write (l, dec_pulse_count);
         writeline (output, l);
@@ -188,7 +179,7 @@ begin
         write (l, dec_packet_count);
         writeline (output, l);
         wait;
-    end process;
+    end process activity_counters;
             
 
     signal_generator : process
@@ -218,6 +209,7 @@ begin
             wait for packet_time - 1 us;
         end loop;
 
+        -- Every part of the pipeline should be synchronised from this point
         start_data <= '1';
 
         -- Send test data
