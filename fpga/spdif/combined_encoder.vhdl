@@ -120,18 +120,24 @@ begin
                         buffer_header <= THREE & ONE & ONE & THREE;
                         subcode_counter <= 1;
                         sync_out <= '1';
-                        write (l, String'("new packet: left B"));
-                        writeline (output, l);
+                        if debug then
+                            write (l, String'("new packet: left B"));
+                            writeline (output, l);
+                        end if;
                     else
                         buffer_header <= THREE & THREE & ONE & ONE;
                         subcode_counter <= subcode_counter + 1;
-                        write (l, String'("new packet: left M"));
-                        writeline (output, l);
+                        if debug then
+                            write (l, String'("new packet: left M"));
+                            writeline (output, l);
+                        end if;
                     end if;
                 else
                     buffer_header <= THREE & TWO & ONE & TWO;
-                    write (l, String'("new packet: right W"));
-                    writeline (output, l);
+                    if debug then
+                        write (l, String'("new packet: right W"));
+                        writeline (output, l);
+                    end if;
                 end if;
 
                 -- See https://www.minidisc.org/manuals/an22.pdf for description of subcode bits
@@ -221,17 +227,23 @@ begin
                         -- send next header clock pulse
                         case shift_header (7 downto 6) is
                             when THREE =>
-                                write (l, String'("header hold"));
-                                writeline (output, l);
+                                if debug then
+                                    write (l, String'("header hold"));
+                                    writeline (output, l);
+                                end if;
                                 shift_header (7 downto 6) <= TWO;
                             when TWO =>
-                                write (l, String'("header hold"));
-                                writeline (output, l);
+                                if debug then
+                                    write (l, String'("header hold"));
+                                    writeline (output, l);
+                                end if;
                                 shift_header (7 downto 6) <= ONE;
                             when others =>
                                 spdif_gen <= not spdif_gen;
-                                write (l, String'("header flip"));
-                                writeline (output, l);
+                                if debug then
+                                    write (l, String'("header flip"));
+                                    writeline (output, l);
+                                end if;
                                 shift_header (7 downto 2) <= shift_header (5 downto 0);
                                 shift_header (1 downto 0) <= ZERO;
                         end case;
@@ -242,8 +254,6 @@ begin
                     if bit_counter = 0 then
                         -- finished sending data
                         state <= AWAIT_NEW_PACKET;
-                        write (l, String'("done"));
-                        writeline (output, l);
                         assert spdif_clock_strobe_in = '0';
                         clock_error <= spdif_clock_strobe_in;
                         if debug then
@@ -260,12 +270,16 @@ begin
                         if shift_data (first_data_bit) = '1' then
                             -- bit 1: generate two pulses of length 1
                             spdif_gen <= not spdif_gen;
-                            write (l, String'("data 1"));
-                            writeline (output, l);
+                            if debug then
+                                write (l, String'("data 1"));
+                                writeline (output, l);
+                            end if;
                         else
                             -- bit 0: generate one pulse of length 2
-                            write (l, String'("data 0"));
-                            writeline (output, l);
+                            if debug then
+                                write (l, String'("data 0"));
+                                writeline (output, l);
+                            end if;
                         end if;
 
                         -- Shift next bit
@@ -274,17 +288,20 @@ begin
                         shift_data (last_data_bit) <= '0';
                         bit_counter <= bit_counter - 1;
 
-                        -- Track parity and load it when required
+                        -- Track parity
                         parity <= parity xor shift_data (first_data_bit);
                         if bit_counter = 2 then
+                            -- Update the parity in the output
                             shift_data (first_data_bit) <= parity xor shift_data (first_data_bit);
-                            write (l, String'("calculate parity: "));
-                            if (parity xor shift_data (first_data_bit)) = '1' then
-                                write (l, String'("1"));
-                            else
-                                write (l, String'("0"));
+                            if debug then
+                                write (l, String'("calculate parity: "));
+                                if (parity xor shift_data (first_data_bit)) = '1' then
+                                    write (l, String'("1"));
+                                else
+                                    write (l, String'("0"));
+                                end if;
+                                writeline (output, l);
                             end if;
-                            writeline (output, l);
                         end if;
                         count <= count + 1;
                     end if;

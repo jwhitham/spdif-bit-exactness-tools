@@ -90,7 +90,6 @@ begin
     sync (4) <= sync (2);
 
     ce : entity combined_encoder
-        generic map (debug => true)
         port map (clock_in => clock_in,
                   sync_in => sync (1),
                   sync_out => sync (2),
