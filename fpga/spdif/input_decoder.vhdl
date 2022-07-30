@@ -297,6 +297,9 @@ begin
 
     -- There must be at least one ONE in any sequence containing three THREEs.
     -- Detect this condition by counting threes.
+    -- If there was a B packet containing all zeroes, followed by an M header,
+    -- then the resulting sequence would be 3113222...2223311 which would trigger
+    -- the 333 rule. However, in a stereo signal, B is always followed by W.
     check_threes : process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then

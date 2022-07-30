@@ -89,37 +89,25 @@ begin
         wait;
     end process spdif_pulses;
 
-    ce : entity channel_encoder
-        port map (clock => clock_in,
+    sync (3) <= sync (2);
+    sync (4) <= sync (2);
+
+    ce : entity combined_encoder
+        generic map (debug => true)
+        port map (clock_in => clock_in,
                   sync_in => sync (1),
                   sync_out => sync (2),
-                  data_out => enc_packet_data,
-                  start_out => enc_packet_start,
-                  shift_out => enc_packet_shift,
+                  error_out => oe_error,
+                  packet_start_strobe_out => open,
+                  spdif_clock_strobe_in => rg_strobe,
+                  data_out => encoded_spdif,
                   preemph_in => disable,
                   data_in => enc_data,
                   left_strobe_in => enc_left_strobe,
                   right_strobe_in => enc_right_strobe);
 
-    pe : entity packet_encoder
-        port map (clock => clock_in,
-                  pulse_length_out => enc_pulse_length,
-                  sync_in => sync (2),
-                  sync_out => sync (3),
-                  data_in => enc_packet_data,
-                  start_in => enc_packet_start,
-                  shift_in => enc_packet_shift);
-
-    oe : entity output_encoder
-        port map (clock_in => clock_in,
-                  pulse_length_in => enc_pulse_length,
-                  sync_in => sync (3),
-                  sync_out => sync (4),
-                  error_out => oe_error,
-                  strobe_in => rg_strobe,
-                  data_out => encoded_spdif);
-
     id : entity input_decoder
+        generic map (debug => true)
         port map (data_in => encoded_spdif,
                   pulse_length_out => dec_pulse_length,
                   single_time_out => open,
@@ -148,6 +136,36 @@ begin
                   subcode_out => open,
                   left_strobe_out => dec_left_strobe,
                   right_strobe_out => dec_right_strobe);
+
+    process
+        variable l : line;
+    begin
+        wait for 10 us;
+        while done = '0' loop
+            wait until sync'event;
+            if sync (7)'event and sync (7) = '0' then
+                write (l, String'("channel_decoder desync"));
+                writeline (output, l);
+            end if;
+            if sync (6)'event and sync (6) = '0' then
+                write (l, String'("packet_decoder desync"));
+                writeline (output, l);
+            end if;
+            if sync (5)'event and sync (5) = '0' then
+                write (l, String'("input_decoder desync"));
+                writeline (output, l);
+            end if;
+            if sync (2)'event and sync (2) = '0' then
+                write (l, String'("combined_encoder desync"));
+                writeline (output, l);
+            end if;
+            assert not (sync (7)'event and sync (7) = '0');
+            assert not (sync (6)'event and sync (6) = '0');
+            assert not (sync (5)'event and sync (5) = '0');
+            assert not (sync (2)'event and sync (2) = '0');
+        end loop;
+        wait;
+    end process;
 
     process
         variable enc_packet_count : Natural := 0;
@@ -201,8 +219,12 @@ begin
         enc_left_strobe <= '0';
         enc_right_strobe <= '0';
         wait for 10 us;
+
+        -- Input decoder and combined encoder come out of reset
         sync (1) <= '1';
-        wait for 10 us;
+
+        -- The first input decoder measurement will definitely reach the maximum
+        wait for 255 us;
 
         -- Send zeroes before tests begin
         for i in 0 to 9 loop
@@ -312,10 +334,6 @@ begin
                     test_number := test_number + 1;
                 end if;
             end if;
-        end loop;
-
-        for i in 1 to 7 loop
-            assert sync (i) = '1';
         end loop;
 
         write (l, String'("completed "));
