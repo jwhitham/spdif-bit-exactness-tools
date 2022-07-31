@@ -37,8 +37,8 @@ entity input_decoder is
         pulse_length_out : out std_logic_vector (1 downto 0) := "00";
         single_time_out  : out std_logic_vector (7 downto 0) := (others => '0');
         sync_out         : out std_logic := '0';
-        enable_123_check_in : in std_logic := '0';
-        sync_in          : in std_logic := '0';
+        enable_123_check_in : in std_logic;
+        sync_in          : in std_logic;
         clock_in         : in std_logic
     );
 end input_decoder;

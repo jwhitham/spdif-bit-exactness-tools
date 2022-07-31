@@ -86,7 +86,6 @@ begin
                 -- Reset
                 buffer_full <= '0';
                 subcode_counter <= 0;
-                sync_out <= '0';
 
             elsif left_strobe_in = '1' or right_strobe_in = '1' then
                 -- New packet arrives - this is the last opportunity to consume the previous buffer entry
@@ -118,7 +117,6 @@ begin
                     if subcode_counter = 0 or subcode_counter = b_interval then
                         buffer_header <= THREE & ONE & ONE & THREE;
                         subcode_counter <= 1;
-                        sync_out <= '1';
                         if debug then
                             write (l, String'("new packet: left B"));
                             writeline (output, l);
@@ -185,6 +183,7 @@ begin
                     spdif_gen <= '1';
                     count <= 99;
                     state <= AWAIT_NEW_PACKET;
+                    sync_out <= '0';
 
                 when AWAIT_NEW_PACKET =>
                     bit_counter <= bit_counter_start;
@@ -253,6 +252,7 @@ begin
                                 shift_header (1 downto 0) <= ZERO;
                         end case;
                         count <= count + 1;
+                        sync_out <= '1';
                     end if;
 
                 when SEND_DATA =>

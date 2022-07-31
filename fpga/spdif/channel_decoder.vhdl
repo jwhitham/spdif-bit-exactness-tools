@@ -2,7 +2,10 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
+use std.textio.all;
+
 entity channel_decoder is
+    generic (debug      : Boolean := false);
     port (
         data_in         : in std_logic;
         shift_in        : in std_logic;
@@ -52,9 +55,21 @@ begin
     w_packet <= '1' when (data (3 downto 0) = "0010") else '0';
 
     data_register : process (clock)
+        variable l : line;
     begin
         if clock'event and clock = '1' then
             if shift_in = '1' and sync_in = '1' then
+                if debug then
+                    write (l, String'("channel decoder: shift in:"));
+                    if start_in = '1' then
+                        write (l, String'(" start"));
+                    end if;
+                    if data_in = '1' then
+                        write (l, String'(" data"));
+                    end if;
+                    writeline (output, l);
+                end if;
+
                 if start_in = '1' then
                     synced <= '0';
                     if parity = '1' then
@@ -66,7 +81,13 @@ begin
                             -- W: right channel
                             expect_right <= '0';
                             synced <= '1';
+                        elsif debug then
+                            write (l, String'("channel decoder: header error"));
+                            writeline (output, l);
                         end if;
+                    elsif debug then
+                        write (l, String'("channel decoder: parity error"));
+                        writeline (output, l);
                     end if;
                     parity <= data_in;
                 else

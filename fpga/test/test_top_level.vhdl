@@ -121,6 +121,7 @@ begin
         port map (clock_in => clock, data_in => oe_data,
                   sync_in => one,
                   sync_out => sync (10), single_time_out => open,
+                  enable_123_check_in => one,
                   pulse_length_out => pulse_length_3);
 
     dec5 : entity packet_decoder

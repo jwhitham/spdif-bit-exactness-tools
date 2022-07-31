@@ -198,7 +198,6 @@ begin
         activity_counters : process
             variable dec_pulse_count : Natural := 0;
             variable dec_packet_count : Natural := 0;
-            variable enc_packet_count : Natural := 0;
             variable l : line;
         begin
             while done (test) = '0' loop
@@ -213,9 +212,6 @@ begin
                     end if;
                 end if;
             end loop;
-            write (l, String'("enc_packet_count = "));
-            write (l, enc_packet_count);
-            writeline (output, l);
             write (l, String'("dec_pulse_count = "));
             write (l, dec_pulse_count);
             writeline (output, l);

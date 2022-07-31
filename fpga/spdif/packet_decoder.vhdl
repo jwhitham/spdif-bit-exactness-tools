@@ -6,6 +6,7 @@ use ieee.numeric_std.all;
 use std.textio.all;
 
 entity packet_decoder is
+    generic (debug : Boolean := false);
     port (
         pulse_length_in : in std_logic_vector (1 downto 0);
         sync_in         : in std_logic;
@@ -62,12 +63,24 @@ begin
                             -- Ordinary data (0)
                             sync_state <= NORMAL;
                             shift <= '1';
+                            if debug then
+                                write (l, String'("packet decoder: data 0"));
+                                writeline (output, l);
+                            end if;
                         when ONE =>
                             -- Ordinary data (1)
                             sync_state <= SKIP;
                             shift <= '1';
                             data <= '1';
                             synced <= '1';
+                            if debug and synced = '0' then
+                                write (l, String'("packet decoder: sync_out = '1'"));
+                                writeline (output, l);
+                            end if;
+                            if debug then
+                                write (l, String'("packet decoder: data 1"));
+                                writeline (output, l);
+                            end if;
                         when others =>
                             null;
                     end case;
@@ -79,8 +92,10 @@ begin
                             sync_state <= SYNC;
                         when TWO =>
                             -- Not valid after 1
-                            write (l, String'("desync in data"));
-                            writeline (output, l);
+                            if debug then
+                                write (l, String'("packet decoder: desync in data"));
+                                writeline (output, l);
+                            end if;
                             sync_state <= DESYNC;
                         when ONE =>
                             -- Ordinary data (1) skipped
@@ -111,8 +126,10 @@ begin
                 when M_HEADER =>
                     case pulse_length_in is
                         when TWO | THREE =>
-                            write (l, String'("desync M header"));
-                            writeline (output, l);
+                            if debug then
+                                write (l, String'("packet decoder: desync M header"));
+                                writeline (output, l);
+                            end if;
                             sync_state <= DESYNC; -- expected 10
                         when ONE =>
                             sync_state <= M_MID; -- 0 remaining, shift 010
@@ -129,12 +146,18 @@ begin
                 when M_FOOTER =>
                     case pulse_length_in is
                         when TWO | THREE =>
-                            write (l, String'("desync M footer"));
-                            writeline (output, l);
+                            if debug then
+                                write (l, String'("packet decoder: desync M footer"));
+                                writeline (output, l);
+                            end if;
                             sync_state <= DESYNC; -- expected 0
                         when ONE =>
                             sync_state <= NORMAL; -- begin M packet, shift 0
                             shift <= '1';
+                            if debug then
+                                write (l, String'("packet decoder: M packet"));
+                                writeline (output, l);
+                            end if;
                         when others =>
                             null;
                     end case;
@@ -142,8 +165,10 @@ begin
                 when W_HEADER =>
                     case pulse_length_in is
                         when TWO | THREE =>
-                            write (l, String'("desync W header"));
-                            writeline (output, l);
+                            if debug then
+                                write (l, String'("packet decoder: desync W header"));
+                                writeline (output, l);
+                            end if;
                             sync_state <= DESYNC; -- expected 100
                         when ONE =>
                             sync_state <= W_MID; -- 00 remaining, shift 100
@@ -160,12 +185,18 @@ begin
                 when W_FOOTER =>
                     case pulse_length_in is
                         when ONE | THREE =>
-                            write (l, String'("desync W footer"));
-                            writeline (output, l);
+                            if debug then
+                                write (l, String'("packet decoder: desync W footer"));
+                                writeline (output, l);
+                            end if;
                             sync_state <= DESYNC; -- expected 00
                         when TWO =>
                             sync_state <= NORMAL; -- begin W packet, shift 0
                             shift <= '1';
+                            if debug then
+                                write (l, String'("packet decoder: W packet"));
+                                writeline (output, l);
+                            end if;
                         when others =>
                             null;
                     end case;
@@ -173,8 +204,10 @@ begin
                 when B_HEADER =>
                     case pulse_length_in is
                         when TWO | THREE =>
-                            write (l, String'("desync B header"));
-                            writeline (output, l);
+                            if debug then
+                                write (l, String'("packet decoder: desync B header"));
+                                writeline (output, l);
+                            end if;
                             sync_state <= DESYNC; -- expected 1000
                         when ONE =>
                             sync_state <= B_MID; -- 000 remaining, shift 000
@@ -190,12 +223,18 @@ begin
                 when B_FOOTER =>
                     case pulse_length_in is
                         when ONE | TWO =>
-                            write (l, String'("desync B footer"));
-                            writeline (output, l);
+                            if debug then
+                                write (l, String'("packet decoder: desync B footer"));
+                                writeline (output, l);
+                            end if;
                             sync_state <= DESYNC; -- expected 000
                         when THREE =>
                             sync_state <= NORMAL; -- begin B packet, shift 0
                             shift <= '1';
+                            if debug then
+                                write (l, String'("packet decoder: B packet"));
+                                writeline (output, l);
+                            end if;
                         when others =>
                             null;
                     end case;
@@ -203,6 +242,10 @@ begin
                 when DESYNC =>
                     case pulse_length_in is
                         when THREE =>
+                            if debug then
+                                write (l, String'("packet decoder: possible resync"));
+                                writeline (output, l);
+                            end if;
                             sync_state <= SYNC;
                         when others =>
                             null;
