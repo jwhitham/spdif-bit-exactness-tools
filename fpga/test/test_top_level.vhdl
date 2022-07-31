@@ -197,13 +197,7 @@ begin
             report_sync_event (6, 6, "clock regenerator");
         end process;
         process begin
-            report_sync_event (7, 7, "channel encoder");
-        end process;
-        process begin
-            report_sync_event (8, 8, "packet encoder");
-        end process;
-        process begin
-            report_sync_event (9, 9, "output encoder");
+            report_sync_event (9, 9, "combined encoder");
         end process;
         process begin
             report_sync_event (10, 10, "second input decoder");
