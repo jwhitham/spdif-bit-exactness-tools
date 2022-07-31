@@ -18,7 +18,6 @@ entity combined_encoder is
         left_strobe_in          : in std_logic;
         right_strobe_in         : in std_logic;
         preemph_in              : in std_logic;
-        packet_start_strobe_out : out std_logic := '0';
         spdif_clock_strobe_in   : in std_logic;
         sync_in                 : in std_logic;
         clock_in                : in std_logic);
@@ -178,7 +177,6 @@ begin
     begin
         if clock_in'event and clock_in = '1' then
             clock_error <= '0';
-            packet_start_strobe_out <= '0';
 
             case state is
                 when RESET =>
@@ -194,9 +192,7 @@ begin
                     shift_header <= buffer_header;
                     parity <= '0';
 
-                    -- clock pulses at this time are too early
-                    assert spdif_clock_strobe_in = '0';
-                    clock_error <= spdif_clock_strobe_in;
+                    -- clock pulses at this time will be ignored
 
                     if consume_buffer = '1' then
                         -- Start sending new packet
@@ -217,7 +213,6 @@ begin
                             writeline (output, l);
                         end if;
                         assert (count = 64) or (count = 99);
-                        packet_start_strobe_out <= '1';
                     end if;
 
                 when SEND_HEADER =>

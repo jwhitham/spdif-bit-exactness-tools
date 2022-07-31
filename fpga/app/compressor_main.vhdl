@@ -42,7 +42,6 @@ architecture structural of compressor_main is
     constant clock_frequency        : Real := 96.0e6;
 
     signal rg_strobe                : std_logic := '0';
-    signal rg_start                 : std_logic := '0';
     signal encoded_spdif            : std_logic := '0';
     constant enabled                : std_logic := '1';
 
@@ -151,7 +150,6 @@ begin
                   clock_interval_out => clock_interval,
                   sync_in => sync (3),
                   sync_out => sync (4),
-                  packet_start_strobe_in => rg_start,
                   spdif_clock_strobe_out => rg_strobe);
 
     cmp : entity compressor
@@ -210,7 +208,6 @@ begin
                   left_strobe_in => cmp_left_strobe,
                   right_strobe_in => cmp_right_strobe,
                   error_out => oe_error,
-                  packet_start_strobe_out => rg_start,
                   spdif_clock_strobe_in => rg_strobe,
                   data_out => encoded_spdif,
                   data_in => cmp_data);

@@ -21,7 +21,6 @@ entity clock_regenerator is
         sync_in                 : in std_logic;
         sync_out                : out std_logic := '0';
         clock_in                : in std_logic;
-        packet_start_strobe_in  : in std_logic := '0';
         spdif_clock_strobe_out  : out std_logic := '0');
 end clock_regenerator;
 
@@ -70,6 +69,7 @@ begin
     begin
         if clock_in'event and clock_in = '1' then
             clock_counter <= clock_counter + 1;
+            packet_start_strobe <= '0';
             case measurement_state is
                 when START =>
                     -- wait for the start of a new packet
@@ -113,6 +113,8 @@ begin
                         end if;
                         -- back to the header
                         measurement_state <= IN_HEADER_1;
+                        -- Packet output
+                        packet_start_strobe <= '1';
                     end if;
             end case;
             if sync_in = '0' then
@@ -142,7 +144,7 @@ begin
                     -- Do nothing while waiting for synchronisation and the start of a packet
                     divisor <= fixed_point_one + fixed_point_one;
                     out_clock_count <= (2 ** num_clocks_per_packet_log_2) - 2;
-                    if packet_start_strobe_in = '1' and sync_gen = '1' then
+                    if packet_start_strobe = '1' and sync_gen = '1' then
                         -- Output: start the packet with a clock tick
                         spdif_clock_strobe_out <= '1';
                         output_state <= ADD;
