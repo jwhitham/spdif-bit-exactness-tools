@@ -81,7 +81,9 @@ begin
                     packet_enable <= '1';
                 end if;
                 if right_strobe_in = '1' then
-                    if subcode_counter = b_interval then
+                    if packet_enable = '0' then
+                        subcode_counter <= 0;
+                    elsif subcode_counter = b_interval then
                         subcode_counter <= 0;
                     else
                         subcode_counter <= subcode_counter + 1;
@@ -109,7 +111,7 @@ begin
 
                 elsif strobe_in (channel) = '1' then
                     -- New packet arrives - this is the last opportunity to consume the previous buffer entry
-                    if (buffer_full (channel) and not consume_buffer (channel)) = '1' then
+                    if (buffer_full (channel) and packet_enable and not consume_buffer (channel)) = '1' then
                         write (l, String'("new packet while buffer full.. bit counter = "));
                         write (l, bit_counter);
                         write (l, String'(" data = "));
