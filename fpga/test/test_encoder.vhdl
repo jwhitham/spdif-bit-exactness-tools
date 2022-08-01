@@ -186,10 +186,11 @@ begin
             while done (test) = '0' loop
                 wait until sync'event or done (test)'event;
                 if start_data = '1' then
-                    assert sync (7) = '1';
-                    assert sync (6) = '1';
-                    assert sync (5) = '1';
                     assert sync (2) = '1';
+                    assert sync (3) = '1';
+                    assert sync (5) = '1';
+                    assert sync (6) = '1';
+                    assert sync (7) = '1';
                 end if;
             end loop;
             wait;
