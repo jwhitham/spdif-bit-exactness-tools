@@ -49,10 +49,6 @@ architecture structural of test_top_level is
     constant zero          : std_logic := '0';
     constant one           : std_logic := '1';
 
-    signal uptime          : Integer := 0;
-    signal start_of_r_sync : Integer := 0;
-    signal count_r_clocks  : Integer := 0;
-
 begin
     test_signal_gen : entity test_signal_generator
         port map (raw_data_out => raw_data, done_out => done, clock_out => clock);
@@ -230,44 +226,6 @@ begin
         end loop;
         wait;
     end process print_sample_rate;
-
-    tick_uptime : process
-    begin
-        while done /= '1' loop
-            wait until clock'event or done = '1';
-            uptime <= uptime + 1;
-        end loop;
-        wait;
-    end process tick_uptime;
-
-    check_regenerator : process
-        variable l : line;
-        variable delta : Integer;
-    begin
-        while done /= '1' loop
-            wait until rg_strobe'event or sync (6)'event or done = '1';
-            if sync (6)'event then
-                if sync (6) = '0' then
-                    if start_of_r_sync /= 0 then
-                        delta := uptime - start_of_r_sync;
-                        write (l, String'("regenerator r_clocks = "));
-                        write (l, count_r_clocks);
-                        write (l, String'(" clocks = "));
-                        write (l, delta);
-                        writeline (output, l);
-                    end if;
-                    start_of_r_sync <= 0;
-                    count_r_clocks <= 0;
-                else
-                    start_of_r_sync <= uptime;
-                    count_r_clocks <= 0;
-                end if;
-            elsif sync (6) = '1' and rg_strobe'event and rg_strobe = '1' then
-                count_r_clocks <= count_r_clocks + 1;
-            end if;
-        end loop;
-        wait;
-    end process check_regenerator;
 
     printer : process
         variable l : line;

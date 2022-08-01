@@ -132,7 +132,6 @@ input decoder desynchronised
 input decoder single time = 0
 packet decoder desynchronised
 channel decoder desynchronised
-regenerator r_clocks = 4800 clocks = 78152
 clock regenerator desynchronised
 combined encoder desynchronised
 second input decoder desynchronised
@@ -203,7 +202,6 @@ input decoder desynchronised
 input decoder single time = 0
 packet decoder desynchronised
 channel decoder desynchronised
-regenerator r_clocks = 4125 clocks = 73072
 clock regenerator desynchronised
 combined encoder desynchronised
 second input decoder desynchronised
@@ -435,7 +433,6 @@ input decoder single time = 0
 packet decoder desynchronised
 channel decoder desynchronised
 matcher desynchronised
-regenerator r_clocks = 24256 clocks = 429790
 clock regenerator desynchronised
 combined encoder desynchronised
 second input decoder desynchronised
@@ -669,7 +666,6 @@ input decoder single time = 0
 packet decoder desynchronised
 channel decoder desynchronised
 matcher desynchronised
-regenerator r_clocks = 24192 clocks = 428656
 clock regenerator desynchronised
 combined encoder desynchronised
 second input decoder desynchronised
@@ -901,7 +897,6 @@ input decoder single time = 0
 packet decoder desynchronised
 channel decoder desynchronised
 matcher desynchronised
-regenerator r_clocks = 24192 clocks = 428656
 clock regenerator desynchronised
 combined encoder desynchronised
 second input decoder desynchronised
