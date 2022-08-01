@@ -334,5 +334,27 @@ begin
         wait;
     end process printer;
 
+    check_end_of_pipeline : process
+        variable l : line;
+        type t_second_matcher_coverage is array (Natural range 0 to 3) of Boolean;
+        variable second_matcher_coverage : t_second_matcher_coverage := (others => False);
+    begin
+        while done /= '1' loop
+            wait until sync'event or done'event;
+            second_matcher_coverage (to_integer (unsigned (sync (14 downto 13)))) := True;
+        end loop;
+        for i in 1 to 3 loop
+            write (l, String'("second matcher: coverage of output state "));
+            write (l, i);
+            write (l, String'(" is "));
+            write (l, second_matcher_coverage (i));
+            writeline (output, l);
+        end loop;
+        for i in 1 to 3 loop
+            assert second_matcher_coverage (i);
+        end loop;
+        wait;
+    end process check_end_of_pipeline;
+
 end structural;
 

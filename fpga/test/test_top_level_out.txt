@@ -901,3 +901,6 @@ second input decoder desynchronised
 second packet decoder desynchronised
 second channel decoder desynchronised
 second matcher desynchronised
+second matcher: coverage of output state 1 is TRUE
+second matcher: coverage of output state 2 is TRUE
+second matcher: coverage of output state 3 is TRUE
