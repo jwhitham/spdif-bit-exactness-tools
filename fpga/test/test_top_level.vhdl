@@ -158,11 +158,12 @@ begin
         variable l : line;
     begin
         while done /= '1' loop
-            wait until single_time'event;
+            wait until single_time'event or done'event;
             write (l, String'("input decoder single time = "));
             write (l, to_integer (unsigned (single_time)));
             writeline (output, l);
         end loop;
+        wait;
     end process t1p;
 
     sync_events : block
@@ -170,7 +171,7 @@ begin
             variable l : line;
         begin
             while done /= '1' loop
-                wait until sync (index1 downto index2)'event;
+                wait until sync (index1 downto index2)'event or done'event;
                 write (l, name);
                 write (l, String'(" "));
                 if to_integer (unsigned (sync (index1 downto index2))) = 0 then
@@ -218,7 +219,7 @@ begin
         variable l : line;
     begin
         while done /= '1' loop
-            wait until sync (5 downto 4)'event;
+            wait until sync (5 downto 4)'event or done'event;
             if sync (5 downto 4) /= "00" then
                 write (l, String'("matcher sample rate = "));
                 write (l, to_integer (unsigned (sample_rate)) * 100);
@@ -320,6 +321,7 @@ begin
         assert data (0) = '0' or data (0) = '1';
 
         while done /= '1' loop
+            wait until left_strobe'event or right_strobe'event or done'event;
             if left_strobe = '1' then
                 left_data <= data;
             end if;
@@ -329,7 +331,6 @@ begin
                 write_hex_sample (data (27 downto 4));
                 writeline (output, l);
             end if;
-            wait until clock'event and clock = '1';
         end loop;
         wait;
     end process printer;

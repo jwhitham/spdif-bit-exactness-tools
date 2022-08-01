@@ -1,8 +1,15 @@
 Start of ../examples/20220502-32k.csv
+second matcher desynchronised
 second channel decoder desynchronised
 second packet decoder desynchronised
+second input decoder desynchronised
+combined encoder desynchronised
+clock regenerator desynchronised
+matcher desynchronised
 channel decoder desynchronised
 packet decoder desynchronised
+input decoder desynchronised
+input decoder single time = 0
 input decoder synchronised
 input decoder single time = 44
 packet decoder synchronised
@@ -901,6 +908,17 @@ second input decoder desynchronised
 second packet decoder desynchronised
 second channel decoder desynchronised
 second matcher desynchronised
+second matcher desynchronised
 second matcher: coverage of output state 1 is TRUE
 second matcher: coverage of output state 2 is TRUE
 second matcher: coverage of output state 3 is TRUE
+second channel decoder desynchronised
+second packet decoder desynchronised
+second input decoder desynchronised
+combined encoder desynchronised
+clock regenerator desynchronised
+matcher desynchronised
+channel decoder desynchronised
+packet decoder desynchronised
+input decoder single time = 0
+input decoder desynchronised
