@@ -59,10 +59,10 @@ begin
         done <= '0';
         strobe_in <= '0';
         expect_output <= '0';
+        wait until clock_in = '0';
         wait for 10 us;
         reset_in <= '0';
         wait for 10 us;
-        wait until clock_in'event and clock_in = '1';
 
         -- Fill with test data
         for i in first_value to last_value loop
@@ -71,13 +71,12 @@ begin
             end if;
             data_in <= std_logic_vector (to_unsigned (i, 16));
             strobe_in <= '1';
-            wait until clock_in'event and clock_in = '1';
+            wait for 1 us;
             data_in <= std_logic_vector (to_unsigned (i + 1000, 16));
             strobe_in <= '0';
-            wait until clock_in'event and clock_in = '1';
+            wait for 1 us;
             data_in <= std_logic_vector (to_unsigned (0, 16));
-            wait until clock_in'event and clock_in = '1';
-            wait until clock_in'event and clock_in = '1';
+            wait for 3 us;
         end loop;
 
         wait for 100 us;
@@ -103,12 +102,12 @@ begin
                     writeline (output, l);
                 end if;
                 assert data_out = std_logic_vector (to_unsigned (i, 16));
-                wait until clock_in'event and clock_in = '1';
+                wait for 1001 ns;
                 assert strobe_out = '0';
                 assert data_out = std_logic_vector (to_unsigned (i, 16));
                 i := i + 1;
             end if;
-            exit when i >= (last_value - delay_size);
+            exit when i >= (last_value - delay_size + 1);
         end loop;
 
         wait until strobe_out'event or done'event;

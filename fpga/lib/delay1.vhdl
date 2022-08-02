@@ -10,6 +10,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+use std.textio.all;
 
 entity delay1 is
     port (
@@ -30,7 +31,7 @@ architecture structural of delay1 is
     subtype t_ram_addr is std_logic_vector (ram_addr_size - 1 downto 0);
     subtype t_ram_data is std_logic_vector (ram_data_size - 1 downto 0);
 
-    type t_state is (READY, READ_DATA, WRITE_OUT);
+    type t_state is (READY, ADVANCE_ADDR, READ_DATA, WRITE_OUT);
 
     constant one            : std_logic := '1';
     constant mask           : t_ram_data := (others => '0');
@@ -40,6 +41,7 @@ architecture structural of delay1 is
     signal refilled         : std_logic := '0';
     signal write_enable     : std_logic := '0';
     signal read_enable      : std_logic := '0';
+    signal data_gen         : t_ram_data := (others => '0');
 
     -- Block RAM definition
     component SB_RAM40_4K is
@@ -63,6 +65,7 @@ architecture structural of delay1 is
 begin
 
     generate_addr : process (clock_in)
+        variable l : line;
     begin
         if clock_in'event and clock_in = '1' then
             error_out <= '0';
@@ -70,9 +73,18 @@ begin
             case state is
                 when READY =>
                     if strobe_in = '1' then
-                        addr <= std_logic_vector (unsigned (addr) + 1);
-                        state <= READ_DATA;
+                        write (l, String'("write value "));
+                        write (l, to_integer (unsigned (data_in)));
+                        write (l, String'(" to address "));
+                        write (l, to_integer (unsigned (addr)));
+                        writeline (output, l);
+                        state <= ADVANCE_ADDR;
                     end if;
+                when ADVANCE_ADDR =>
+                    assert strobe_in = '0';
+                    error_out <= strobe_in;
+                    addr <= std_logic_vector (unsigned (addr) + 1);
+                    state <= READ_DATA;
                 when READ_DATA =>
                     assert strobe_in = '0';
                     error_out <= strobe_in;
@@ -84,6 +96,14 @@ begin
                     assert strobe_in = '0';
                     error_out <= strobe_in;
                     strobe_out <= refilled;
+                    if refilled = '1' then
+                        write (l, String'("read value "));
+                        write (l, to_integer (unsigned (data_gen)));
+                        write (l, String'(" from address "));
+                        write (l, to_integer (unsigned (addr)));
+                        writeline (output, l);
+                        state <= ADVANCE_ADDR;
+                    end if;
                     state <= READY;
             end case;
             if reset_in = '1' then
@@ -96,6 +116,7 @@ begin
 
     write_enable <= strobe_in when state = READY else '0';
     read_enable <= '1' when state = READ_DATA else '0';
+    data_out <= data_gen;
 
     ram : SB_RAM40_4K
         generic map (
@@ -109,7 +130,7 @@ begin
             WCLKE => one,
             WCLK => clock_in,
             RADDR => addr,
-            RDATA => data_out,
+            RDATA => data_gen,
             RE => read_enable,
             RCLKE => one,
             RCLK => clock_in);
