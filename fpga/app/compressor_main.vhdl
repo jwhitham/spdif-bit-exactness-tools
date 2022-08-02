@@ -84,7 +84,7 @@ architecture structural of compressor_main is
     signal cmp_right_meter          : t_leds := (others => '0');
     signal single_time              : t_leds := (others => '0');
     signal preemph                  : std_logic := '0';
-    signal sync                     : std_logic_vector (8 downto 0) := (others => '0');
+    signal sync                     : std_logic_vector (6 downto 0) := (others => '0');
     signal pulse_100hz              : std_logic := '0';
     signal adc_enable_poll          : std_logic := '0';
     signal cmp_enable               : std_logic := '0';
@@ -203,7 +203,7 @@ begin
     ce : entity combined_encoder
         port map (clock_in => clock_in,
                   sync_in => sync (5),
-                  sync_out => sync (8),
+                  sync_out => sync (6),
                   preemph_in => preemph,
                   left_strobe_in => cmp_left_strobe,
                   right_strobe_in => cmp_right_strobe,
@@ -211,9 +211,6 @@ begin
                   spdif_clock_strobe_in => rg_strobe,
                   data_out => encoded_spdif,
                   data_in => cmp_data);
-
-    sync (6) <= sync (8);
-    sync (7) <= sync (8);
 
     process (clock_in)
     begin
@@ -255,14 +252,14 @@ begin
         port map (clock => clock_in,
                   meter_out => cmp_left_meter,
                   strobe_in => cmp_left_strobe,
-                  sync_in => sync (8),
+                  sync_in => sync (6),
                   data_in => cmp_data (27 downto 19));
 
     cmp_right : entity vu_meter 
         port map (clock => clock_in,
                   meter_out => cmp_right_meter,
                   strobe_in => cmp_right_strobe,
-                  sync_in => sync (8),
+                  sync_in => sync (6),
                   data_in => cmp_data (27 downto 19));
 
     display : entity mode_display

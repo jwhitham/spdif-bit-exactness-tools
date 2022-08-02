@@ -29,7 +29,7 @@ entity mode_display is
         sample_rate_in      : in std_logic_vector (15 downto 0);
         matcher_sync_in     : in std_logic_vector (1 downto 0);
         single_time_in      : in std_logic_vector (7 downto 0);
-        all_sync_in         : in std_logic_vector (8 downto 0);
+        all_sync_in         : in std_logic_vector (6 downto 0);
         clock_interval_in   : in std_logic_vector (15 downto 0);
         subcode_in          : in std_logic_vector (31 downto 0);
         peak_level_in       : in std_logic_vector (31 downto 0);
@@ -169,7 +169,7 @@ begin
                         leds (0) <= single_time_in;
                         leds (1) <= clock_interval_in (15 downto 8);
                         leds (2) <= clock_interval_in (7 downto 0);
-                        leds (3) <= all_sync_in (8 downto 1);
+                        leds (3) <= all_sync_in (6 downto 1) & "00";
                     end if;
                 when ANNOUNCE_DBG_SUBCODES =>
                     -- debug mode 2
