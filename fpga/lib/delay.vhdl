@@ -15,7 +15,9 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity delay is
-    generic (num_delays : Natural);
+    generic (
+        num_delays  : Natural;
+        debug       : Boolean := false);
     port (
         data_in     : in std_logic_vector (15 downto 0);
         data_out    : out std_logic_vector (15 downto 0) := (others => '0');
@@ -39,7 +41,9 @@ architecture structural of delay is
     end record;
         
     type t_buses is array (Natural range 0 to num_delays) of t_bus;
-    signal buses        : t_buses;
+    constant zero       : t_ram_data := (others => '0');
+    constant off        : t_bus := (zero, '0', '0', '0');
+    signal buses        : t_buses := (others => off);
 
 begin
     buses (0).data <= data_in;
@@ -54,6 +58,7 @@ begin
         signal err : std_logic := '0';
     begin
         d : entity delay1
+            generic map (debug => debug)
             port map (
                 data_in => buses (i - 1).data,
                 strobe_in => buses (i - 1).strobe,

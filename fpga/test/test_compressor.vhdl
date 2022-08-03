@@ -31,6 +31,8 @@ architecture test of test_compressor is
     signal sample_counter           : Natural := 0;
     signal clock_counter            : Natural := 0;
     signal square_wave_negative     : std_logic := '0';
+    signal fifo_error_out           : std_logic := '0';
+    signal over_error_out           : std_logic := '0';
 
     constant one                    : std_logic := '1';
     constant sample_rate            : Natural := 1000;
@@ -43,7 +45,7 @@ architecture test of test_compressor is
     constant num_delays             : Natural := 1;
     constant decay_rate             : Real := 0.1;
 
-    constant max_samples_in_delay   : Natural := 1 + (256 * num_delays);
+    constant max_samples_in_delay   : Natural := (128 * num_delays);
 
 begin
     dut : entity compressor
@@ -61,9 +63,14 @@ begin
             volume_in => volume_1,
             left_strobe_out => left_strobe_out,
             right_strobe_out => right_strobe_out,
+            fifo_error_out => fifo_error_out,
+            over_error_out => over_error_out,
             sync_in => sync_in,
             sync_out => sync_out,
             clock_in => clock);
+
+    assert fifo_error_out = '0';
+    assert over_error_out = '0';
 
     process
     begin
