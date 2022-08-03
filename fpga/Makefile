@@ -12,6 +12,7 @@ VHDL =  \
 		lib/pulse_gen.vhdl \
 		lib/uart.vhdl \
 		lib/delay1.vhdl \
+		lib/delay.vhdl \
 		app/mode_definitions.vhdl \
 		app/adc_driver.vhdl \
 		app/rotary_switch.vhdl \
@@ -31,7 +32,7 @@ VHDL =  \
 TEST_VHDL = \
 		test/sb_ram40_4k.vhdl \
 		test/generated/test_signal_generator.vhdl \
-		test/test_delay1.vhdl \
+		test/test_delay.vhdl \
 		test/test_encoder2.vhdl \
 		test/test_encoder.vhdl \
 		test/test_disable_compressor.vhdl \
@@ -61,7 +62,7 @@ run_tests:
 	python app/make_version_rom.py
 	python test/make_test_bench.py
 	ghdl -a --work=work $(VHDL) $(TEST_VHDL)
-	ghdl -r test_delay1 $(RFLAGS)
+	ghdl -r test_delay $(RFLAGS)
 	ghdl -r test_encoder2 $(RFLAGS)
 	ghdl -r test_encoder $(RFLAGS)
 	ghdl -r test_clock_regenerator $(RFLAGS)
