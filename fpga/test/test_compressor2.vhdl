@@ -17,7 +17,7 @@ architecture test of test_compressor2 is
     subtype t_data is std_logic_vector (15 downto 0);
 
     signal clock            : std_logic := '0';
-    signal done             : std_logic_vector (0 to 9) := (others => '0');
+    signal done             : std_logic_vector (0 to 3) := (others => '0');
     signal data_in          : t_data := (others => '0');
     signal left_strobe_in   : std_logic := '0';
     signal right_strobe_in  : std_logic := '0';
@@ -90,9 +90,7 @@ begin
 
 
     stereo_check : for incremental in done'Left + 1 to done'Right generate
-        constant delay_size_log_2      : Natural := 5;
-        constant test_delay_threshold_level : Real :=
-            0.25 + (Real (incremental) / Real (2 ** (delay_size_log_2 + 1)));
+        constant num_delays : Natural := incremental - done'Left;
         constant one            : std_logic := '1';
 
         signal data_out         : t_data := (others => '0');
@@ -105,8 +103,7 @@ begin
             generic map (max_amplification => 21.1,
                          sample_rate => sample_rate,
                          decay_rate => 0.1,
-                         delay_threshold_level => test_delay_threshold_level,
-                         delay_size_log_2 => delay_size_log_2,
+                         num_delays => num_delays,
                          debug => false)
             port map (
                 data_in => data_in,

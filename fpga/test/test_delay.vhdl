@@ -30,8 +30,8 @@ begin
         wait;
     end process;
 
-    size : for num_delay1 in 1 to num_sizes generate
-        constant delay_size : Natural := 256 * num_delay1;
+    size : for num_delays in 1 to num_sizes generate
+        constant delay_size : Natural := 256 * num_delays;
         constant num_tests : Natural := 5;
 
         signal data_in     : t_data := (others => '0');
@@ -51,7 +51,7 @@ begin
 
     begin
         dut : entity delay
-            generic map (num_delay1 => num_delay1)
+            generic map (num_delays => num_delays)
             port map (
                 data_in => data_in,
                 data_out => data_out,
@@ -66,8 +66,8 @@ begin
             variable offset : Natural := 0;
         begin
             reset_in <= '1';
-            done (num_delay1) <= '0';
-            wait until done (num_delay1 - 1) = '1';
+            done (num_delays) <= '0';
+            wait until done (num_delays - 1) = '1';
 
             for test in 1 to num_tests loop
                 reset_in <= '1';
@@ -79,7 +79,7 @@ begin
                 wait for 1 us;
 
                 write (l, String'("test delay - test number "));
-                write (l, num_delay1);
+                write (l, num_delays);
                 write (l, String'("."));
                 write (l, test);
                 writeline (output, l);
@@ -113,7 +113,7 @@ begin
             end loop;
             test_number <= num_tests + 1;
             wait for 1 us;
-            done (num_delay1) <= '1';
+            done (num_delays) <= '1';
             wait;
         end process signal_generator;
 
@@ -123,8 +123,8 @@ begin
             variable error_flag : Boolean := false;
         begin
             -- Check test data
-            while done (num_delay1) = '0' loop
-                wait until strobe_out'event or done (num_delay1)'event
+            while done (num_delays) = '0' loop
+                wait until strobe_out'event or done (num_delays)'event
                         or error_out'event or test_number'event;
                 if test_number'event then
                     if test > 0 then

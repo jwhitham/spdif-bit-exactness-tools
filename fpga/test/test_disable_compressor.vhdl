@@ -95,8 +95,7 @@ begin
 
     dut : entity compressor
         generic map (debug => false,
-                     delay_size_log_2 => 5,
-                     delay_threshold_level => 0.5)
+                     num_delays => 1)
         port map (
             data_in => data_in,
             left_strobe_in => left_strobe_in,

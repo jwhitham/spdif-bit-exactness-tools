@@ -40,20 +40,17 @@ architecture test of test_compressor is
     constant clock_period           : Time := sample_period / 1000;
     constant square_wave_period     : Time := sample_period * 10;
 
-    constant delay_size_log_2       : Natural := 5;
-    constant delay_threshold_level  : Real := 0.5;
+    constant num_delays             : Natural := 1;
     constant decay_rate             : Real := 0.1;
 
-    constant max_samples_in_delay   : Natural := 
-            1 + Natural (Real (2 ** delay_size_log_2) * delay_threshold_level);
+    constant max_samples_in_delay   : Natural := 1 + (256 * num_delays);
 
 begin
     dut : entity compressor
         generic map (max_amplification => 21.1,
                      sample_rate => sample_rate,
                      decay_rate => decay_rate,
-                     delay_threshold_level => delay_threshold_level,
-                     delay_size_log_2 => delay_size_log_2,
+                     num_delays => num_delays,
                      debug => false)
         port map (
             data_in => data_in,

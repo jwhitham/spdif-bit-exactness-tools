@@ -13,8 +13,7 @@ entity compressor is
     generic (max_amplification      : Real := 21.1;         -- dB
              sample_rate            : Natural := 48000;     -- Hz
              decay_rate             : Real := 1.0;          -- dB
-             delay_threshold_level  : Real := 0.99;
-             delay_size_log_2       : Natural := 9;
+             num_delays             : Natural := 2;
              subtractor_slice_width : Natural := 8;
              debug                  : Boolean := false);
     port (
@@ -62,10 +61,7 @@ architecture structural of compressor is
     --      (wait for synchronisation and a left input)
     --      If sync_in = '1' and left input received = '1' goto FILLING
     --  FILLING:
-    --      (wait for a nearly-full FIFO with an even number of items)
-    --      Wait for audio input:
-    --        Store input in FIFO,
-    --        If FIFO threshold = '0' or right input received = '0' goto FILLING.
+    --      (wait for delay to fill)
     --  START:
     --      Wait for audio input:
     --        Store input in FIFO,
@@ -148,13 +144,10 @@ architecture structural of compressor is
 
     -- Global signals
     signal strobe_in            : std_logic := '0';
-    signal thresh_reached       : std_logic := '0';
-    signal read_error           : std_logic := '0';
-    signal write_error          : std_logic := '0';
+    signal strobe_out           : std_logic := '0';
+    signal delay_error          : std_logic := '0';
     signal mul_error            : std_logic := '0';
     signal div_error            : std_logic := '0';
-    signal fifo_read            : std_logic := '0';
-    signal empty_out            : std_logic := '0';
     signal fifo_out             : t_fifo_data := (others => '0');
     signal fifo_in              : t_fifo_data := (others => '0');
     signal reset                : std_logic := '0';
@@ -198,12 +191,6 @@ begin
     assert peak_bits > audio_bits;
     assert volume_in'Length = volume_bits;
     assert volume_in (volume_bits - 1) = '0' or to_integer (unsigned (volume_in (volume_bits - 2 downto 0))) = 0;
-    assert 0.0 < delay_threshold_level;
-    assert 1.0 > delay_threshold_level;
-
-    -- The threshold level must allow some space in the FIFO so that new samples can arrive
-    -- while old samples are being processed.
-    assert (Real (2 ** delay_size_log_2) * (1.0 - delay_threshold_level)) > 4.0;
 
     -- Incoming data is converted to sign-magnitude form
     sm_in : entity convert_to_sign_magnitude
@@ -214,29 +201,19 @@ begin
             value_negative_out => fifo_in (audio_bits - 1));
 
     -- FIFO is shared by both channels
-    delay : entity fifo
-        generic map (data_size_log_2 => audio_bits_log_2,
-                     addr_size => delay_size_log_2 + 1,
-                     threshold_level => delay_threshold_level)
+    dl : entity delay
+        generic map (num_delays => num_delays)
         port map (
             data_in => fifo_in,
             data_out => fifo_out,
-            empty_out => empty_out,
-            full_out => open,
-            thresh_out => thresh_reached,
-            write_error => write_error,
-            read_error => read_error,
+            error_out => fifo_error_out,
             reset_in => reset,
             clock_in => clock_in,
-            write_in => strobe_in,
-            read_in => fifo_read);
+            strobe_in => strobe_in,
+            strobe_out => strobe_out);
 
-    assert read_error = '0';
-    assert write_error = '0';
-    fifo_error_out <= read_error or write_error;
     over_error_out <= div_error or mul_error;
     strobe_in <= left_strobe_in or right_strobe_in;
-    fifo_read <= strobe_in when state = START else '0';
     abs_fifo_out <= fifo_out (audio_bits - 2 downto 0);
     peak_level_out (peak_bits - 1 downto 0) <= peak_level;
 
@@ -501,15 +478,10 @@ begin
                     end if;
                     sync_out <= '0';
                     left_flag <= '1';
-                when FILLING =>
-                    -- (wait for a nearly-full FIFO with an even number of items)
-                    if thresh_reached = '1' and right_strobe_in = '1' then
-                        state <= START;
-                    end if;
-                when START =>
+                when FILLING | START =>
                     -- Wait for audio input
                     -- For left channel only, set peak level to new peak level if ready
-                    if strobe_in = '1' then
+                    if strobe_out = '1' then
                         state <= LOAD_FIFO_INPUT;
                         if debug then
                             write (l, String'("start with input: "));

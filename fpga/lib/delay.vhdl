@@ -1,4 +1,4 @@
--- This is a configurable delay which stores 256 * num_delay1 items
+-- This is a configurable delay which stores 256 * num_delays items
 -- of size 16 bits.
 --
 -- Each input (strobe_in) will be followed by an output after 1 clock cycle
@@ -15,7 +15,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity delay is
-    generic (num_delay1 : Natural);
+    generic (num_delays : Natural);
     port (
         data_in     : in std_logic_vector (15 downto 0);
         data_out    : out std_logic_vector (15 downto 0) := (others => '0');
@@ -38,7 +38,7 @@ architecture structural of delay is
         reset   : std_logic;
     end record;
         
-    type t_buses is array (Natural range 0 to num_delay1) of t_bus;
+    type t_buses is array (Natural range 0 to num_delays) of t_bus;
     signal buses        : t_buses;
 
 begin
@@ -46,11 +46,11 @@ begin
     buses (0).strobe <= strobe_in;
     buses (0).err <= '0';
     buses (0).reset <= reset_in;
-    data_out <= buses (num_delay1).data;
-    strobe_out <= buses (num_delay1).strobe;
-    error_out <= buses (num_delay1).err;
+    data_out <= buses (num_delays).data;
+    strobe_out <= buses (num_delays).strobe;
+    error_out <= buses (num_delays).err;
 
-    g : for i in 1 to num_delay1 generate
+    g : for i in 1 to num_delays generate
         signal err : std_logic := '0';
     begin
         d : entity delay1
