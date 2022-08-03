@@ -71,7 +71,6 @@ begin
             error_out <= '0';
             case state is
                 when READ =>
-                    assert strobe_in = '0';
                     error_out <= strobe_in;
                     state <= WRITE;
 
@@ -88,7 +87,6 @@ begin
                     end if;
 
                 when ADVANCE =>
-                    assert strobe_in = '0';
                     error_out <= strobe_in;
 
                     -- address advances
