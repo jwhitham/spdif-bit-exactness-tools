@@ -213,7 +213,7 @@ begin
             strobe_out => strobe_out);
 
     over_error_out <= div_error or mul_error;
-    strobe_in <= left_strobe_in or right_strobe_in;
+    strobe_in <= (left_strobe_in or right_strobe_in) and not reset;
     abs_fifo_out <= fifo_out (audio_bits - 2 downto 0);
     peak_level_out (peak_bits - 1 downto 0) <= peak_level;
 
@@ -309,6 +309,13 @@ begin
                 if audio_divider_finish = '1' and debug then
                     write (l, String'("result of audio division: "));
                     write_big_number (l, divider_result);
+                    if state = AWAIT_AUDIO_DIVISION then
+                        if left_flag = '1' then
+                            write (l, String'(" left"));
+                        else
+                            write (l, String'(" right"));
+                        end if;
+                    end if;
                     writeline (output, l);
                 end if;
             end if;
@@ -472,8 +479,8 @@ begin
             case state is
                 when INIT =>
                     -- Reset state
-                    -- (wait for synchronisation and a right input)
-                    if sync_in = '1' and right_strobe_in = '1' then
+                    -- (wait for synchronisation and a left input)
+                    if sync_in = '1' and left_strobe_in = '1' then
                         state <= FILLING;
                     end if;
                     sync_out <= '0';
@@ -486,7 +493,7 @@ begin
                         state <= LOAD_FIFO_INPUT;
                         if debug then
                             write (l, String'("start with input: "));
-                            write_big_number (l, data_in);
+                            write_big_number (l, abs_audio_in);
                             writeline (output, l);
                         end if;
                     end if;

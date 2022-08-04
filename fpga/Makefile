@@ -62,8 +62,8 @@ run_tests:
 	python app/make_version_rom.py
 	python test/make_test_bench.py
 	ghdl -a --work=work $(VHDL) $(TEST_VHDL)
-	ghdl -r test_compressor $(RFLAGS)
 	ghdl -r test_compressor2 $(RFLAGS)
+	ghdl -r test_compressor $(RFLAGS)
 	ghdl -r test_sign_magnitude $(RFLAGS)
 	ghdl -r test_compressor_main $(RFLAGS)
 	ghdl -r test_encoder2 $(RFLAGS)

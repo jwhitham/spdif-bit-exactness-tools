@@ -100,6 +100,8 @@ begin
         signal right_strobe_out : std_logic := '0';
         signal sync_in          : std_logic := '0';
         signal sync_out         : std_logic := '0';
+        signal fifo_error_out   : std_logic := '0';
+        signal over_error_out   : std_logic := '0';
     begin
         dut : entity compressor
             generic map (max_amplification => 21.1,
@@ -115,10 +117,15 @@ begin
                 data_out => data_out,
                 left_strobe_out => left_strobe_out,
                 right_strobe_out => right_strobe_out,
+                fifo_error_out => fifo_error_out,
+                over_error_out => over_error_out,
                 volume_in => volume_1,
                 sync_in => sync_in,
                 sync_out => sync_out,
                 clock_in => clock);
+
+        assert fifo_error_out = '0';
+        assert over_error_out = '0';
 
         run_test : process
             variable l           : line;

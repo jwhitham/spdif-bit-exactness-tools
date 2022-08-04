@@ -46,7 +46,7 @@ architecture test of test_compressor is
     constant decay_rate             : Real := 0.1;
 
     -- here a sample is considered to be stereo, so 2 delay entries
-    constant max_samples_in_delay   : Natural := (2 ** (delay_size_log_2 - 1));
+    constant max_samples_in_delay   : Natural := (2 ** (delay_size_log_2 - 1)) - 1;
 
 begin
     dut : entity compressor
