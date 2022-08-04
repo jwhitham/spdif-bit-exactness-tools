@@ -54,7 +54,7 @@ begin
                      sample_rate => sample_rate,
                      decay_rate => decay_rate,
                      delay_size_log_2 => delay_size_log_2,
-                     debug => true)
+                     debug => false)
         port map (
             data_in => data_in,
             left_strobe_in => left_strobe_in,

@@ -394,7 +394,7 @@ begin
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
-            if strobe_in = '1' and state = START then
+            if strobe_in = '1' then
                 abs_audio_in <= fifo_in (audio_bits - 2 downto 0);
             end if;
         end if;
