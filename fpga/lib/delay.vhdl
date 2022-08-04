@@ -68,7 +68,7 @@ begin
     buses (0).data <= data_in;
     buses (0).strobe <= strobe_in;
     buses (0).err <= '0';
-    buses (num_delays).reset <= reset_in;
+    buses (0).reset <= reset_in;
     data_out <= buses (num_delays).data;
     strobe_out <= buses (num_delays).strobe;
     error_out <= buses (num_delays).err;
@@ -90,7 +90,7 @@ begin
         process (clock_in)
         begin
             if clock_in'event and clock_in = '1' then
-                buses (i - 1).reset <= buses (i).reset;
+                buses (i).reset <= buses (i - 1).reset;
                 buses (i).err <= buses (i - 1).err or err;
             end if;
         end process;
