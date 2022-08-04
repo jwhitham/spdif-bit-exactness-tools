@@ -49,9 +49,9 @@ begin
         constant incorrect_value : Natural := 31337;
         constant too_fast_test : Natural := 4;
 
-        function generate_offset (test_number, sub_test_number : Natural) return Natural is
+        function generate_offset (test, sub_test : Natural) return Natural is
         begin
-            return (test_number * 10) + sub_test_number;
+            return (test * 10) + sub_test;
         end generate_offset;
 
     begin

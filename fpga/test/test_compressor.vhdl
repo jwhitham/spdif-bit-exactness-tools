@@ -35,28 +35,26 @@ architecture test of test_compressor is
     signal over_error_out           : std_logic := '0';
 
     constant one                    : std_logic := '1';
-    constant sample_rate            : Natural := 1000;
-    constant volume_1       : std_logic_vector (10 downto 0) := (10 => '1', others => '0');
+    constant sample_rate            : Natural := 100;
+    constant volume_1               : std_logic_vector (10 downto 0) := (10 => '1', others => '0');
 
     constant sample_period          : Time := 1000 ms / sample_rate;
     constant clock_period           : Time := sample_period / 1000;
     constant square_wave_period     : Time := sample_period * 10;
 
-    constant delay_size_log_2       : Natural := 5;
-    constant delay_threshold_level  : Real := 0.5;
+    constant delay_size_log_2       : Natural := 4;
     constant decay_rate             : Real := 0.1;
 
-    constant max_samples_in_delay   : Natural := 
-            1 + Natural (Real (2 ** delay_size_log_2) * delay_threshold_level);
+    -- here a sample is considered to be stereo, so 2 delay entries
+    constant max_samples_in_delay   : Natural := (2 ** (delay_size_log_2 - 1));
 
 begin
     dut : entity compressor
         generic map (max_amplification => 21.1,
                      sample_rate => sample_rate,
                      decay_rate => decay_rate,
-                     delay_threshold_level => delay_threshold_level,
                      delay_size_log_2 => delay_size_log_2,
-                     debug => false)
+                     debug => true)
         port map (
             data_in => data_in,
             left_strobe_in => left_strobe_in,
@@ -265,8 +263,8 @@ begin
 
             -- Wait for the gradual recovery of the original volume
             -- After one simulated second, the volume should have grown by
-            -- approximately decay_rate decibels (within 1% is permitted due to rounding errors).
-            for i in 1 to sample_rate - max_samples_in_delay loop
+            -- approximately decay_rate decibels (within 0.1% is permitted due to rounding errors).
+            for i in 1 to sample_rate loop
                 wait until clock'event and clock = '1' and left_strobe_out = '1';
             end loop;
 
@@ -276,8 +274,6 @@ begin
             -- note: Ensure decay_rate is chosen so that the volume gain over 1 second does not exceed
             -- the maximum amplification
             assert reduced_plus_1_db < (loud - 10);
-            assert Real (abs (to_integer (signed (data_out)))) >= Real (reduced_plus_1_db) * (1.0 - epsilon);
-            assert Real (abs (to_integer (signed (data_out)))) <= Real (reduced_plus_1_db) * (1.0 + epsilon);
 
             write (l, String'("getting louder: "));
             write (l, reduced);
@@ -286,6 +282,8 @@ begin
             write (l, String'(" expect "));
             write (l, reduced_plus_1_db);
             writeline (output, l);
+            assert Real (abs (to_integer (signed (data_out)))) >= Real (reduced_plus_1_db) * (1.0 - epsilon);
+            assert Real (abs (to_integer (signed (data_out)))) <= Real (reduced_plus_1_db) * (1.0 + epsilon);
 
             -- Expect the peak level to eventually return to the loud level
             for j in 1 to 10 loop
@@ -333,7 +331,9 @@ begin
                 set_amplitude_n <= std_logic_vector (to_signed (- t.amplitude_in, t_data'Length));
             end if;
             wait until square_wave_negative'event;
+            assert sync_out = '0';
             wait until clock'event and clock = '1' and left_strobe_in = '1';
+            assert sync_out = '0';
 
             -- check input
             assert abs (to_integer (signed (data_in))) >= (t.amplitude_in - t.epsilon);

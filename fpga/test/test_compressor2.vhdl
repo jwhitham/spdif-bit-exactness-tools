@@ -90,7 +90,7 @@ begin
 
 
     stereo_check : for incremental in done'Left + 1 to done'Right generate
-        constant delay_size_log_2      : Natural := 5;
+        constant delay_size_log_2      : Natural := 4;
         constant test_delay_threshold_level : Real :=
             0.25 + (Real (incremental) / Real (2 ** (delay_size_log_2 + 1)));
         constant one            : std_logic := '1';
@@ -105,7 +105,6 @@ begin
             generic map (max_amplification => 21.1,
                          sample_rate => sample_rate,
                          decay_rate => 0.1,
-                         delay_threshold_level => test_delay_threshold_level,
                          delay_size_log_2 => delay_size_log_2,
                          debug => false)
             port map (

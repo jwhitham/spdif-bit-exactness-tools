@@ -13,7 +13,6 @@ entity compressor is
     generic (max_amplification      : Real := 21.1;         -- dB
              sample_rate            : Natural := 48000;     -- Hz
              decay_rate             : Real := 1.0;          -- dB
-             delay_threshold_level  : Real := 0.99;
              delay_size_log_2       : Natural := 9;
              subtractor_slice_width : Natural := 8;
              debug                  : Boolean := false);
@@ -483,6 +482,7 @@ begin
                     -- Wait for audio input
                     -- For left channel only, set peak level to new peak level if ready
                     if strobe_out = '1' then
+                        sync_out <= '1';
                         state <= LOAD_FIFO_INPUT;
                         if debug then
                             write (l, String'("start with input: "));
@@ -490,7 +490,6 @@ begin
                             writeline (output, l);
                         end if;
                     end if;
-                    sync_out <= '1';
                 when LOAD_FIFO_INPUT =>
                     state <= CLAMP_TO_FIFO_INPUT;
                 when CLAMP_TO_FIFO_INPUT =>
