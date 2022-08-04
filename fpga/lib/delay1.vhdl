@@ -1,4 +1,5 @@
--- This is a fixed-size delay which stores 256 items of size 16 bits.
+-- This is a configurable delay which stores 2 ** delay_size_log_2 items
+-- of size 16 bits. delay_size_log_2 must not be larger than 8.
 --
 -- Each input (strobe_in) will be followed by an output after 1 clock cycle
 -- provided that the delay is full.
@@ -13,7 +14,8 @@ use ieee.numeric_std.all;
 use std.textio.all;
 
 entity delay1 is
-    generic (debug : Boolean := false);
+    generic (debug : Boolean := false;
+             delay_size_log_2 : Natural);
     port (
         data_in     : in std_logic_vector (15 downto 0);
         data_out    : out std_logic_vector (15 downto 0) := (others => '0');
@@ -29,15 +31,17 @@ architecture structural of delay1 is
     constant ram_data_size        : Natural := 16;
     constant ram_addr_size        : Natural := 8;
 
-    subtype t_ram_addr is std_logic_vector (ram_addr_size downto 0);
+    subtype t_ram_addr is std_logic_vector (ram_addr_size - 1 downto 0);
+    subtype t_delay_addr is std_logic_vector (delay_size_log_2 downto 0);
     subtype t_ram_data is std_logic_vector (ram_data_size - 1 downto 0);
 
     type t_state is (READ, WRITE, ADVANCE);
 
     constant one            : std_logic := '1';
     constant mask           : t_ram_data := (others => '0');
-    constant zero_addr      : t_ram_addr := (others => '0');
-    signal addr             : t_ram_addr := (others => '0');
+    constant zero_addr      : t_delay_addr := (others => '0');
+    signal delay_addr       : t_delay_addr := (others => '0');
+    signal ram_addr         : t_ram_addr := (others => '0');
     signal state            : t_state := READ;
     signal write_enable     : std_logic := '0';
     signal read_enable      : std_logic := '0';
@@ -80,7 +84,7 @@ begin
                             write (l, String'("write value "));
                             write (l, to_integer (unsigned (data_in)));
                             write (l, String'(" to address "));
-                            write (l, to_integer (unsigned (addr (addr'Left - 1 downto 0))));
+                            write (l, to_integer (unsigned (delay_addr (delay_addr'Left - 1 downto 0))));
                             writeline (output, l);
                         end if;
                         state <= ADVANCE;
@@ -90,16 +94,16 @@ begin
                     error_out <= strobe_in;
 
                     -- address advances
-                    addr <= std_logic_vector (unsigned (addr) + 1);
+                    delay_addr <= std_logic_vector (unsigned (delay_addr) + 1);
 
-                    -- keep top bit of addr '1' once set (indicates delay is full)
-                    if addr (addr'Left) = '1' then
-                        addr (addr'Left) <= '1';
+                    -- keep top bit of delay_addr '1' once set (indicates delay is full)
+                    if delay_addr (delay_addr'Left) = '1' then
+                        delay_addr (delay_addr'Left) <= '1';
                         if debug then
                             write (l, String'("read value "));
                             write (l, to_integer (unsigned (data_gen)));
                             write (l, String'(" from address "));
-                            write (l, to_integer (unsigned (addr (addr'Left - 1 downto 0))));
+                            write (l, to_integer (unsigned (delay_addr (delay_addr'Left - 1 downto 0))));
                             writeline (output, l);
                         end if;
                     end if;
@@ -107,29 +111,35 @@ begin
             end case;
             if reset_in = '1' then
                 state <= READ;
-                addr <= (others => '0');
+                delay_addr <= (others => '0');
                 error_out <= '0';
             end if;
         end if;
     end process generate_addr;
 
-    strobe_out <= addr (addr'Left) when state = ADVANCE else '0';
+    strobe_out <= delay_addr (delay_addr'Left) when state = ADVANCE else '0';
     write_enable <= '1' when state = WRITE else '0';
     read_enable <= '1' when state = READ else '0';
     data_out <= data_gen;
+
+    process (delay_addr)
+    begin
+        ram_addr <= (others => '0');
+        ram_addr (delay_addr'Left - 1 downto 0) <= delay_addr (delay_addr'Left - 1 downto 0);
+    end process;
 
     ram : SB_RAM40_4K
         generic map (
             READ_MODE => 0,
             WRITE_MODE => 0)
         port map (
-            WADDR => addr (addr'Left - 1 downto 0),
+            WADDR => ram_addr,
             WDATA => data_in,
             MASK => mask,
             WE => write_enable,
             WCLKE => one,
             WCLK => clock_in,
-            RADDR => addr (addr'Left - 1 downto 0),
+            RADDR => ram_addr,
             RDATA => data_gen,
             RE => read_enable,
             RCLKE => one,

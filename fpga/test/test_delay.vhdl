@@ -12,16 +12,16 @@ end test_delay;
 
 architecture test of test_delay is
     subtype t_data is std_logic_vector (15 downto 0);
-    constant num_sizes : Natural := 3;
+    constant num_tests : Natural := 3;
 
-    signal done        : std_logic_vector (0 to num_sizes) := (others => '0');
+    signal done        : std_logic_vector (0 to num_tests) := (others => '0');
     signal clock_in    : std_logic := '0';
 begin
     -- 1MHz clock (one clock every 1000ns)
     process
     begin
         done (0) <= '1';
-        while done (num_sizes) = '0' loop
+        while done (num_tests) = '0' loop
             clock_in <= '1';
             wait for 500 ns;
             clock_in <= '0';
@@ -30,28 +30,35 @@ begin
         wait;
     end process;
 
-    size : for num_delays in 1 to num_sizes generate
-        constant delay_size : Natural := 256 * num_delays;
-        constant num_tests : Natural := 5;
+    test_size : for test_number in 1 to num_tests generate
+        constant delay_size_log_2 : Natural := 6 + ((test_number - 1) * 2);
+        constant delay_size : Natural := 2 ** delay_size_log_2;
+        constant num_sub_tests : Natural := 5;
 
         signal data_in     : t_data := (others => '0');
-        signal data_in_copy: t_data := (others => '0');
         signal data_out    : t_data := (others => '0');
         signal strobe_in   : std_logic := '0';
         signal strobe_out  : std_logic := '0';
         signal error_out   : std_logic := '0';
         signal reset_in    : std_logic := '0';
-        signal test_number : Natural := 0;
+        signal sub_test_number : Natural := 0;
         signal expect_output : std_logic := '0';
 
         constant first_value : Natural := 2000;
-        constant last_value : Natural := 3000;
+        constant last_value : Natural := 4000;
         constant incorrect_value : Natural := 31337;
         constant too_fast_test : Natural := 4;
 
+        function generate_offset (test_number, sub_test_number : Natural) return Natural is
+        begin
+            return (test_number * 10) + sub_test_number;
+        end generate_offset;
+
     begin
+        assert last_value > (first_value + delay_size);
+
         dut : entity delay
-            generic map (num_delays => num_delays)
+            generic map (delay_size_log_2 => delay_size_log_2)
             port map (
                 data_in => data_in,
                 data_out => data_out,
@@ -66,28 +73,28 @@ begin
             variable offset : Natural := 0;
         begin
             reset_in <= '1';
-            done (num_delays) <= '0';
-            wait until done (num_delays - 1) = '1';
+            done (test_number) <= '0';
+            wait until done (test_number - 1) = '1';
 
-            for test in 1 to num_tests loop
+            for sub_test in 1 to num_sub_tests loop
                 reset_in <= '1';
                 strobe_in <= '0';
                 expect_output <= '0';
                 data_in <= std_logic_vector (to_unsigned (incorrect_value, 16));
-                test_number <= test;
-                offset := test - 1;
-                wait for 1 us;
+                sub_test_number <= sub_test;
+                wait for 10 us;
 
                 write (l, String'("test delay - test number "));
-                write (l, num_delays);
+                write (l, test_number);
                 write (l, String'("."));
-                write (l, test);
+                write (l, sub_test_number);
                 writeline (output, l);
 
                 wait until clock_in = '0';
                 wait for 10 us;
                 reset_in <= '0';
                 wait for 10 us;
+                offset := generate_offset (test_number, sub_test_number);
 
                 -- Fill with test data
                 for i in first_value to last_value loop
@@ -95,12 +102,11 @@ begin
                         expect_output <= '1';
                     end if;
                     data_in <= std_logic_vector (to_unsigned (i + offset, 16));
-                    data_in_copy <= std_logic_vector (to_unsigned (i + offset, 16));
                     strobe_in <= '1';
                     wait for 1 us;
                     data_in <= std_logic_vector (to_unsigned (incorrect_value, 16));
                     strobe_in <= '0';
-                    case test is
+                    case sub_test is
                         when 1 => wait for 10 us;
                         when 2 => wait for 2 us;
                         when 3 => wait for 3 us;
@@ -109,57 +115,54 @@ begin
                     end case;
                 end loop;
 
-                wait for 1 us;
+                wait for 10 us;
             end loop;
-            test_number <= num_tests + 1;
+            sub_test_number <= num_sub_tests + 1;
             wait for 1 us;
-            done (num_delays) <= '1';
+            done (test_number) <= '1';
             wait;
         end process signal_generator;
 
         check_data : process
             variable l : line;
-            variable test, i, offset : Natural := 0;
+            variable sub_test, i, offset, final_value : Natural := 0;
             variable error_flag : Boolean := false;
         begin
             -- Check test data
-            while done (num_delays) = '0' loop
-                wait until strobe_out'event or done (num_delays)'event
-                        or error_out'event or test_number'event;
-                if test_number'event then
-                    if test > 0 then
-                        if test /= too_fast_test then
-                            assert i = (last_value - delay_size + 1 + offset);
+            while done (test_number) = '0' loop
+                wait until strobe_out'event or done (test_number)'event
+                        or error_out'event or sub_test_number'event;
+                if sub_test_number'event then
+                    if sub_test > 0 then
+                        if sub_test /= too_fast_test then
+                            final_value := (last_value - delay_size + 1 + offset);
+                            if final_value /= i then
+                                write (l, String'("final value is "));
+                                write (l, i);
+                                write (l, String'(" expected "));
+                                write (l, final_value);
+                                writeline (output, l);
+                                assert False;
+                            end if;
                         else
                             assert error_flag;
                         end if;
                         write (l, String'("test ok"));
                         writeline (output, l);
                     end if;
-                    test := test_number;
+                    sub_test := sub_test_number;
                     error_flag := false;
-                    offset := test - 1;
+                    offset := generate_offset (test_number, sub_test_number);
                     i := first_value + offset;
                 end if;
                 if strobe_out'event and strobe_out = '1'
-                        and test /= too_fast_test then
+                        and sub_test /= too_fast_test then
                     assert expect_output = '1';
                     if data_out /= std_logic_vector (to_unsigned (i, 16)) then
                         write (l, String'("output from delay is "));
                         write (l, to_integer (unsigned (data_out)));
                         write (l, String'(" expected "));
                         write (l, i);
-                        writeline (output, l);
-                        assert False;
-                    end if;
-                    if (unsigned (data_out) + to_unsigned (delay_size, 16))
-                                /= unsigned (data_in_copy) then
-                        write (l, String'("output from delay "));
-                        write (l, to_integer (unsigned (data_out)));
-                        write (l, String'(" is not "));
-                        write (l, delay_size);
-                        write (l, String'(" behind the input "));
-                        write (l, to_integer (unsigned (data_in_copy)));
                         writeline (output, l);
                         assert False;
                     end if;
@@ -170,17 +173,17 @@ begin
                     i := i + 1;
                 end if;
                 if error_out = '1' then
-                    assert test_number = too_fast_test;
+                    assert sub_test_number = too_fast_test;
                     error_flag := true;
                 end if;
             end loop;
 
-            assert test = num_tests + 1;
+            assert sub_test = num_sub_tests + 1;
             write (l, String'("delay operated as expected: size "));
             write (l, delay_size);
             writeline (output, l);
             wait;
         end process check_data;
-    end generate size;
+    end generate test_size;
 
 end test;

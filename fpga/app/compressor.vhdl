@@ -13,7 +13,8 @@ entity compressor is
     generic (max_amplification      : Real := 21.1;         -- dB
              sample_rate            : Natural := 48000;     -- Hz
              decay_rate             : Real := 1.0;          -- dB
-             num_delays             : Natural := 2;
+             delay_threshold_level  : Real := 0.99;
+             delay_size_log_2       : Natural := 9;
              subtractor_slice_width : Natural := 8;
              debug                  : Boolean := false);
     port (
@@ -202,7 +203,7 @@ begin
 
     -- FIFO is shared by both channels
     dl : entity delay
-        generic map (num_delays => num_delays)
+        generic map (delay_size_log_2 => delay_size_log_2)
         port map (
             data_in => fifo_in,
             data_out => fifo_out,

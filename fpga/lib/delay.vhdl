@@ -1,4 +1,4 @@
--- This is a configurable delay which stores 256 * num_delays items
+-- This is a configurable delay which stores 2 ** delay_size_log_2 items
 -- of size 16 bits.
 --
 -- Each input (strobe_in) will be followed by an output after 1 clock cycle
@@ -15,9 +15,8 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity delay is
-    generic (
-        num_delays  : Natural;
-        debug       : Boolean := false);
+    generic (debug : Boolean := false;
+             delay_size_log_2 : Natural);
     port (
         data_in     : in std_logic_vector (15 downto 0);
         data_out    : out std_logic_vector (15 downto 0) := (others => '0');
@@ -30,6 +29,26 @@ end delay;
 
 architecture structural of delay is
 
+    function get_sub_delay_size_log_2 return Natural is
+    begin
+        if delay_size_log_2 <= 8 then
+            return delay_size_log_2;
+        else
+            return 8;
+        end if;
+    end get_sub_delay_size_log_2;
+
+    function get_num_delays return Natural is
+    begin
+        if delay_size_log_2 > 8 then
+            return 2 ** (delay_size_log_2 - 8);
+        else
+            return 1;
+        end if;
+    end get_num_delays;
+
+    constant sub_delay_size_log_2 : Natural := get_sub_delay_size_log_2;
+    constant num_delays           : Natural := get_num_delays;
     constant ram_data_size        : Natural := 16;
 
     subtype t_ram_data is std_logic_vector (ram_data_size - 1 downto 0);
@@ -58,7 +77,7 @@ begin
         signal err : std_logic := '0';
     begin
         d : entity delay1
-            generic map (debug => debug)
+            generic map (debug => debug, delay_size_log_2 => sub_delay_size_log_2)
             port map (
                 data_in => buses (i - 1).data,
                 strobe_in => buses (i - 1).strobe,
