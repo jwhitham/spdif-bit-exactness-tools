@@ -177,50 +177,97 @@ S/PDIF compressor
 The second project is a digital audio compressor. The purpose is to normalise
 the sound volume of a signal, i.e.
 [dynamic range compression](https://en.wikipedia.org/wiki/Dynamic_range_compression).
+The compressor measures the input volume and adjusts the gain in order
+to ensure that the output volume level stays roughly constant.
 
-This requires re-encoding the S/PDIF signal, so I began by implementing
-opposites of each of the components listed above, i.e.
-[channel encoder](spdif/channel_encoder.vhdl),
-[packet encoder](spdif/packet_encoder.vhdl) and
-[output encoder](spdif/output_encoder.vhdl). I was able to test each
-of these components individually as a passthrough by connecting it to the corresponding
-decoder. A more efficient design is possible by combining the packet and output encoder:
-properly decoupling them forced me to add a FIFO buffer. But I needed a generic FIFO buffer
-component anyway for the compressor, so I thought I might as well create one at the same time.
+This requires encoding the S/PDIF signal as well as decoding. A divider is
+needed, because the basic operation is "audio out = audio in / max(recent audio in)".
+Compressors may also have delays, filters and additional gain stages.
+
+Encoders
+--------
+
+I began by implementing opposites of each of the decoding components,
+i.e. a channel encoder, packet encoder and output encoder. I was able to test each
+of these components individually by connecting it to the corresponding
+decoder and checking that data could pass through both without loss. I would have
+made progress faster if I had created more unit tests at this time - instead I relied
+on a complete end-to-end test involving decoding, encoding and then decoding again,
+and it was not always easy to debug test failures here since the root cause of a test
+failure was far from the actual output.
+
+The design was also not very efficient. 
+My [input decoder](spdif/input_decoder.vhdl) will produce data at the same
+rate as the input transitions, and this turned out to be unhelpful for the
+output encoder, because the output encoder needed to determine its own data rate.
+I used a FIFO buffer to decouple the input and output; this was an additional
+component that I needed to build, but I figured I would need a FIFO anyway for
+the compressor.
+
+Later on, I was able to replace the individual encoding components with a
+single [combined encoder](spdif/combined_decoder.vhdl) component which
+didn't require a FIFO, using a single-entry buffer which could store the
+next packet. This still allows some decoupling of input and output but
+does not use so many FPGA resources.
 
 Clock regenerator
 -----------------
 
 I needed to generate a clock signal to drive the S/PDIF output. This clock must
 tick at an exact frequency of sample\_rate * 128, because sending the
-data for each stereo channel requires up to 64 high/low transitions. I intended to use
+data for each stereo channel requires up to 64 high/low transitions. For example:
+
+| S/PDIF format   | Clock frequency |
+| --------------- | --------------- |
+| 32kHz stereo    | 4096kHz         |
+| 44.1kHz stereo  | 5665kHz         |
+| 48kHz stereo    | 6144kHz         |
+
+Initially I intended to use
 one of the ICE40's PLLs for this purpose, but I found that I could not configure the
-frequency I required to match the 44.1kHz CD sample rate (or any multiple of it).
+frequency to match the 44.1kHz CD sample rate (or any multiple of it).
 
-I decided instead to generate the output clock signal from the input, by measuring the
-number of FPGA clock cycles X needed to send Y packets. Then I can determine the number
+I decided instead to generate the output clock signal from the input, by measuring X, the
+number of FPGA clock cycles needed to send Y packets. Using this, the hardware determines the number
 of clock cycles between each output transition, which is X/64Y. This is not likely to
-be an integer, so I represent it as a fixed point value. On each FPGA clock cycle,
-I add a fixed-point value of 1.0 to an accumulator, and when it becomes larger than X/64Y,
-I subtract X/64Y from the value and generate an S/PDIF clock pulse. This accounts for the
-inexact ratio between the S/PDIF clock frequency and the FPGA clock frequency.
-[Here is the code](spdif/clock_regenerator.vhdl). 
+be an integer, so it's represented as a fixed point value. On each FPGA clock cycle,
+a fixed-point value of 1.0 is added to an accumulator, and when it becomes larger than X/64Y,
+the hardware subtracts X/64Y from the value and generates an S/PDIF clock pulse. The use
+of fixed-point numbers accounts for the inexact ratio between the S/PDIF clock frequency and
+the FPGA clock frequency.  [Here is the code](spdif/clock_regenerator.vhdl). The following
+table shows the idealised number of FPGA clock cycles per S/PDIF clock cycle, assuming
+perfect measurements:
 
-The initial version of this code did not attempt to synchronise to the beginning of
-each packet, but this turned out to be a bad idea as the clocks drifted, and eventually
-any FIFO buffer between input and output would either overflow or drain. I decided to
-synchronise the output to the input in order to prevent this. I also restructured
-the arithmetic to improve the clock frequency.
+| S/PDIF format   | X/64Y with 96MHz clock |
+| --------------- | ---------------------- |
+| 32kHz stereo    | 23.44                  |
+| 44.1kHz stereo  | 17.01                  |
+| 48kHz stereo    | 15.63                  |
+
+The initial version did not attempt to synchronise to the beginning of
+each packet, but this turned out to be a bad idea as the clocks drifted gradually
+due to measurement errors and the imprecision of the fixed-point values.
+Eventually, any FIFO buffer between input and output would overflow or drain, regardless
+of its size. The solution was to periodically synchronise the output to the input, which
+is done at the beginning of each input packet.
+
+I also had trouble with the propagation delay through this part of the circuit. This lowered
+the maximum clock frequency for the FPGA, which is bad. The problem was that I had both
+an adder and a comparator in the data path between registers. Both the adder and the
+comparator require carry chains, so there is a dependency between all of the bits. The
+solution was to pipeline the regenerator further, with the adder and comparator in separate
+stages. 
 
 Experiments
 -----------
 
 Having created these encoders I was able to test them by applying simple audio
 effects to the sample data, such as reducing the number of bits. I am interested
-to know how many bits are really necessary to avoid loss of quality. It seems to
+to know how many audio bits are actually necessary, and it seems to
 me that 16 bits is probably more than necessary in most cases. The effect of reducing
 the number of bits is that the noise level increases. With 8 bit samples, the
-noise is quite significant.
+noise is quite noticeable, but with 14 bits it is really not. High bit depths (20 bit, 24 bit)
+are probably overkill.
 
 I was also able to experiment with recreating the subcode metadata which is part of
 the S/PDIF data stream. This includes copy protection bits, so theoretically you could
@@ -242,7 +289,7 @@ recording, and then not setting the corresponding flag when publishing the CD.)
 Division
 --------
 
-Building a compressor requires making a divider, since the basic operation
+Building a compressor requires making a divider: the basic operation
 is "audio out = audio in / max(recent audio in)". 
 
 I implemented a [divider](lib/divider.vhdl) by repeated shifting and subtraction. I think
@@ -263,24 +310,81 @@ negative and positive numbers. This is pretty tricky to implement. It's normally
 both numerator and denominator to positive numbers, and then correcting the sign afterwards.
 But I had many problems caused by my attempt
 to support [two's complement numbers](https://en.wikipedia.org/wiki/Two%27s_complement) in the divider.
-These were both functionality bugs and problems with the minimum period of the FPGA design,
-which was greatly increased by long paths through subtractor carry chains. I even hit the
+
+By this time I was building unit tests for every component, which is very easy in VHDL, as
+the simulation parts of the language are basically intended for it. While unit testing
+I found various functionality bugs - such as the
 "fun" special case where the minimum possible number (e.g. -128 for 8-bit) is divided by -1:
-the result can't be represented as a two's complement number.
+the result can't be represented as a two's complement number. 
 (x86 CPUs will generate something like a divide by zero exception if you attempt such an operation,
 other CPUs might act like you divided by 1, and in C the result may be affected by the horrible
 [integer promotion](https://stackoverflow.com/questions/44455248/integer-promotion-in-c) feature,
 a great source of surprising behaviour for the unwary.)
 
+I needed to restructure the divider several times in order to improve the FPGA clock frequency.
 Eventually I realised that I didn't need to use two's complement numbers inside the
-compressor or divider, and could instead use sign-magnitude numbers, where the sign bit
+compressor or divider, and could instead use signed-magnitude numbers, where the sign bit
 is separate from the rest of the value. Conversion to two's complement is only necessary
-at the input and output, since S/PDIF is two's complement. Sign-magnitude led to a much
-simpler implementation.
+at the input and output, since S/PDIF is two's complement. Signed-magnitude numbers led to a much
+simpler implementation of both the divider and other compressor components.
 
 Even with this change, the size of the numbers being divided is quite large, and so I also
 implemented a [subtractor](lib/subtractor.vhdl) which operates on a configurable number
 of bits at a time. This increases the number of clock cycles needed to carry out a division,
 but also reduces the minimum FPGA clock period. I aimed for a "budget" of 500 clock cycles
 per sample as the worst case, since this would allow operation at a 96kHz sample rate.
+
+Compressor
+----------
+
+The current version of the compressor tracks the peak level in a register which decays
+by 1dB every second (assuming a 48kHz sample rate). If a higher audio level reaches the compressor,
+the peak level is immediately updated to match. This prevents any clipping. When the input audio level
+falls, the gain is gradually increased. A short delay allows the volume to be adjusted
+ahead of any change. There is a maximum gain (1.0) and a minimum (set at -21.1dB).
+
+This design is very simple. Because it reacts immediately to a new peak level, the compressor's effect
+is very noticeable, with an immediate drop in volume that can sometimes be noisy. Music often sounds
+quite different when played through this device! 
+
+
+User interface
+--------------
+
+During normal operation the 8x4 LED matrix shows two stereo VU meters, one for the input and one for
+the output. Modes are selectable using a rotary switch and using two of the buttons on the iceFUN module;
+when the mode changes, the new mode is briefly shown on the LEDs. The modes are:
+
+- CX: compressor extreme - compress to maximum volume
+- C2: compress to level 2
+- C1: compress to level 1
+- A1: attenuate to level 1 (reduce volume only - no compression)
+- A2: attenuate to level 2 (reduce volume only - no compression)
+- P: passthrough
+
+Level 1 and level 2 are set using potentiometers connected to the analogue inputs of the iceFUN module.
+The FPGA does not have analogue inputs but the iceFUN has a PIC (used for programming) which
+acts as an analogue interface when the FPGA is running. To avoid the possibility of noise being
+introduced via these inputs, they are only sampled on startup, and when the top left button is held
+down.
+
+There are some "debug" modes which are not selectable via the rotary switch, but are still reachable
+using the bottom left and bottom right buttons. They are:
+
+- D1: S/PDIF input information, consisting of:
+  - top line: the single transition time, in FPGA clock cycles, e.g. 15 for 48kHz input.
+  - middle lines: the clock interval as measured by clock\_regenerator. This is the time in
+    clock cycles for 16 packets. This value will not be stable as it is measured continuously.
+  - bottom line: sync signals from decoders, compressor and encoders - 1 in normal operation.
+- D2: Subcode information
+  - These are the first 32 bits of the subcode. The first bit appears in the top left, the 32nd in the bottom right.
+  - These bits are generated by the S/PDIF output device. If this is a PC, or some USB device, the bits are
+    probably not very meaningful.
+- D3: Compressor peak level
+  - This is the peak level as measured by the compressor. It is a 24-bit fixed point value, with a possible value
+    in the range [0.0, 2.0). Smaller values mean greater amplification. The value decays at 1dB per second
+    towards a minimum value, but is reset to a new peak value whenever the input is larger. For this purpose
+    the input is treated as a value [0.0, 1.0). 
+- D4: ADC information and errors
+  - The top line shows error bits from various modules. 
 
