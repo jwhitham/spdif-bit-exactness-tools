@@ -31,9 +31,10 @@ the expected test pattern. The program reports the results of the comparison,
 indicating whether your S/PDIF output is bit-exact and whether it is 16-bit or 24-bit.
 
 The [fpga](fpga) subdirectory contains an FPGA design for the Lattice
-iCE40HX8K FPGA which will decode S/PDIF data in real time and compare it to the
-expected test pattern. LEDs are used to report the result of the comparison,
-and indicate whether the S/PDIF output is bit-exact and whether it is 16-bit or 24-bit.
+iCE40HX8K FPGA which will decode S/PDIF data in real time. One of the features
+of this design is a subsystem which compares input to the expected test pattern
+and displays the results on some LEDs, indicating whether it is 
+bit-exact and whether it is 16-bit or 24-bit.
 
 
 Instructions
