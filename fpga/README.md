@@ -40,11 +40,12 @@ control changes position, and indicate other events such as a loss of input sign
 The front of the device is the rotary control, so when I refer to the "top row" of
 LEDs, I mean the top row as viewed from the front. This is the row furthest from the
 buttons on the iceFUN module. The "top left" button is the one closest
-to the "bottom left" LED. In this picture the top left LED is lit:
+to the "bottom left" LED. This picture shows the LEDs and buttons in the
+correct orientation:
 
 ![Photo from above](../img/above.jpg)
 
-The design only requires the iceFUN module and an S/PDIF input: other components
+The FPGA design only requires the iceFUN module and an S/PDIF input: other components
 are optional. For example, the compression mode can also be selected using the
 bottom left and bottom right buttons. The modes are:
 
@@ -114,7 +115,7 @@ to Xilinx ISE as I remembered it from a decade ago, with essentially
 the same process and the same main features. Synopsis Synplify is
 used for synthesis, with Lattice-specific tools for place and route.
 I understand there are also some [open-source tools
-for this FPGA](https://clifford.at/icestorm) but I have not tried these out.
+for this FPGA](https://github.com/YosysHQ/icestorm) but I have not tried these out.
 
 
 
