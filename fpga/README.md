@@ -262,7 +262,7 @@ data for each stereo channel requires up to 64 high/low transitions. For example
 | 32kHz stereo    | 4.10MHz         |
 | 44.1kHz stereo  | 5.67MHz         |
 | 48kHz stereo    | 6.14MHz         |
-| 96kHz stereo    | 12.8MHz         |
+| 96kHz stereo    | 12.3MHz         |
 
 Initially I intended to use
 one of the ICE40's PLLs for this purpose, but I found that I could not configure the
@@ -499,6 +499,7 @@ Artefacts
 - [Circuit board layout](../img/diagram2.jpg) - each square = 0.1 inches, matching
   the pitch of the prototyping board and iceFUN pinout
 - [Photo from above](../img/above.jpg) and [from the front](../img/box.jpg)
+- [FPGA bit file](hardware_8.bin) matching tag 'hardware\_8'
 
 For more information about the iceFUN module see the manufacturer's
 [webpage](https://www.robot-electronics.co.uk/products/icefun.html) and
