@@ -38,8 +38,9 @@ and output signal, but they also show the mode (temporarily) when the rotary
 control changes position, and indicate other events such as a loss of input signal.
 
 The front of the device is the rotary control, so when I refer to the "top row" of
-LEDs, I mean the row furthest from the buttons on the iceFUN module. Viewed from
-above, the "top left" button is the one closest to the "bottom left" LED.
+LEDs, I mean the top row as viewed from the front. This is the row furthest from the
+buttons on the iceFUN module. The "top left" button is the one closest
+to the "bottom left" LED.
 
 ![Photo from above](../img/above.jpg)
 
@@ -80,9 +81,14 @@ patterns:
     .1.1.111         24-bit exact input
     1.1..111
 
+Here is an example showing 16-bit exact input.
+
+![16-bit exact input](../img/fpga2.jpg)
+
 The output of the device is only bit-exact in the passthrough mode,
 as the compressor usually alters the volume, and only operates on 16 bit
 data in any case.
+
 
 
 Development and testing
@@ -115,14 +121,13 @@ Input decoder
 -------------
 
 I found the [input decoder](spdif/input_decoder.vhdl) to be a difficult
-component to design and debug.
-
-The [input decoder](spdif/input_decoder.vhdl) component decodes the incoming
+component to design and debug. This component decodes the incoming
 "biphase mark code" signals, identifying single, double and triple-length
 pulses in the S/PDIF data stream.
 
 Other S/PDIF decoders might classify the input signal as one of the
 standard sample rates allowed for S/PDIF, such as 44.1kHz or 48kHz,
+and then decode on that basis,
 but I did not want to have any dependence on a particular format
 and wanted to support S/PDIF at any sample rate. This is possible
 by measuring the pulse lengths.
@@ -190,8 +195,8 @@ files to contain tab characters, but the open-source programming tools
 for iCE40 FPGAs do allow this. Copying PCF files from the iceFUN samples led to warnings
 and a non-functional design because the pin constraints didn't work.
 In common with older Xilinx tools, the Lattice tools do not produce errors
-if inputs/outputs don't have pin assignments, though a build without pin
-constraints will be useless, and so you have to read the log files carefully
+if inputs/outputs don't have pin assignments (though a build without pin
+constraints will be useless) and so you have to read the log files carefully
 to find the relevant warnings. The problem was solved by removing the tab
 characters (once I realised the problem).
 
@@ -249,9 +254,10 @@ data for each stereo channel requires up to 64 high/low transitions. For example
 
 | S/PDIF format   | Clock frequency |
 | --------------- | --------------- |
-| 32kHz stereo    | 4096kHz         |
-| 44.1kHz stereo  | 5665kHz         |
-| 48kHz stereo    | 6144kHz         |
+| 32kHz stereo    | 4.10MHz         |
+| 44.1kHz stereo  | 5.67MHz         |
+| 48kHz stereo    | 6.14MHz         |
+| 96kHz stereo    | 12.8MHz         |
 
 Initially I intended to use
 one of the ICE40's PLLs for this purpose, but I found that I could not configure the
@@ -273,6 +279,7 @@ perfect measurements:
 | 32kHz stereo    | 23.44                  |
 | 44.1kHz stereo  | 17.01                  |
 | 48kHz stereo    | 15.63                  |
+| 96kHz stereo    | 7.81                   |
 
 The initial version did not attempt to synchronise to the beginning of
 each packet, but this turned out to be a bad idea as the clocks drifted gradually
@@ -444,6 +451,51 @@ using the bottom left and bottom right buttons. They are:
   - The first 32 bits of the number produced by "git rev-parse HEAD" at build time.
   - The most significant bit appears in the top left.
 
+No CPU, no software
+-------------------
 
+It may be surprising how much can be achieved without any CPU, microcontroller,
+firmware or software of any sort. The design relies entirely on state machines
+described in VHDL to provide all of the control and sequencing needed to drive
+audio data through multipliers, dividers and comparators, draw status information
+on LEDs, and even send/receive serial data.
 
+This would be a totally impractical approach if the design were built in
+discrete logic (e.g. with 74-series gates), where such tasks would surely be
+carried out by a microcontroller of some kind. Only the most time-critical operations
+would be done in pure hardware. However, the approach becomes practical thanks to
+synthesis tools which quickly convert the VHDL into a "netlist" of logic gates
+with arbitrary complexity. The FPGA has enough space for the design to be made in
+this way. I have previously based FPGA designs around CPU cores, and I find that
+they generally take up a lot of space even for relatively simple 8-bit designs.
+You need resources dedicated to RAM and ROM, though block RAMs can act as both,
+as they can be initialised by the FPGA bit file. Interfacing to other hardware
+also requires adding I/O devices to the CPU data bus. This complexity is not
+necessary here.
+
+An advantage of this no-software design is that the timing is totally predictable.
+The deadline for processing each S/PDIF packet is always met, because the hardware
+always requires the same number of clock cycles regardless of the input data.
+The multiplier and divider could take shortcuts for specific inputs, but there is
+no benefit to that, because nothing more can be done in the time which would be saved.
+With software there may be variation in timing due to different paths through the
+program (i.e. branching) and it can be tricky to work out the worst case execution time.
+The problem becomes worse if the CPU is even slightly complex, e.g. pipelined,
+or if the CPU is shared between multiple tasks. In pure hardware, with each
+component dedicated to a particular task, we need only a single measurement to
+determine both the best and the worst case. [One of the tests](test/test_measure.vhdl)
+carries out such a measurement to check that a 96kHz sample rate is supported.
+
+Artefacts
+---------
+
+- [Schematic diagram](../img/diagram1.jpg) - virtually all components are within the
+  iceFUN module
+- [Circuit board layout](../img/diagram2.jpg) - each square = 0.1 inches, matching
+  the pitch of the prototyping board and iceFUN pinout
+- [Photo from above](../img/above.jpg) and [from the front](../img/box.jpg)
+
+For more information about the iceFUN module see the manufacturer's
+[webpage](https://www.robot-electronics.co.uk/products/icefun.html) and
+[documentation](https://www.robot-electronics.co.uk/files/iceFUNdoc.pdf).
 
