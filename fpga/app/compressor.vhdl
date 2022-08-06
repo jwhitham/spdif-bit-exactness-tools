@@ -13,7 +13,7 @@ entity compressor is
     generic (max_amplification      : Real := 21.1;         -- dB
              sample_rate            : Natural := 48000;     -- Hz
              decay_rate             : Real := 1.0;          -- dB
-             delay_size_log_2       : Natural := 9;
+             delay_size_log_2       : Natural := 13;
              subtractor_slice_width : Natural := 8;
              debug                  : Boolean := false);
     port (
