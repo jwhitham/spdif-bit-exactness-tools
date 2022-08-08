@@ -19,13 +19,13 @@ architecture test of test_delay is
         bypass                   : Boolean;
     end record;
 
-    constant num_tests : Natural := 7;
+    constant num_tests : Natural := 8;
 
     subtype t_data is std_logic_vector (15 downto 0);
-    type t_test_configs is array (Natural range <>) of t_test_config;
+    type t_test_configs is array (Natural range 1 to num_tests) of t_test_config;
     constant test_configs : t_test_configs :=
         ((6, 1, 1, false),
-         (6, 1, 1, true),
+         (6, 3, 2, true),
          (8, 1, 1, false),
          (8, 4, 1, false),
          (8, 4, 1, true),
@@ -55,7 +55,8 @@ begin
         function delay_size return Natural is
         begin
             if test_config.bypass then
-                return (2 ** test_config.delay1_size_log_2) * test_config.num_delays_when_bypassed;
+                return (2 ** test_config.delay1_size_log_2) * test_config.num_delays_when_bypassed +
+                        (test_config.num_delays - test_config.num_delays_when_bypassed);
             else
                 return (2 ** test_config.delay1_size_log_2) * test_config.num_delays;
             end if;

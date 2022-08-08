@@ -100,6 +100,8 @@ begin
                     -- address advances
                     if bypass_in = '0' then
                         delay_addr <= std_logic_vector (unsigned (delay_addr) + 1);
+                    else
+                        delay_addr (delay_addr'Left) <= '1';
                     end if;
 
                     -- keep top bit of delay_addr '1' once set (indicates delay is full)
@@ -123,7 +125,7 @@ begin
         end if;
     end process generate_addr;
 
-    strobe_out <= delay_addr (delay_addr'Left) or bypass_in when state = ADVANCE else '0';
+    strobe_out <= delay_addr (delay_addr'Left) when state = ADVANCE else '0';
     write_enable <= '1' when state = WRITE else '0';
     read_enable <= '1' when state = READ else '0';
     data_out <= data_gen;
