@@ -307,7 +307,7 @@ begin
             else
                 -- Stable - show normal display
                 case mode_select_in is
-                    when COMPRESS_MAX | COMPRESS_2 | COMPRESS_1 =>
+                    when COMPRESS_MAX | COMPRESS_2 | COMPRESS_1 | COMPRESS_VIDEO =>
                         display_mode <= DOUBLE_VU_METER;
                     when DBG_SPDIF =>
                         display_mode <= SHOW_DBG_SPDIF;

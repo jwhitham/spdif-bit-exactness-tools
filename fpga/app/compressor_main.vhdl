@@ -188,7 +188,7 @@ begin
         -- Delay can be disabled in certain modes
         cmp_delay_bypass <= '0';
         case mode_select is
-            when PASSTHROUGH | COMPRESS_VIDEO | DBG_VERSION =>
+            when PASSTHROUGH | COMPRESS_VIDEO | ATTENUATE_2 | DBG_VERSION =>
                 cmp_delay_bypass <= '1';
             when others =>
                 null;
