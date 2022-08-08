@@ -502,7 +502,7 @@ Artefacts
 - [Circuit board layout](../img/diagram2.jpg) - each square = 0.1 inches, matching
   the pitch of the prototyping board and iceFUN pinout
 - [Photo from above](../img/above.jpg) and [from the front](../img/box.jpg)
-- [FPGA bit file](hardware_8.bin) matching tag 'hardware\_8'
+- [FPGA bit file](hardware_9.bin) matching tag 'hardware\_9'
 
 For more information about the iceFUN module see the manufacturer's
 [webpage](https://www.robot-electronics.co.uk/products/icefun.html) and
