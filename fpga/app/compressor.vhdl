@@ -13,7 +13,8 @@ entity compressor is
     generic (max_amplification      : Real := 21.1;         -- dB
              sample_rate            : Natural := 48000;     -- Hz
              decay_rate             : Real := 1.0;          -- dB
-             delay_size_log_2       : Natural := 13;
+             delay1_size_log_2      : Natural := 8;
+             num_delays             : Natural := 32;
              subtractor_slice_width : Natural := 8;
              debug                  : Boolean := false);
     port (
@@ -151,6 +152,7 @@ architecture structural of compressor is
     signal fifo_out             : t_fifo_data := (others => '0');
     signal fifo_in              : t_fifo_data := (others => '0');
     signal reset                : std_logic := '0';
+    signal bypass               : std_logic := '0';
     signal audio_divider_finish : std_logic := '0';
     signal peak_divider_result  : std_logic_vector (peak_bits - 1 downto 0) := (others => '0');
     signal abs_compare          : t_audio_data := (others => '0');
@@ -202,13 +204,16 @@ begin
 
     -- FIFO is shared by both channels
     dl : entity delay
-        generic map (delay_size_log_2 => delay_size_log_2)
+        generic map (delay1_size_log_2 => delay1_size_log_2,
+                     num_delays => num_delays,
+                     num_delays_when_bypassed => 1)
         port map (
             data_in => fifo_in,
             data_out => fifo_out,
             error_out => fifo_error_out,
             reset_in => reset,
             clock_in => clock_in,
+            bypass_in => bypass,
             strobe_in => strobe_in,
             strobe_out => strobe_out);
 
@@ -216,6 +221,7 @@ begin
     strobe_in <= (left_strobe_in or right_strobe_in) and not reset;
     abs_fifo_out <= fifo_out (audio_bits - 2 downto 0);
     peak_level_out (peak_bits - 1 downto 0) <= peak_level;
+    bypass <= '0';
 
     -- Audio multiplier and divider
     audio : block

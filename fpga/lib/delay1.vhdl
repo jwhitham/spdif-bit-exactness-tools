@@ -22,6 +22,7 @@ entity delay1 is
         strobe_in   : in std_logic;
         strobe_out  : out std_logic := '0';
         error_out   : out std_logic := '0';
+        bypass_in   : in std_logic;
         reset_in    : in std_logic;
         clock_in    : in std_logic);
 end delay1;
@@ -68,6 +69,9 @@ architecture structural of delay1 is
 
 begin
 
+    assert delay_size_log_2 <= 8;
+    assert 1 <= delay_size_log_2;
+
     generate_addr : process (clock_in)
         variable l : line;
     begin
@@ -94,7 +98,9 @@ begin
                     error_out <= strobe_in;
 
                     -- address advances
-                    delay_addr <= std_logic_vector (unsigned (delay_addr) + 1);
+                    if bypass_in = '0' then
+                        delay_addr <= std_logic_vector (unsigned (delay_addr) + 1);
+                    end if;
 
                     -- keep top bit of delay_addr '1' once set (indicates delay is full)
                     if delay_addr (delay_addr'Left) = '1' then
@@ -117,7 +123,7 @@ begin
         end if;
     end process generate_addr;
 
-    strobe_out <= delay_addr (delay_addr'Left) when state = ADVANCE else '0';
+    strobe_out <= delay_addr (delay_addr'Left) or bypass_in when state = ADVANCE else '0';
     write_enable <= '1' when state = WRITE else '0';
     read_enable <= '1' when state = READ else '0';
     data_out <= data_gen;

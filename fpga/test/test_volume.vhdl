@@ -27,7 +27,7 @@ architecture test of test_volume is
     constant clock_period   : Time := sample_period / 1000;
     constant fpga_freq_mhz  : Natural := 96;
 
-    constant delay_size_log_2       : Natural := 4;
+    constant delay1_size_log_2      : Natural := 4;
     constant decay_rate             : Real := Real (sample_rate);
 
     constant one            : std_logic := '1';
@@ -95,7 +95,8 @@ begin
         generic map (debug => false,
                      sample_rate => sample_rate,
                      decay_rate => decay_rate,
-                     delay_size_log_2 => delay_size_log_2)
+                     num_delays => 1,
+                     delay1_size_log_2 => delay1_size_log_2)
         port map (
             data_in => data_in,
             left_strobe_in => left_strobe_in,

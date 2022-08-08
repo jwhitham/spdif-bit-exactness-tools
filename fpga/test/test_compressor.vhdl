@@ -42,18 +42,19 @@ architecture test of test_compressor is
     constant clock_period           : Time := sample_period / 1000;
     constant square_wave_period     : Time := sample_period * 10;
 
-    constant delay_size_log_2       : Natural := 4;
+    constant delay1_size_log_2      : Natural := 4;
     constant decay_rate             : Real := 0.1;
 
     -- here a sample is considered to be stereo, so 2 delay entries
-    constant max_samples_in_delay   : Natural := (2 ** (delay_size_log_2 - 1)) - 1;
+    constant max_samples_in_delay   : Natural := (2 ** (delay1_size_log_2 - 1)) - 1;
 
 begin
     dut : entity compressor
         generic map (max_amplification => 21.1,
                      sample_rate => sample_rate,
                      decay_rate => decay_rate,
-                     delay_size_log_2 => delay_size_log_2,
+                     num_delays => 1,
+                     delay1_size_log_2 => delay1_size_log_2,
                      debug => false)
         port map (
             data_in => data_in,

@@ -15,40 +15,23 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity delay is
-    generic (debug : Boolean := false;
-             delay_size_log_2 : Natural);
+    generic (debug                    : Boolean := false;
+             num_delays               : Natural;
+             delay1_size_log_2        : Natural := 8;
+             num_delays_when_bypassed : Natural := 0);
     port (
         data_in     : in std_logic_vector (15 downto 0);
         data_out    : out std_logic_vector (15 downto 0) := (others => '0');
         strobe_in   : in std_logic;
         strobe_out  : out std_logic := '0';
         error_out   : out std_logic := '0';
+        bypass_in   : in std_logic;
         reset_in    : in std_logic;
         clock_in    : in std_logic);
 end delay;
 
 architecture structural of delay is
 
-    function get_sub_delay_size_log_2 return Natural is
-    begin
-        if delay_size_log_2 <= 8 then
-            return delay_size_log_2;
-        else
-            return 8;
-        end if;
-    end get_sub_delay_size_log_2;
-
-    function get_num_delays return Natural is
-    begin
-        if delay_size_log_2 > 8 then
-            return 2 ** (delay_size_log_2 - 8);
-        else
-            return 1;
-        end if;
-    end get_num_delays;
-
-    constant sub_delay_size_log_2 : Natural := get_sub_delay_size_log_2;
-    constant num_delays           : Natural := get_num_delays;
     constant ram_data_size        : Natural := 16;
 
     subtype t_ram_data is std_logic_vector (ram_data_size - 1 downto 0);
@@ -73,19 +56,27 @@ begin
     strobe_out <= buses (num_delays).strobe;
     error_out <= buses (num_delays).err;
 
+    assert num_delays_when_bypassed <= num_delays;
+    assert 0 <= num_delays_when_bypassed;
+    assert 1 <= num_delays;
+
     g : for i in 1 to num_delays generate
         signal err : std_logic := '0';
+        signal bypass : std_logic := '0';
     begin
         d : entity delay1
-            generic map (debug => debug, delay_size_log_2 => sub_delay_size_log_2)
+            generic map (debug => debug, delay_size_log_2 => delay1_size_log_2)
             port map (
                 data_in => buses (i - 1).data,
                 strobe_in => buses (i - 1).strobe,
                 data_out => buses (i).data,
                 strobe_out => buses (i).strobe,
                 error_out => err,
+                bypass_in => bypass,
                 reset_in => buses (i).reset,
                 clock_in => clock_in);
+
+        bypass <= bypass_in when i > num_delays_when_bypassed else '0';
 
         process (clock_in)
         begin

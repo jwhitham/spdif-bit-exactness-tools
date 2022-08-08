@@ -62,6 +62,7 @@ run_tests:
 	python app/make_version_rom.py
 	python test/make_test_bench.py
 	ghdl -a --work=work $(VHDL) $(TEST_VHDL)
+	ghdl -r test_delay $(RFLAGS)
 	ghdl -r test_compressor2 $(RFLAGS)
 	ghdl -r test_compressor $(RFLAGS)
 	ghdl -r test_sign_magnitude $(RFLAGS)
@@ -78,7 +79,6 @@ run_tests:
 	ghdl -r test_divider $(RFLAGS)
 	ghdl -r test_uart $(RFLAGS)
 	ghdl -r test_fifo $(RFLAGS)
-	ghdl -r test_delay $(RFLAGS)
 	ghdl -r test_top_level $(RFLAGS) > tmp.txt
 	diff -q tmp.txt test/test_top_level_out.txt
 	echo "tests ok"

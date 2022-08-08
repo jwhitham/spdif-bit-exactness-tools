@@ -99,7 +99,7 @@ begin
     data_in <= (15 => '1', 14 => '1', others => '0');
 
     dut : entity compressor
-        generic map (delay_size_log_2 => 4)
+        generic map (delay1_size_log_2 => 4, num_delays => 1)
         port map (
             data_in => data_in,
             left_strobe_in => left_strobe_in,

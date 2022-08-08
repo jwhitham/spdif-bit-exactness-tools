@@ -11,8 +11,27 @@ entity test_delay is
 end test_delay;
 
 architecture test of test_delay is
+
+    type t_test_config is record
+        delay1_size_log_2        : Natural;
+        num_delays               : Natural;
+        num_delays_when_bypassed : Natural;
+        bypass                   : Boolean;
+    end record;
+
+    constant num_tests : Natural := 7;
+
     subtype t_data is std_logic_vector (15 downto 0);
-    constant num_tests : Natural := 3;
+    type t_test_configs is array (Natural range <>) of t_test_config;
+    constant test_configs : t_test_configs :=
+        ((6, 1, 1, false),
+         (6, 1, 1, true),
+         (8, 1, 1, false),
+         (8, 4, 1, false),
+         (8, 4, 1, true),
+         (8, 9, 0, true),
+         (8, 3, 2, false),
+         (8, 3, 2, true));
 
     signal done        : std_logic_vector (0 to num_tests) := (others => '0');
     signal clock_in    : std_logic := '0';
@@ -31,8 +50,17 @@ begin
     end process;
 
     test_size : for test_number in 1 to num_tests generate
-        constant delay_size_log_2 : Natural := 6 + ((test_number - 1) * 2);
-        constant delay_size : Natural := 2 ** delay_size_log_2;
+        constant test_config    : t_test_config := test_configs (test_number);
+
+        function delay_size return Natural is
+        begin
+            if test_config.bypass then
+                return (2 ** test_config.delay1_size_log_2) * test_config.num_delays_when_bypassed;
+            else
+                return (2 ** test_config.delay1_size_log_2) * test_config.num_delays;
+            end if;
+        end delay_size;
+
         constant num_sub_tests : Natural := 5;
 
         signal data_in     : t_data := (others => '0');
@@ -43,6 +71,7 @@ begin
         signal reset_in    : std_logic := '0';
         signal sub_test_number : Natural := 0;
         signal expect_output : std_logic := '0';
+        signal bypass_in   : std_logic := '0';
 
         constant first_value : Natural := 2000;
         constant last_value : Natural := 4000;
@@ -57,14 +86,19 @@ begin
     begin
         assert last_value > (first_value + delay_size);
 
+        bypass_in <= '1' when test_config.bypass else '0';
+
         dut : entity delay
-            generic map (delay_size_log_2 => delay_size_log_2)
+            generic map (delay1_size_log_2 => test_config.delay1_size_log_2,
+                         num_delays => test_config.num_delays,
+                         num_delays_when_bypassed => test_config.num_delays_when_bypassed)
             port map (
                 data_in => data_in,
                 data_out => data_out,
                 strobe_in => strobe_in,
                 strobe_out => strobe_out,
                 error_out => error_out,
+                bypass_in => bypass_in,
                 reset_in => reset_in,
                 clock_in => clock_in);
 
@@ -88,6 +122,10 @@ begin
                 write (l, test_number);
                 write (l, String'("."));
                 write (l, sub_test_number);
+                write (l, String'(" with size "));
+                write (l, delay_size);
+                write (l, String'(" bypass "));
+                write (l, test_config.bypass);
                 writeline (output, l);
 
                 wait until clock_in = '0';
@@ -181,6 +219,8 @@ begin
             assert sub_test = num_sub_tests + 1;
             write (l, String'("delay operated as expected: size "));
             write (l, delay_size);
+            write (l, String'(" bypass "));
+            write (l, test_config.bypass);
             writeline (output, l);
             wait;
         end process check_data;
