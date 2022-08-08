@@ -55,7 +55,7 @@ begin
         function delay_size return Natural is
         begin
             if test_config.bypass then
-                return (2 ** test_config.delay1_size_log_2) * test_config.num_delays_when_bypassed +
+                return ((2 ** test_config.delay1_size_log_2) * test_config.num_delays_when_bypassed) +
                         (test_config.num_delays - test_config.num_delays_when_bypassed);
             else
                 return (2 ** test_config.delay1_size_log_2) * test_config.num_delays;

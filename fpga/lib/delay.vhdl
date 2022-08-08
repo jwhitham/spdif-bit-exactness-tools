@@ -46,12 +46,13 @@ architecture structural of delay is
     constant zero       : t_ram_data := (others => '0');
     constant off        : t_bus := (zero, '0', '0', '0');
     signal buses        : t_buses := (others => off);
+    signal bypass_reg   : std_logic := '0';
 
 begin
     buses (0).data <= data_in;
     buses (0).strobe <= strobe_in;
     buses (0).err <= '0';
-    buses (0).reset <= reset_in;
+    buses (0).reset <= reset_in or (bypass_in xor bypass_reg);
     data_out <= buses (num_delays).data;
     strobe_out <= buses (num_delays).strobe;
     error_out <= buses (num_delays).err;
@@ -86,5 +87,14 @@ begin
             end if;
         end process;
     end generate g;
+
+    -- A single-cycle reset pulse is generated if the bypass input changes,
+    -- preventing output of invalid data.
+    process (clock_in)
+    begin
+        if clock_in'event and clock_in = '1' then
+            bypass_reg <= bypass_in;
+        end if;
+    end process;
 
 end structural;

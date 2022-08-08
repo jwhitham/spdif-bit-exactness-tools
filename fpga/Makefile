@@ -32,6 +32,7 @@ VHDL =  \
 TEST_VHDL = \
 		test/sb_ram40_4k.vhdl \
 		test/generated/test_signal_generator.vhdl \
+		test/test_delay2.vhdl \
 		test/test_delay.vhdl \
 		test/test_encoder2.vhdl \
 		test/test_encoder.vhdl \
@@ -62,6 +63,7 @@ run_tests:
 	python app/make_version_rom.py
 	python test/make_test_bench.py
 	ghdl -a --work=work $(VHDL) $(TEST_VHDL)
+	ghdl -r test_delay2 $(RFLAGS)
 	ghdl -r test_delay $(RFLAGS)
 	ghdl -r test_compressor2 $(RFLAGS)
 	ghdl -r test_compressor $(RFLAGS)
