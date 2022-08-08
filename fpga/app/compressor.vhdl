@@ -143,6 +143,7 @@ architecture structural of compressor is
     signal peak_level           : t_peak_level := (others => '1');
     signal abs_audio_in         : t_audio_data := (others => '0');
     signal peak_divider_done    : std_logic := '0';
+    signal bypass               : std_logic := '0';
 
     -- Global signals
     signal strobe_in            : std_logic := '0';
@@ -213,7 +214,7 @@ begin
             error_out => fifo_error_out,
             reset_in => reset,
             clock_in => clock_in,
-            bypass_in => delay_bypass_in,
+            bypass_in => bypass,
             strobe_in => strobe_in,
             strobe_out => strobe_out);
 
@@ -490,6 +491,7 @@ begin
                     end if;
                     sync_out <= '0';
                     left_flag <= '1';
+                    bypass <= delay_bypass_in;
                 when FILLING | START =>
                     -- Wait for audio input
                     -- For left channel only, set peak level to new peak level if ready
@@ -501,6 +503,12 @@ begin
                             write_big_number (l, abs_audio_in);
                             writeline (output, l);
                         end if;
+                    end if;
+                    if delay_bypass_in /= bypass then
+                        -- Configuration change - the delay should / should not be bypassed.
+                        -- This resets the compressor and all subcomponents including the delay.
+                        state <= INIT;
+                        sync_out <= '0';
                     end if;
                 when LOAD_FIFO_INPUT =>
                     state <= CLAMP_TO_FIFO_INPUT;

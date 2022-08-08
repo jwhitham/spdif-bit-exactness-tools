@@ -6,6 +6,10 @@
 --
 -- Inputs are allowed every 3 clock cycles. error_out will be asserted if
 -- an input is attempted when the delay is not ready.
+--
+-- If bypass_in = '1', then the delay is shortened to a single item.
+-- The reset_in input should be asserted when changing the value of bypass_in
+-- in order to avoid invalid data outputs.
 
 library work;
 use work.all;
@@ -39,20 +43,17 @@ architecture structural of delay is
         data    : t_ram_data;
         strobe  : std_logic;
         err     : std_logic;
-        reset   : std_logic;
     end record;
         
     type t_buses is array (Natural range 0 to num_delays) of t_bus;
     constant zero       : t_ram_data := (others => '0');
-    constant off        : t_bus := (zero, '0', '0', '0');
+    constant off        : t_bus := (zero, '0', '0');
     signal buses        : t_buses := (others => off);
-    signal bypass_reg   : std_logic := '0';
 
 begin
     buses (0).data <= data_in;
     buses (0).strobe <= strobe_in;
     buses (0).err <= '0';
-    buses (0).reset <= reset_in or (bypass_in xor bypass_reg);
     data_out <= buses (num_delays).data;
     strobe_out <= buses (num_delays).strobe;
     error_out <= buses (num_delays).err;
@@ -74,7 +75,7 @@ begin
                 strobe_out => buses (i).strobe,
                 error_out => err,
                 bypass_in => bypass,
-                reset_in => buses (i).reset,
+                reset_in => reset_in,
                 clock_in => clock_in);
 
         bypass <= bypass_in when i > num_delays_when_bypassed else '0';
@@ -82,19 +83,9 @@ begin
         process (clock_in)
         begin
             if clock_in'event and clock_in = '1' then
-                buses (i).reset <= buses (i - 1).reset;
                 buses (i).err <= buses (i - 1).err or err;
             end if;
         end process;
     end generate g;
-
-    -- A single-cycle reset pulse is generated if the bypass input changes,
-    -- preventing output of invalid data.
-    process (clock_in)
-    begin
-        if clock_in'event and clock_in = '1' then
-            bypass_reg <= bypass_in;
-        end if;
-    end process;
 
 end structural;
