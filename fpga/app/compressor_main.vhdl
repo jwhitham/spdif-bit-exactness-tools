@@ -88,6 +88,7 @@ architecture structural of compressor_main is
     signal pulse_100hz              : std_logic := '0';
     signal adc_enable_poll          : std_logic := '0';
     signal cmp_enable               : std_logic := '0';
+    signal cmp_delay_bypass         : std_logic := '0';
     signal clock_interval           : std_logic_vector (15 downto 0) := (others => '0');
     signal subcode                  : std_logic_vector (31 downto 0) := (others => '0');
     signal peak_level               : std_logic_vector (31 downto 0) := (others => '0');
@@ -161,7 +162,8 @@ begin
                   ready_out => open,
                   fifo_error_out => cmp_fifo_error,
                   over_error_out => cmp_over_error,
-                  enable_in => cmp_enable,
+                  compressor_enable_in => cmp_enable,
+                  delay_bypass_in => cmp_delay_bypass,
                   data_in => raw_data (27 downto 12),
                   left_strobe_in => raw_left_strobe,
                   right_strobe_in => raw_right_strobe,
@@ -182,6 +184,9 @@ begin
             when others =>
                 null;
         end case;
+
+        -- Delay can be disabled in certain modes
+        cmp_delay_bypass <= '0';
 
         -- Volume is not 1.0 in certain modes
         volume <= (others => '0');

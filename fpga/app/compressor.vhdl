@@ -26,7 +26,8 @@ entity compressor is
         volume_in       : in std_logic_vector (10 downto 0) := (others => '0');
         left_strobe_out : out std_logic := '0';
         right_strobe_out : out std_logic := '0';
-        enable_in       : in std_logic;
+        compressor_enable_in : in std_logic;
+        delay_bypass_in      : in std_logic;
         sync_in         : in std_logic;
         sync_out        : out std_logic := '0';
         ready_out       : out std_logic := '0';
@@ -152,7 +153,6 @@ architecture structural of compressor is
     signal fifo_out             : t_fifo_data := (others => '0');
     signal fifo_in              : t_fifo_data := (others => '0');
     signal reset                : std_logic := '0';
-    signal bypass               : std_logic := '0';
     signal audio_divider_finish : std_logic := '0';
     signal peak_divider_result  : std_logic_vector (peak_bits - 1 downto 0) := (others => '0');
     signal abs_compare          : t_audio_data := (others => '0');
@@ -213,7 +213,7 @@ begin
             error_out => fifo_error_out,
             reset_in => reset,
             clock_in => clock_in,
-            bypass_in => bypass,
+            bypass_in => delay_bypass_in,
             strobe_in => strobe_in,
             strobe_out => strobe_out);
 
@@ -221,7 +221,6 @@ begin
     strobe_in <= (left_strobe_in or right_strobe_in) and not reset;
     abs_fifo_out <= fifo_out (audio_bits - 2 downto 0);
     peak_level_out (peak_bits - 1 downto 0) <= peak_level;
-    bypass <= '0';
 
     -- Audio multiplier and divider
     audio : block
@@ -512,7 +511,7 @@ begin
                 when CLAMP_TO_FIFO_OUTPUT =>
                     -- when the compressor is on, this enforces a minimum peak level,
                     -- but when the compressor is off, it forces the peak level to be treated as 1.0.
-                    if enable_in = '1' then
+                    if compressor_enable_in = '1' then
                         state <= LOAD_MINIMUM;
                     else
                         state <= LOAD_MAXIMUM;
