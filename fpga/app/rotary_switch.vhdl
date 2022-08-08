@@ -60,13 +60,13 @@ begin
     begin
         if clock_in'event and clock_in = '1' then
             case code is
-                when "100" =>  new_rotary_value <= mode_definitions.compress_max; -- rotary_01 low: rotary_value is 0
-                when "101" =>  new_rotary_value <= mode_definitions.compress_2;   --                rotary_value is 1
-                when "010" =>  new_rotary_value <= mode_definitions.compress_1;   -- rotary_23 low: rotary_value is 2
-                when "011" =>  new_rotary_value <= mode_definitions.attenuate_1;  --                rotary_value is 3
-                when "110" =>  new_rotary_value <= mode_definitions.attenuate_2;  -- 01 / 23 high:  rotary_value is 4
-                when "111" =>  new_rotary_value <= mode_definitions.passthrough;  --                rotary_value is 5
-                when others => new_rotary_value <= mode_definitions.passthrough;  -- invalid (both 01 and 23 are low)
+                when "100" =>  new_rotary_value <= mode_definitions.COMPRESS_MAX; -- rotary_01 low: rotary_value is 0
+                when "101" =>  new_rotary_value <= mode_definitions.COMPRESS_2;   --                rotary_value is 1
+                when "010" =>  new_rotary_value <= mode_definitions.COMPRESS_1;   -- rotary_23 low: rotary_value is 2
+                when "011" =>  new_rotary_value <= mode_definitions.ATTENUATE_2;  --                rotary_value is 3
+                when "110" =>  new_rotary_value <= mode_definitions.COMPRESS_VIDEO; -- 01 / 23 high:rotary_value is 4
+                when "111" =>  new_rotary_value <= mode_definitions.PASSTHROUGH;  --                rotary_value is 5
+                when others => new_rotary_value <= mode_definitions.PASSTHROUGH;  -- invalid (both 01 and 23 are low)
             end case;
         end if;
     end process decode_inputs;

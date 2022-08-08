@@ -56,7 +56,7 @@ architecture structural of mode_display is
     type t_display_mode is (ANNOUNCE_DBG_SPDIF, ANNOUNCE_DBG_SUBCODES, ANNOUNCE_DBG_COMPRESS,
                             ANNOUNCE_DBG_ADCS, ANNOUNCE_DBG_VERSION,
                             ANNOUNCE_COMPRESS_MAX, ANNOUNCE_COMPRESS_2, ANNOUNCE_PASSTHROUGH, 
-                            ANNOUNCE_COMPRESS_1, ANNOUNCE_ATTENUATE_1, ANNOUNCE_ATTENUATE_2,
+                            ANNOUNCE_COMPRESS_1, ANNOUNCE_ATTENUATE_2, ANNOUNCE_COMPRESS_VIDEO,
                             BOOT, DESYNC, DOUBLE_VU_METER, SINGLE_VU_METER,
                             SHOW_DBG_SPDIF, SHOW_DBG_SUBCODES, SHOW_DBG_COMPRESS,
                             SHOW_DBG_ADCS, SHOW_DBG_VERSION, SHOW_MATCHER);
@@ -127,18 +127,18 @@ begin
                     leds (1) <= "10000010";
                     leds (2) <= "10000010";
                     leds (3) <= "11100010";
-                when ANNOUNCE_ATTENUATE_1 =>
-                    -- attenuated to volume level 1 "a1"
-                    leds (0) <= "11100000";
-                    leds (1) <= "10100010";
-                    leds (2) <= "11100010";
-                    leds (3) <= "10100010";
                 when ANNOUNCE_ATTENUATE_2 =>
                     -- attenuated to volume level 2 "a2"
                     leds (0) <= "11100000";
                     leds (1) <= "10100101";
                     leds (2) <= "11100101";
                     leds (3) <= "10100101";
+                when ANNOUNCE_COMPRESS_VIDEO =>
+                    -- compress to volume level 2 with minimal delay "cv"
+                    leds (0) <= "11100000";
+                    leds (1) <= "10000101";
+                    leds (2) <= "10000101";
+                    leds (3) <= "11100010";
                 when ANNOUNCE_PASSTHROUGH =>
                     -- passthrough "p"
                     leds (0) <= "11100000";
@@ -267,10 +267,10 @@ begin
                         display_mode <= ANNOUNCE_COMPRESS_2;
                     when COMPRESS_1 =>
                         display_mode <= ANNOUNCE_COMPRESS_1;
-                    when ATTENUATE_1 =>
-                        display_mode <= ANNOUNCE_ATTENUATE_1;
                     when ATTENUATE_2 =>
                         display_mode <= ANNOUNCE_ATTENUATE_2;
+                    when COMPRESS_VIDEO =>
+                        display_mode <= ANNOUNCE_COMPRESS_VIDEO;
                     when PASSTHROUGH =>
                         display_mode <= ANNOUNCE_PASSTHROUGH;
                     when DBG_SPDIF =>

@@ -11,8 +11,8 @@ package mode_definitions is
     constant COMPRESS_MAX : t_mode := "0000";
     constant COMPRESS_2   : t_mode := "0001";
     constant COMPRESS_1   : t_mode := "0010";
-    constant ATTENUATE_1  : t_mode := "0011";
-    constant ATTENUATE_2  : t_mode := "0100";
+    constant ATTENUATE_2  : t_mode := "0011";
+    constant COMPRESS_VIDEO : t_mode := "0100";
     constant PASSTHROUGH  : t_mode := "0101";
     constant DBG_SPDIF    : t_mode := "0110";
     constant DBG_SUBCODES : t_mode := "0111";

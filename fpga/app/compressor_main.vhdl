@@ -179,7 +179,7 @@ begin
         -- Compressor is disabled in certain modes
         cmp_enable <= '1';
         case mode_select is
-            when PASSTHROUGH | ATTENUATE_1 | ATTENUATE_2 | DBG_VERSION =>
+            when PASSTHROUGH | ATTENUATE_2 | DBG_VERSION =>
                 cmp_enable <= '0';
             when others =>
                 null;
@@ -187,14 +187,20 @@ begin
 
         -- Delay can be disabled in certain modes
         cmp_delay_bypass <= '0';
+        case mode_select is
+            when PASSTHROUGH | COMPRESS_VIDEO | DBG_VERSION =>
+                cmp_delay_bypass <= '1';
+            when others =>
+                null;
+        end case;
 
         -- Volume is not 1.0 in certain modes
         volume <= (others => '0');
         case mode_select is
-            when ATTENUATE_1 | COMPRESS_1 =>
+            when COMPRESS_1 =>
                 -- volume from adjuster 1, range is [0.0, 1.0)
                 volume (volume'Left - 1 downto 0) <= adjust_1;
-            when ATTENUATE_2 | COMPRESS_2 =>
+            when ATTENUATE_2 | COMPRESS_2 | COMPRESS_VIDEO =>
                 -- volume from adjuster 2, range is [0.0, 1.0)
                 volume (volume'Left - 1 downto 0) <= adjust_2;
             when others =>

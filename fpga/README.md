@@ -52,8 +52,8 @@ bottom left and bottom right buttons. The modes are:
 - CX: compressor extreme - compress to maximum volume
 - C2: compress to level 2
 - C1: compress to level 1
-- A1: attenuate to level 1 (reduce volume only - no compression)
 - A2: attenuate to level 2 (reduce volume only - no compression)
+- CV: compressor for video - compress to level 2, but minimise latency (only 2 ms delay)
 - P: passthrough
 
 Level 1 and level 2 are set using the analogue presets connected to
@@ -384,7 +384,8 @@ The current version of the compressor tracks the peak level in a register which 
 by 1dB every second (assuming a 48kHz sample rate). If a higher audio level reaches the compressor,
 the peak level is immediately updated to match. This prevents any clipping. When the input audio level
 falls, the gain is gradually increased. A short delay allows the volume to be adjusted
-ahead of any change. There is a maximum gain (1.0) and a minimum (set at -21.1dB).
+ahead of any change. There is a maximum gain (1.0) and a minimum (set at -21.1dB). Normally
+the delay is about 85 ms, but this is bypassed in some modes (e.g. for video playback).
 
 This design is very simple. Because it reacts immediately to a new peak level, the compressor's effect
 is very noticeable, with an immediate drop in volume that can sometimes be noisy. Music often sounds
@@ -419,8 +420,8 @@ when the mode changes, the new mode is briefly shown on the LEDs. The modes are:
 - CX: compressor extreme - compress to maximum volume
 - C2: compress to level 2
 - C1: compress to level 1
-- A1: attenuate to level 1 (reduce volume only - no compression)
 - A2: attenuate to level 2 (reduce volume only - no compression)
+- CV: compressor for video - compress to level 2, but minimise latency (only 2 ms delay)
 - P: passthrough
 
 There are some "debug" modes which are not selectable via the rotary switch, but are still reachable
@@ -455,6 +456,8 @@ using the bottom left and bottom right buttons. They are:
 - D5: Git revision
   - The first 32 bits of the number produced by "git rev-parse HEAD" at build time.
   - The most significant bit appears in the top left.
+  - In this mode the compressor and delay are disabled and the device acts as a passthrough,
+    but unlike the passthrough mode, the S/PDIF data is re-encoded
 
 No CPU, no software
 -------------------
