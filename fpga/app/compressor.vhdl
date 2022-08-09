@@ -485,10 +485,9 @@ begin
             case state is
                 when INIT_1 =>
                     -- Reset state: ensure that at least 2 clock cycles are spent in reset
-                    -- so that minimum_flag and peak_level will be properly cleared.
+                    -- so that abs_compare, minimum_flag and peak_level will be properly cleared.
                     sync_out <= '0';
                     state <= INIT_2;
-                    sync_out <= '0';
                     left_flag <= '1';
                     bypass <= delay_bypass_in;
                 when INIT_2 =>
