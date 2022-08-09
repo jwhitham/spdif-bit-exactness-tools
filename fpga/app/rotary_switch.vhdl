@@ -78,10 +78,12 @@ begin
 
             if reset_in = '1' then
                 -- Don't trigger a mode change strobe when coming out of reset!
+                -- Start up in the mode selected with the switch.
                 updated_buttons <= '0';
                 updated_rotary <= '0';
                 old_button_value <= new_button_value;
                 old_rotary_value <= new_rotary_value;
+                output_value <= new_rotary_value;
                 countdown <= max_countdown;
 
             elsif new_button_value /= old_button_value then
