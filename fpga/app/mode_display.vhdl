@@ -213,6 +213,7 @@ begin
                     leds (0) (3) <= desync_error_latch;  -- desync at some point
                     leds (0) (2) <= reset_error_in;      -- reset button is pressed
                     leds (1) <= adjust_1_in (7 downto 0);
+                    leds (2) (7 downto 2) <= (others => '0');
                     leds (2) (1 downto 0) <= adjust_2_in (9 downto 8);
                     leds (3) <= adjust_2_in (7 downto 0);
                 when ANNOUNCE_DBG_VERSION =>
