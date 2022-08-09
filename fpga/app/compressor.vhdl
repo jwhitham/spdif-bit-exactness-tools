@@ -59,7 +59,7 @@ architecture structural of compressor is
 
     -- The state machine sequence is:
     --
-    --  INIT:
+    --  INIT_1 / INIT_2:
     --      (wait for synchronisation and a left input)
     --      If sync_in = '1' and left input received = '1' goto FILLING
     --  FILLING:
@@ -99,7 +99,7 @@ architecture structural of compressor is
     --        Flip channel flag
     --        goto START
     --      
-    type t_state is (INIT, FILLING, START,
+    type t_state is (INIT_1, INIT_2, FILLING, START,
                      LOAD_FIFO_INPUT,
                      CLAMP_TO_FIFO_INPUT,
                      LOAD_FIFO_OUTPUT,
@@ -139,7 +139,7 @@ architecture structural of compressor is
     -- Global registers
     signal left_flag            : std_logic := '1';
     signal minimum_flag         : std_logic := '1';
-    signal state                : t_state := INIT;
+    signal state                : t_state := INIT_1;
     signal peak_level           : t_peak_level := (others => '1');
     signal abs_audio_in         : t_audio_data := (others => '0');
     signal peak_divider_done    : std_logic := '0';
@@ -187,7 +187,7 @@ architecture structural of compressor is
         end loop;
     end write_big_number;
 begin
-    reset <= '1' when state = INIT else '0';
+    reset <= '1' when state = INIT_1 or state = INIT_2 else '0';
 
     -- Check for invalid configuration
     assert data_in'Length = audio_bits;
@@ -422,7 +422,7 @@ begin
                     abs_compare <= abs_audio_in (audio_bits - 2 downto 0);
                 when LOAD_FIFO_OUTPUT =>
                     abs_compare <= abs_fifo_out;
-                when LOAD_MINIMUM =>
+                when LOAD_MINIMUM | INIT_1 | INIT_2 =>
                     abs_compare <= peak_minimum (peak_audio_high downto peak_audio_low);
                 when LOAD_MAXIMUM =>
                     abs_compare <= peak_maximum (peak_audio_high downto peak_audio_low);
@@ -438,7 +438,7 @@ begin
     begin
         if clock_in'event and clock_in = '1' then
             case state is
-                when INIT | FILLING =>
+                when INIT_1 | INIT_2 | FILLING =>
                     -- Hold at minimum during reset
                     minimum_flag <= '1';
                     peak_level <= (others => '0');
@@ -483,15 +483,19 @@ begin
     begin
         if clock_in'event and clock_in = '1' then
             case state is
-                when INIT =>
-                    -- Reset state
-                    -- (wait for synchronisation and a left input)
-                    if sync_in = '1' and left_strobe_in = '1' then
-                        state <= FILLING;
-                    end if;
+                when INIT_1 =>
+                    -- Reset state: ensure that at least 2 clock cycles are spent in reset
+                    -- so that minimum_flag and peak_level will be properly cleared.
+                    sync_out <= '0';
+                    state <= INIT_2;
                     sync_out <= '0';
                     left_flag <= '1';
                     bypass <= delay_bypass_in;
+                when INIT_2 =>
+                    -- Wait for synchronisation and a left input
+                    if sync_in = '1' and left_strobe_in = '1' then
+                        state <= FILLING;
+                    end if;
                 when FILLING | START =>
                     -- Wait for audio input
                     -- For left channel only, set peak level to new peak level if ready
@@ -507,7 +511,7 @@ begin
                     if delay_bypass_in /= bypass then
                         -- Configuration change - the delay should / should not be bypassed.
                         -- This resets the compressor and all subcomponents including the delay.
-                        state <= INIT;
+                        state <= INIT_1;
                         sync_out <= '0';
                     end if;
                 when LOAD_FIFO_INPUT =>
@@ -546,7 +550,7 @@ begin
             end case;
 
             case state is
-                when INIT | FILLING | START =>
+                when INIT_1 | INIT_2 | FILLING | START =>
                     -- new audio input is expected
                     null;
                 when others =>
@@ -560,11 +564,11 @@ begin
             end case;
 
             if sync_in = '0' then
-                state <= INIT;
+                state <= INIT_1;
             end if;
         end if;
     end process controller;
 
-    ready_out <= '1' when state = INIT or state = FILLING or state = START else '0';
+    ready_out <= '1' when state = FILLING or state = START else '0';
 
 end structural;
