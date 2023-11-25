@@ -15,8 +15,8 @@ typedef struct t_header {
     uint16_t    type_of_format;         // 14
     uint16_t    number_of_channels;     // 16
     uint32_t    sample_rate;            // 18
-    uint32_t    bytes_per_second;       // 1c
-    uint16_t    bytes_per_sample;       // 20
+    uint32_t    avg_bytes_per_second;   // 1c - average bytes per second
+    uint16_t    block_alignment;        // 20
     uint16_t    bits_per_sample;        // 22
     uint8_t     fixed_data[4];          // 24
     uint32_t    data_size;              // 28
@@ -72,8 +72,8 @@ static void generate(const uint32_t sample_rate, uint32_t bits, FILE* fd_out)
     header.type_of_format = 1; // WAVE_FORMAT_PCM
     header.number_of_channels = 2;
     header.sample_rate = sample_rate;
-    header.bytes_per_second = header.sample_rate * bytes_per_sample * 2;
-    header.bytes_per_sample = bytes_per_sample;
+    header.avg_bytes_per_second = header.sample_rate * bytes_per_sample * header.number_of_channels;
+    header.block_alignment = bytes_per_sample * header.number_of_channels;
     header.bits_per_sample = bytes_per_sample * 8;
     memcpy(header.fixed_data, "data", 4);
     header.data_size = num_samples * bytes_per_sample * 2;

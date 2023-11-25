@@ -40,7 +40,7 @@ bit-exact and whether it is 16-bit or 24-bit.
 Instructions
 ------------
 
-Pre-made WAV files for 44.1kHz and 48kHz can be found in the [examples](examples)
+Pre-made WAV files for 44.1kHz, 48kHz and 96kHz can be found in the [examples](examples)
 subdirectory. These files contain 16-bit or 24-bit audio data. You should
 choose the appopriate one to match the capabilities of your S/PDIF output.
 
@@ -56,14 +56,16 @@ If you also have an S/PDIF input, loop the output to the input, and record from 
 input. Then compare the recording with the test pattern WAV file using suitable
 software.
 
-For example, you could record the signal using Audacity, then import the test pattern
-WAV file, then zoom in so that the individual samples can be seen. Align the recording
-with the test pattern by deleting samples. Then use "Effects -> Invert" to negate the
+For example, you could record the signal using a multitrack sound editor, then import the test pattern
+WAV file as a second track. Then, zoom in so that the individual samples can be seen. Align the recording
+with the test pattern by deleting samples. Use an "Invert" effect to negate the
 test pattern. Then mix the test pattern and the signal together. The result should be
 absolute silence (zero).
 
-This method assumes that your S/PDIF input is bit-exact and that recording from the
-output of the computer is permitted by your OS and device drivers. Therefore, this
+This method assumes that your S/PDIF input is bit-exact, that recording from the
+output of the computer is permitted by your OS and device drivers, and that the
+sound editor is able to preserve bit-exactness. Sound editors which convert to another
+format for internal use (e.g. floating point) may not be bit-exact. This
 method can tell you that your input and output are both bit-exact, but if they are
 not, it does not determine which one is the problem.
 
@@ -80,8 +82,8 @@ Oscilloscope method
 See the [oscilloscope](oscilloscope) subdirectory for more information.
 
 
-Achieving bit-exact outputs
-===========================
+Achieving bit-exact outputs on Windows
+======================================
 
 To get bit-exact output on Windows, consider using "Windows Audio Session API" (WASAPI).
 If your music
@@ -110,11 +112,27 @@ to 48kHz, forcing resampling) then you might consider adding a USB S/PDIF device
 Some USB S/PDIF devices are better than others: devices might only support 16-bit 48kHz,
 and driver support might also be bad, so order from somewhere that allows returns!
 
-On Linux, bit-exact output appears to be the default. I only needed to play the
-test pattern WAV files using "aplay" - no other adjustments were needed.
-The Linux sound drivers were not able to operate at 96kHz or 24-bit, even though these
-higher rates are supported by the hardware, but this limitation is not very important
-for most purposes.
+Achieving bit-exact outputs on Linux
+====================================
+
+On Linux, depending on your distribution and hardware, bit-exact may "just work". I use Debian
+on my PC and the following is based on Debian 12 ("bookworm").
+
+Without changing any default aside from turning the volume to 100%, I was able to play the 24-bit 48kHz test pattern WAV file
+and get bit-exact results with various programs. I tested ![https://www.strawberrymusicplayer.org/](Strawberry),
+mplayer, aplay, ![https://en.wikipedia.org/wiki/SoX](play) and ![https://www.musicpd.org/](Music Player Daemon)
+and all produced bit-exact output at 48kHz. This worked via ![https://pipewire.org/](PipeWire) which is
+installed and configured by default. The hardware driver is 
+`snd_hda_intel` and the hardware is reported by ALSA as "Realtek ALC887-VD".
+
+However, playing files with different sample rates was not bit-exact with PipeWire. Most likely the
+sound is resampled to 48kHz, as on Windows. But unlike Windows, the mixer operates in a bit-exact
+mode when there is only one sound source and the volume is 100%. S/PDIF also shuts down when nothing is playing.
+
+If I shut down PipeWire with `systemctl --user stop pipewire-pulse`, I can configure Strawberry to
+output directly via ALSA. Having done that, output is bit-exact at 44.1kHz and 96kHz: there is no resampling. 
+But this carries similar disadvantages to using WASAPI on Windows, as only one program
+can use the sound card at once.
 
 
 Format of the test pattern
