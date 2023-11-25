@@ -119,10 +119,10 @@ On Linux, depending on your distribution and hardware, bit-exact may "just work"
 on my PC and the following is based on Debian 12 ("bookworm").
 
 Without changing any default aside from turning the volume to 100%, I was able to play the 24-bit 48kHz test pattern WAV file
-and get bit-exact results with various programs. I tested ![Strawberry](https://www.strawberrymusicplayer.org/),
-mplayer, aplay, ![play](https://en.wikipedia.org/wiki/SoX)
-and ![MPD](https://www.musicpd.org/) and
-all produced bit-exact output at 48kHz. Sound is mixed by ![PipeWire](https://pipewire.org/) which is
+and get bit-exact results with various programs. I tested [Strawberry](https://www.strawberrymusicplayer.org/),
+mplayer, aplay, [play](https://en.wikipedia.org/wiki/SoX)
+and [MPD](https://www.musicpd.org/) and
+all produced bit-exact output at 48kHz. Sound is mixed by [PipeWire](https://pipewire.org/) which is
 installed and configured by default. The hardware driver is 
 `snd_hda_intel` and the hardware is reported by ALSA as "Realtek ALC887-VD".
 
