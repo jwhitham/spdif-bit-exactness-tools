@@ -67,11 +67,20 @@ output of the computer is permitted by your OS and device drivers, and that the
 sound editor is able to preserve bit-exactness. Sound editors which convert to another
 format for internal use (e.g. floating point) may not be bit-exact. This
 method can tell you that your input and output are both bit-exact, but if they are
-not, it does not determine which one is the problem.
+not, it does not indicate which one is the problem. In particular, I have had some issues with using
+Audacity for bit-exactness experiments and I am not convinced that it is a good tool for this purpose.
 
 
 FPGA method
 -----------
+
+I have created FPGA hardware design files in VHDL which can receive S/PDIF inputs and check them
+for test patterns. If you have exactly the same FPGA
+([iCE40HX8K FPGA](https://www.latticesemi.com/Products/FPGAandCPLD/iCE40).
+on an [iceFUN module](https://www.robot-electronics.co.uk/icefun.html) then you only need
+to add an S/PDIF optical receiver module in order to use my FPGA bit file.
+Connect the input to pin L12. If you have
+another FPGA then you can probably use the same VHDL files with a little porting work.
 
 See the [fpga](fpga) subdirectory for more information.
 
@@ -126,14 +135,22 @@ all produced bit-exact output at 48kHz. Sound is mixed by [PipeWire](https://pip
 installed and configured by default. The hardware driver is 
 `snd_hda_intel` and the hardware is reported by ALSA as "Realtek ALC887-VD".
 
-However, playing files with different sample rates was not bit-exact with PipeWire. Most likely the
-sound is resampled to 48kHz, as on Windows. But unlike Windows, the mixer operates in a bit-exact
-mode when there is only one sound source and the volume is 100%. S/PDIF also shuts down when nothing is playing.
+By default, playing 44.1kHz files was not bit-exact with PipeWire, but a small configuration change
+is all that's needed. I created a file named `$HOME/.config/pipewire/pipewire.conf.d/cd-audio.conf`
+containing this:
 
-If I shut down PipeWire with `systemctl --user stop pipewire-pulse`, I can configure Strawberry to
-output directly via ALSA. Having done that, output is bit-exact at 44.1kHz and 96kHz: there is no resampling. 
-But this carries similar disadvantages to using WASAPI on Windows, as only one program
-can use the sound card at once.
+    context.properties = {
+        default.clock.rate          = 48000
+        default.clock.allowed-rates = [ 44100, 48000, 96000 ]
+    }
+
+These settings allow Pipewire to mix audio data at 44.1kHz as well as 48kHz and 96kHz. 
+Unlike Windows, the mixer operates in a bit-exact mode when (1) there is only one sound source,
+(2) no resampling is required and (3) the volume is 100%. The configuration change tells Pipewire
+that no resampling is required because the hardware already supports the 44.1kHz sample rate.
+Therefore the output is bit-exact. The benefit applies to all music-playing software without
+any need for changes elsewhere. Pipewire is impressive. Linux audio technology has come a long way.
+I remember a time when Soundblaster support usually required recompiling the kernel...
 
 
 Format of the test pattern
