@@ -51,16 +51,31 @@ TEST_VHDL = \
 		test/test_uart.vhdl \
 		test/test_top_level.vhdl
 
+MAIN=compressor_main
+
 all: run_tests
 
 clean:
 	ghdl --remove
 
-run_tests:
+$(MAIN).bin: app/generated/match_rom.vhdl app/generated/version_rom.vhdl
 	ghdl --remove
+	ghdl -a --work=work $(VHDL)
+	yosys -m ghdl -p 'ghdl $(MAIN); synth_ice40 -json $(MAIN).json'
+	nextpnr-ice40 -r --hx8k --json $(MAIN).json --package cb132 --asc $(MAIN).asc --opt-timing --pcf project/ice40.pcf 
+	icepack $(MAIN).asc $(MAIN).bin
+
+app/generated/match_rom.vhdl:
 	python app/make_match_rom.py
+
+app/generated/version_rom.vhdl:
 	python app/make_version_rom.py
+
+test/generated/test_signal_generator.vhdl:
 	python test/make_test_bench.py
+
+run_tests: app/generated/match_rom.vhdl app/generated/version_rom.vhdl test/generated/test_signal_generator.vhdl
+	ghdl --remove
 	ghdl -a --work=work $(VHDL) $(TEST_VHDL)
 	ghdl -r test_delay $(RFLAGS)
 	ghdl -r test_compressor2 $(RFLAGS)

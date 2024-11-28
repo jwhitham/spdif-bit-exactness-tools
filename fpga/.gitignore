@@ -5,3 +5,6 @@ project/stdout.log
 project/synlog.tcl
 app/generated/version_rom.vhdl
 tmp.txt
+*.o
+compressor_main.asc
+compressor_main.json
