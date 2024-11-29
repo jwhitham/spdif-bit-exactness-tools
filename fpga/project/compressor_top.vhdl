@@ -13,9 +13,9 @@ entity compressor_top is
         rx_from_pic         : in std_logic;
 
         rotary_common_p53   : out std_logic := '0'; -- green wire E12
-        rotary_024_p54      : in std_logic; -- grey wire D14
-        rotary_01_p44       : in std_logic; -- purple wire K14
-        rotary_23_p43       : in std_logic; -- blue wire H11
+        rotary_024_p54      : inout std_logic; -- grey wire D14
+        rotary_01_p44       : inout std_logic; -- purple wire K14
+        rotary_23_p43       : inout std_logic; -- blue wire H11
 
         adjust_1a_p52       : out std_logic := '0';
         adjust_1b_p50       : out std_logic := '0';
