@@ -7,7 +7,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-use std.textio.all;
+use debug_textio.all;
 
 -- The "single pulse time" X is the smallest possible number of clock cycles that the
 -- input stays in either the 1 state or the 0 state. The S/PDIF signals use a mixture

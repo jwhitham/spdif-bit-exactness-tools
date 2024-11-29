@@ -1,9 +1,11 @@
+library work;
+use work.all;
 
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-use std.textio.all;
+use debug_textio.all;
 
 entity packet_decoder is
     generic (debug : Boolean := false);

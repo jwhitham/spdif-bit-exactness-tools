@@ -7,11 +7,14 @@
 -- Inputs are allowed every 3 clock cycles. error_out will be asserted if
 -- an input is attempted when the delay is not ready.
 
+library work;
+use work.all;
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-use std.textio.all;
+use debug_textio.all;
 
 entity delay1 is
     generic (debug : Boolean := false;
