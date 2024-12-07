@@ -163,56 +163,37 @@ begin
     end process t1p;
 
     sync_events : block
-        procedure report_sync_event (index1, index2 : Integer; name: String) is
-            variable l : line;
-            variable start : Integer;
-        begin
-            while done /= '1' loop
-                start := to_integer (unsigned (sync (index1 downto index2)));
-                while done = '0' and start = to_integer (unsigned (sync (index1 downto index2))) loop
-                    wait until sync'event or done'event;
-                end loop;
-                write (l, name);
-                write (l, String'(" "));
-                if to_integer (unsigned (sync (index1 downto index2))) = 0 then
-                    write (l, String'("de"));
-                end if;
-                write (l, String'("synchronised"));
-                writeline (output, l);
-            end loop;
-            wait;
-        end report_sync_event;
     begin
-        process begin
-            report_sync_event (1, 1, "input decoder");
-        end process;
-        process begin
-            report_sync_event (2, 2, "packet decoder");
-        end process;
-        process begin
-            report_sync_event (3, 3, "channel decoder");
-        end process;
-        process begin
-            report_sync_event (5, 4, "matcher");
-        end process;
-        process begin
-            report_sync_event (6, 6, "clock regenerator");
-        end process;
-        process begin
-            report_sync_event (9, 9, "combined encoder");
-        end process;
-        process begin
-            report_sync_event (10, 10, "second input decoder");
-        end process;
-        process begin
-            report_sync_event (11, 11, "second packet decoder");
-        end process;
-        process begin
-            report_sync_event (12, 12, "second channel decoder");
-        end process;
-        process begin
-            report_sync_event (14, 13, "second matcher");
-        end process;
+        r1 : entity report_sync_event
+            generic map (index1 => 1, index2 => 1, name => "input decoder")
+            port map (sync => sync, done => done);
+        r2 : entity report_sync_event
+            generic map (index1 => 2, index2 => 2, name => "packet decoder")
+            port map (sync => sync, done => done);
+        r3 : entity report_sync_event
+            generic map (index1 => 3, index2 => 3, name => "channel decoder")
+            port map (sync => sync, done => done);
+        r4 : entity report_sync_event
+            generic map (index1 => 5, index2 => 4, name => "matcher")
+            port map (sync => sync, done => done);
+        r5 : entity report_sync_event
+            generic map (index1 => 6, index2 => 6, name => "clock regenerator")
+            port map (sync => sync, done => done);
+        r6 : entity report_sync_event
+            generic map (index1 => 9, index2 => 9, name => "combined encoder")
+            port map (sync => sync, done => done);
+        r7 : entity report_sync_event
+            generic map (index1 => 10, index2 => 10, name => "second input decoder")
+            port map (sync => sync, done => done);
+        r8 : entity report_sync_event
+            generic map (index1 => 11, index2 => 11, name => "second packet decoder")
+            port map (sync => sync, done => done);
+        r9 : entity report_sync_event
+            generic map (index1 => 12, index2 => 12, name => "second channel decoder")
+            port map (sync => sync, done => done);
+        r10 : entity report_sync_event
+            generic map (index1 => 14, index2 => 13, name => "second matcher")
+            port map (sync => sync, done => done);
     end block sync_events;
 
     print_sample_rate : process
