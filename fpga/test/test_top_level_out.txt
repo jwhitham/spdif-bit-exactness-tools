@@ -14,8 +14,8 @@ input decoder synchronised
 input decoder single time = 44
 packet decoder synchronised
 input decoder desynchronised
-input decoder single time = 0
 packet decoder desynchronised
+input decoder single time = 0
 input decoder synchronised
 input decoder single time = 12
 packet decoder synchronised
@@ -24,16 +24,16 @@ packet decoder synchronised
 channel decoder synchronised
 000000 cfb500
 input decoder desynchronised
-input decoder single time = 0
 packet decoder desynchronised
+input decoder single time = 0
 channel decoder desynchronised
 Start of ../examples/20220502-44k.csv
 input decoder synchronised
 input decoder single time = 40
 packet decoder synchronised
 input decoder desynchronised
-input decoder single time = 0
 packet decoder desynchronised
+input decoder single time = 0
 input decoder synchronised
 input decoder single time = 9
 packet decoder synchronised
@@ -45,8 +45,8 @@ input decoder synchronised
 input decoder single time = 40
 packet decoder synchronised
 input decoder desynchronised
-input decoder single time = 0
 packet decoder desynchronised
+input decoder single time = 0
 input decoder synchronised
 input decoder single time = 8
 packet decoder synchronised
@@ -54,16 +54,16 @@ channel decoder synchronised
 000000 000000
 000000 000000
 input decoder desynchronised
-input decoder single time = 0
 packet decoder desynchronised
+input decoder single time = 0
 channel decoder desynchronised
 Start of ../examples/test_48000_24_bit.csv
 input decoder synchronised
 input decoder single time = 39
 packet decoder synchronised
 input decoder desynchronised
-input decoder single time = 0
 packet decoder desynchronised
+input decoder single time = 0
 input decoder synchronised
 input decoder single time = 6
 packet decoder synchronised
@@ -129,8 +129,8 @@ ea6d66 3e4874
 008000 ff7fff
 010000 feffff
 input decoder desynchronised
-input decoder single time = 0
 packet decoder desynchronised
+input decoder single time = 0
 channel decoder desynchronised
 clock regenerator desynchronised
 combined encoder desynchronised
@@ -142,8 +142,8 @@ input decoder synchronised
 input decoder single time = 39
 packet decoder synchronised
 input decoder desynchronised
-input decoder single time = 0
 packet decoder desynchronised
+input decoder single time = 0
 input decoder synchronised
 input decoder single time = 7
 input decoder single time = 9
@@ -199,8 +199,8 @@ c64e00 655e00
 f66900 51f300
 b61800 1d7600
 input decoder desynchronised
-input decoder single time = 0
 packet decoder desynchronised
+input decoder single time = 0
 channel decoder desynchronised
 clock regenerator desynchronised
 combined encoder desynchronised
@@ -213,8 +213,8 @@ input decoder single time = 41
 packet decoder synchronised
 input decoder single time = 40
 input decoder desynchronised
-input decoder single time = 0
 packet decoder desynchronised
+input decoder single time = 0
 input decoder synchronised
 input decoder single time = 8
 packet decoder synchronised
@@ -429,11 +429,11 @@ afe65e 4195b3
 d0961c 8de3b3
 8fb408 cfb555
 input decoder desynchronised
-input decoder single time = 0
 packet decoder desynchronised
+input decoder single time = 0
 channel decoder desynchronised
-matcher desynchronised
 clock regenerator desynchronised
+matcher desynchronised
 combined encoder desynchronised
 second input decoder desynchronised
 second packet decoder desynchronised
@@ -445,8 +445,8 @@ input decoder single time = 41
 packet decoder synchronised
 input decoder single time = 40
 input decoder desynchronised
-input decoder single time = 0
 packet decoder desynchronised
+input decoder single time = 0
 input decoder synchronised
 input decoder single time = 9
 packet decoder synchronised
@@ -662,11 +662,11 @@ afe600 419500
 d09600 8de300
 8fb400 cfb500
 input decoder desynchronised
-input decoder single time = 0
 packet decoder desynchronised
+input decoder single time = 0
 channel decoder desynchronised
-matcher desynchronised
 clock regenerator desynchronised
+matcher desynchronised
 combined encoder desynchronised
 second input decoder desynchronised
 second packet decoder desynchronised
@@ -677,8 +677,8 @@ input decoder synchronised
 input decoder single time = 41
 packet decoder synchronised
 input decoder desynchronised
-input decoder single time = 0
 packet decoder desynchronised
+input decoder single time = 0
 input decoder synchronised
 input decoder single time = 8
 packet decoder synchronised
@@ -893,20 +893,20 @@ afe600 419600
 d09600 8de400
 8fb400 cfb500
 input decoder desynchronised
-input decoder single time = 0
 packet decoder desynchronised
+input decoder single time = 0
 channel decoder desynchronised
-matcher desynchronised
 clock regenerator desynchronised
+matcher desynchronised
 combined encoder desynchronised
 second input decoder desynchronised
 second packet decoder desynchronised
 second channel decoder desynchronised
-second matcher desynchronised
 second matcher desynchronised
 second matcher: coverage of output state 1 is TRUE
 second matcher: coverage of output state 2 is TRUE
 second matcher: coverage of output state 3 is TRUE
+second matcher desynchronised
 second channel decoder desynchronised
 second packet decoder desynchronised
 second input decoder desynchronised
@@ -915,5 +915,5 @@ clock regenerator desynchronised
 matcher desynchronised
 channel decoder desynchronised
 packet decoder desynchronised
-input decoder single time = 0
 input decoder desynchronised
+input decoder single time = 0

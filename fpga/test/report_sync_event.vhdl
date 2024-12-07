@@ -10,7 +10,8 @@ use debug_textio.all;
 entity report_sync_event is
     generic (
         index1, index2  : Natural;
-        num_sync        : Natural := 14;
+        num_sync        : Natural;
+        offset          : Natural;
         name            : String);
     port (
         sync            : std_logic_vector (num_sync downto 1) := (others => '0');
@@ -24,6 +25,7 @@ begin
     begin
         while done /= '1' loop
             wait until sync (index1 downto index2)'event or done'event;
+            wait for offset * 1 ps;
             write (l, name);
             write (l, String'(" "));
             if to_integer (unsigned (sync (index1 downto index2))) = 0 then

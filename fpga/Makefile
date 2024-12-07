@@ -36,6 +36,7 @@ TEST_VHDL_PKG = \
 TEST_VHDL = \
 		test/sb_ram40_4k.vhdl \
 		test/generated/test_signal_generator.vhdl \
+		test/report_sync_event.vhdl \
 		test/test_delay.vhdl \
 		test/test_encoder2.vhdl \
 		test/test_encoder.vhdl \

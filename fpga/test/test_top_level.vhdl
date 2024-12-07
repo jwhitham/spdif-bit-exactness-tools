@@ -155,6 +155,7 @@ begin
     begin
         while done /= '1' loop
             wait until single_time'event or done'event;
+            wait for 11 ps; -- until after channel decoder sync event is reported
             write (l, String'("input decoder single time = "));
             write (l, to_integer (unsigned (single_time)));
             writeline (output, l);
@@ -165,34 +166,44 @@ begin
     sync_events : block
     begin
         r1 : entity report_sync_event
-            generic map (index1 => 1, index2 => 1, name => "input decoder")
+            generic map (index1 => 1, index2 => 1, name => "input decoder",
+                         num_sync => num_sync, offset => 10)
             port map (sync => sync, done => done);
         r2 : entity report_sync_event
-            generic map (index1 => 2, index2 => 2, name => "packet decoder")
+            generic map (index1 => 2, index2 => 2, name => "packet decoder",   
+                         num_sync => num_sync, offset => 9)
             port map (sync => sync, done => done);
         r3 : entity report_sync_event
-            generic map (index1 => 3, index2 => 3, name => "channel decoder")
+            generic map (index1 => 3, index2 => 3, name => "channel decoder",  
+                         num_sync => num_sync, offset => 8)
             port map (sync => sync, done => done);
         r4 : entity report_sync_event
-            generic map (index1 => 5, index2 => 4, name => "matcher")
+            generic map (index1 => 5, index2 => 4, name => "matcher",  
+                         num_sync => num_sync, offset => 7)
             port map (sync => sync, done => done);
         r5 : entity report_sync_event
-            generic map (index1 => 6, index2 => 6, name => "clock regenerator")
+            generic map (index1 => 6, index2 => 6, name => "clock regenerator",
+                         num_sync => num_sync, offset => 6)
             port map (sync => sync, done => done);
         r6 : entity report_sync_event
-            generic map (index1 => 9, index2 => 9, name => "combined encoder")
+            generic map (index1 => 9, index2 => 9, name => "combined encoder", 
+                         num_sync => num_sync, offset => 5)
             port map (sync => sync, done => done);
         r7 : entity report_sync_event
-            generic map (index1 => 10, index2 => 10, name => "second input decoder")
+            generic map (index1 => 10, index2 => 10, name => "second input decoder",   
+                         num_sync => num_sync, offset => 4)
             port map (sync => sync, done => done);
         r8 : entity report_sync_event
-            generic map (index1 => 11, index2 => 11, name => "second packet decoder")
+            generic map (index1 => 11, index2 => 11, name => "second packet decoder",  
+                         num_sync => num_sync, offset => 3)
             port map (sync => sync, done => done);
         r9 : entity report_sync_event
-            generic map (index1 => 12, index2 => 12, name => "second channel decoder")
+            generic map (index1 => 12, index2 => 12, name => "second channel decoder", 
+                         num_sync => num_sync, offset => 2)
             port map (sync => sync, done => done);
         r10 : entity report_sync_event
-            generic map (index1 => 14, index2 => 13, name => "second matcher")
+            generic map (index1 => 14, index2 => 13, name => "second matcher", 
+                         num_sync => num_sync, offset => 1)
             port map (sync => sync, done => done);
     end block sync_events;
 
