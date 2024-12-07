@@ -140,10 +140,13 @@ def main() -> None:
     # generate test bench
     with open("test/generated/test_signal_generator.vhdl", "wt") as fd:
         fd.write(f"""
+library work;
+use work.all;
+
 library ieee;
 use ieee.std_logic_1164.all;
 
-use std.textio.all;
+use debug_textio.all;
 
 entity test_signal_generator is
     port (

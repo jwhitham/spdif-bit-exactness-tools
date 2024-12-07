@@ -1,8 +1,10 @@
+library work;
+use work.all;
 
 library ieee;
 use ieee.std_logic_1164.all;
 
-use std.textio.all;
+use debug_textio.all;
 
 entity channel_decoder is
     generic (debug      : Boolean := false);

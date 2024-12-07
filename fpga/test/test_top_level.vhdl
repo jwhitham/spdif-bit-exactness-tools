@@ -6,7 +6,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-use std.textio.all;
+use debug_textio.all;
 
 entity test_top_level is
 end test_top_level;
@@ -165,9 +165,13 @@ begin
     sync_events : block
         procedure report_sync_event (index1, index2 : Integer; name: String) is
             variable l : line;
+            variable start : Integer;
         begin
             while done /= '1' loop
-                wait until sync (index1 downto index2)'event or done'event;
+                start := to_integer (unsigned (sync (index1 downto index2)));
+                while done = '0' and start = to_integer (unsigned (sync (index1 downto index2))) loop
+                    wait until sync'event or done'event;
+                end loop;
                 write (l, name);
                 write (l, String'(" "));
                 if to_integer (unsigned (sync (index1 downto index2))) = 0 then

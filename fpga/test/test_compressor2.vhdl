@@ -7,7 +7,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use ieee.math_real.all;
 
-use std.textio.all;
+use debug_textio.all;
 
 entity test_compressor2 is
 end test_compressor2;

@@ -8,3 +8,4 @@ tmp.txt
 *.o
 compressor_main.asc
 compressor_main.json
+*.bak

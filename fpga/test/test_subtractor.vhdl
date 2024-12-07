@@ -5,10 +5,10 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+use debug_textio.all;
+
 entity test_subtractor is
 end test_subtractor;
-
-use std.textio.all;
 
 architecture test of test_subtractor is
 

@@ -117,6 +117,20 @@ used for synthesis, with Lattice-specific tools for place and route.
 I understand there are also some [open-source tools
 for this FPGA](https://github.com/YosysHQ/icestorm) but I have not tried these out.
 
+Building with iCEcube2
+----------------------
+
+You need to generate two VHDL files. In the "fpga" directory run two Python scripts:
+
+    $ cd fpga
+    $ python app/make_match_rom.py
+    $ python app/make_version_rom.py
+
+Open the fpga/project/compressor\_sbt.project file in iCEcube2 and add the two generated VHDL files
+in fpga/app/generated. Then click "Run Synplify Pro Synthesis", followed by "Import P&R Input Files",
+"Run Placer", "Run Router", "Generate Bitmap". The .bin output file appears in 
+fpga/project/compressor\_Implmnt/sbt/outputs/bitmap and can be programmed onto the FPGA using
+the iceFUNprog tool.
 
 
 Components and challenges

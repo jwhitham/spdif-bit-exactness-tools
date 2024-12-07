@@ -29,6 +29,10 @@ VHDL =  \
 		spdif/combined_encoder.vhdl \
 		app/compressor_main.vhdl
 
+TEST_VHDL_PKG = \
+		test/debug_textio.vhdl \
+		test/debug_textio-body.vhdl
+
 TEST_VHDL = \
 		test/sb_ram40_4k.vhdl \
 		test/generated/test_signal_generator.vhdl \
@@ -76,7 +80,7 @@ test/generated/test_signal_generator.vhdl:
 
 run_tests: app/generated/match_rom.vhdl app/generated/version_rom.vhdl test/generated/test_signal_generator.vhdl
 	ghdl --remove
-	ghdl -a --work=work $(VHDL) $(TEST_VHDL)
+	ghdl -a --work=work $(TEST_VHDL_PKG) $(VHDL) $(TEST_VHDL)
 	ghdl -r test_delay $(RFLAGS)
 	ghdl -r test_compressor2 $(RFLAGS)
 	ghdl -r test_compressor $(RFLAGS)
