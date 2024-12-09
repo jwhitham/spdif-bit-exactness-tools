@@ -1,0 +1,4 @@
+[submodule "fpga/comfilter"]
+	path = fpga/comfilter
+    url = git@github.com:jwhitham/comfilter.git
+    branch = 2ba833b95391fbab63a45fbc07c58d5165bfcf4e
