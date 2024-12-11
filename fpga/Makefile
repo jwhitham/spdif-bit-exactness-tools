@@ -13,13 +13,6 @@ VHDL =  \
 		lib/uart.vhdl \
 		lib/delay1.vhdl \
 		lib/delay.vhdl \
-		comfilter/generated/filter_unit_settings.vhdl \
-		comfilter/generated/filter_unit_control_line_decoder.vhdl \
-		comfilter/generated/filter_unit_microcode_store.test.vhdl \
-		comfilter/fpga/shift_register.vhdl \
-		comfilter/fpga/banked_shift_register.vhdl \
-		comfilter/fpga/subtractor.vhdl \
-		comfilter/fpga/filter_unit.vhdl \
 		app/mode_definitions.vhdl \
 		app/adc_driver.vhdl \
 		app/rotary_switch.vhdl \
@@ -35,6 +28,17 @@ VHDL =  \
 		spdif/packet_decoder.vhdl \
 		spdif/combined_encoder.vhdl \
 		app/compressor_main.vhdl
+
+VHDL_COMFILTER = \
+		comfilter/fpga/debug_textio.vhdl \
+		comfilter/fpga/debug_textio-body.vhdl \
+		comfilter/generated/filter_unit_settings.vhdl \
+		comfilter/generated/filter_unit_control_line_decoder.vhdl \
+		comfilter/generated/filter_unit_microcode_store.test.vhdl \
+		comfilter/fpga/shift_register.vhdl \
+		comfilter/fpga/banked_shift_register.vhdl \
+		comfilter/fpga/subtractor.vhdl \
+		comfilter/fpga/filter_unit.vhdl
 
 TEST_VHDL_PKG = \
 		test/debug_textio.vhdl \
@@ -74,6 +78,7 @@ run_tests:
 	python test/make_test_bench.py
 	cd comfilter; python microops/filter_implementation.py
 	ghdl -a --work=work $(TEST_VHDL_PKG) $(VHDL) $(TEST_VHDL)
+	ghdl -a --work=comfilter $(VHDL_COMFILTER)
 	ghdl -r test_delay $(RFLAGS)
 	ghdl -r test_compressor2 $(RFLAGS)
 	ghdl -r test_compressor $(RFLAGS)
