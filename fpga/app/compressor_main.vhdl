@@ -2,6 +2,11 @@
 library work;
 use work.all;
 
+library comfilter;
+use comfilter.filter_unit_settings.ALL_BITS;
+use comfilter.filter_unit_settings.NON_FRACTIONAL_BITS;
+use comfilter.filter_unit_settings.FRACTIONAL_BITS;
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -31,6 +36,8 @@ entity compressor_main is
         button_c11_in       : in std_logic;
         button_c6_in        : in std_logic;
         button_a5_in        : in std_logic;
+
+        com_serial_out      : out std_logic := '0';
 
         -- LED outputs
         lcols_out           : out std_logic_vector (3 downto 0) := "0000";
@@ -235,6 +242,38 @@ begin
             end if;
         end if;
     end process;
+
+    -- COM filter
+    com : block
+        signal serial_ready         : std_logic := '0';
+        signal serial_data          : std_logic := '0';
+        signal input_value          : std_logic_vector(ALL_BITS - 1 downto 0) := (others => '0');
+    begin
+        input_value (ALL_BITS - 1 downto ALL_BITS - NON_FRACTIONAL_BITS) <= (others => raw_data (27));
+        input_value (ALL_BITS - NON_FRACTIONAL_BITS - 1 downto 0) <=
+            raw_data (26 downto 27 - FRACTIONAL_BITS);
+
+        ifu : entity comfilter.filter_unit
+            port map (clock_in => clock_in,
+                    reset_in => reset,
+                    input_strobe_in => raw_left_strobe,
+                    input_data_in => input_value,
+                    input_ready_out => open,
+                    restart_debug_out => open,
+                    serial_ready_out => serial_ready,
+                    serial_data_out => serial_data);
+
+        process (clock_in) is
+        begin
+            if clock_in = '1' and clock_in'event then
+                if reset = '1' then
+                    com_serial_out <= '1';
+                elsif serial_ready = '1' then
+                    com_serial_out <= serial_data;
+                end if;
+            end if;
+        end process;
+    end block com;
 
     m : entity matcher
         port map (data_in => raw_data,

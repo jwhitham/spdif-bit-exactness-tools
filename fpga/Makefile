@@ -77,8 +77,8 @@ run_tests:
 	python app/make_version_rom.py
 	python test/make_test_bench.py
 	cd comfilter; python microops/filter_implementation.py
-	ghdl -a --work=work $(TEST_VHDL_PKG) $(VHDL) $(TEST_VHDL)
 	ghdl -a --work=comfilter $(VHDL_COMFILTER)
+	ghdl -a --work=work $(TEST_VHDL_PKG) $(VHDL) $(TEST_VHDL)
 	ghdl -r test_delay $(RFLAGS)
 	ghdl -r test_compressor2 $(RFLAGS)
 	ghdl -r test_compressor $(RFLAGS)
