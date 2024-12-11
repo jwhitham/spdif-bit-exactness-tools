@@ -36,3 +36,4 @@ set_io button_c11 C11
 set_io button_c6 C6
 set_io button_a5 A5
 
+set_io serial_out_a2 A2
