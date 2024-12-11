@@ -394,10 +394,12 @@ begin
             if reset_counter /= max_reset_counter and pulse_100hz = '1' then
                 reset_counter <= reset_counter + 1;
             end if;
+            reset <= '1';
+            if reset_counter = max_reset_counter then
+                reset <= '0';
+            end if;
         end if;
     end process;
-
-    reset <= '1' when reset_counter /= max_reset_counter else '0';
 
 end structural;
 
