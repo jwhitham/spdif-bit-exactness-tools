@@ -29,6 +29,21 @@ VHDL =  \
 		spdif/combined_encoder.vhdl \
 		app/compressor_main.vhdl
 
+VHDL_COMFILTER = \
+		comfilter/debug_textio.vhdl \
+		comfilter/debug_textio-body.vhdl \
+		comfilter/filter_unit_settings.vhdl \
+		comfilter/filter_unit_control_line_decoder.vhdl \
+		comfilter/filter_unit_microcode_store.test.vhdl \
+		comfilter/shift_register.vhdl \
+		comfilter/banked_shift_register.vhdl \
+		comfilter/subtractor.vhdl \
+		comfilter/filter_unit.vhdl \
+		comfilter/crc.vhdl \
+		comfilter/pulse_gen.vhdl \
+		comfilter/com_receiver.vhdl \
+		comfilter/comfilter_main.vhdl
+
 TEST_VHDL_PKG = \
 		test/debug_textio.vhdl \
 		test/debug_textio-body.vhdl
@@ -65,6 +80,7 @@ run_tests:
 	python app/make_match_rom.py
 	python app/make_version_rom.py
 	python test/make_test_bench.py
+	ghdl -a --work=comfilter $(VHDL_COMFILTER)
 	ghdl -a --work=work $(TEST_VHDL_PKG) $(VHDL) $(TEST_VHDL)
 	ghdl -r test_delay $(RFLAGS)
 	ghdl -r test_compressor2 $(RFLAGS)

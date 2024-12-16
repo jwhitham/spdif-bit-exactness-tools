@@ -1,8 +1,10 @@
 test_signal_generator.vhdl
-work-obj93.cf
-project/compressor_Implmnt
-project/stdout.log
-project/synlog.tcl
 app/generated/version_rom.vhdl
 tmp.txt
+*.cf
+*_Implmnt
+*.log
+*.tcl
 *.bak
+*.o
+*.json

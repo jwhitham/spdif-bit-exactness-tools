@@ -30,6 +30,8 @@ entity compressor_top is
         button_c6           : in std_logic;
         button_a5           : in std_logic;
 
+        serial_out_a2       : out std_logic := '0';
+
         lcol1               : out std_logic := '0';
         lcol2               : out std_logic := '0';
         lcol3               : out std_logic := '0';
@@ -91,6 +93,8 @@ begin
             button_c11_in => button_c11,
             button_c6_in => button_c6,
             button_a5_in => button_a5,
+
+            com_serial_out => serial_out_a2,
 
             lcols_out => lcols,
             lrows_out => lrows);

@@ -2,6 +2,11 @@
 library work;
 use work.all;
 
+library comfilter;
+use comfilter.filter_unit_settings.ALL_BITS;
+use comfilter.filter_unit_settings.NON_FRACTIONAL_BITS;
+use comfilter.filter_unit_settings.FRACTIONAL_BITS;
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -31,6 +36,8 @@ entity compressor_main is
         button_c11_in       : in std_logic;
         button_c6_in        : in std_logic;
         button_a5_in        : in std_logic;
+
+        com_serial_out      : out std_logic := '0';
 
         -- LED outputs
         lcols_out           : out std_logic_vector (3 downto 0) := "0000";
@@ -66,6 +73,10 @@ architecture structural of compressor_main is
     signal cmp_data                 : t_data := (others => '0');
     signal cmp_left_strobe          : std_logic := '0';
     signal cmp_right_strobe         : std_logic := '0';
+
+    -- com receiver
+    signal com_data                 : std_logic_vector(15 downto 0) := (others => '0');
+    signal com_strobe               : std_logic := '0';
 
     -- matcher
     signal matcher_sync             : std_logic_vector (1 downto 0) := "00";
@@ -236,6 +247,17 @@ begin
         end if;
     end process;
 
+    -- COM filter
+    ifu : entity comfilter.comfilter_main
+        generic map (clock_frequency => clock_frequency)
+        port map (clock_in => clock_in,
+                reset_in => reset,
+                audio_strobe_in => raw_left_strobe,
+                audio_data_in => raw_data (27 downto 12),
+                debug_serial_out => com_serial_out,
+                strobe_out => com_strobe,
+                data_out => com_data);
+
     m : entity matcher
         port map (data_in => raw_data,
                   left_strobe_in => raw_left_strobe,
@@ -355,10 +377,12 @@ begin
             if reset_counter /= max_reset_counter and pulse_100hz = '1' then
                 reset_counter <= reset_counter + 1;
             end if;
+            reset <= '1';
+            if reset_counter = max_reset_counter then
+                reset <= '0';
+            end if;
         end if;
     end process;
-
-    reset <= '1' when reset_counter /= max_reset_counter else '0';
 
 end structural;
 
