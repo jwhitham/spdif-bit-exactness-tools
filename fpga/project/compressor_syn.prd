@@ -1,0 +1,13 @@
+#--  Synopsys, Inc.
+#--  Version L-2016.09L+ice40
+#--  Project file J:\spdif-bit-exactness-tools\fpga\project\compressor_syn.prd
+#--  Written on Mon Dec 16 18:46:31 2024
+
+#
+### Watch Implementation type ###
+#
+watch_impl -all
+#
+### Watch Implementation properties ###
+#
+watch_prop -clear

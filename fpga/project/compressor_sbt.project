@@ -4,7 +4,7 @@ Version=Lattice Semiconductor Corporation iCEcube - Release: 2020.12.27943 - Bui
 ProjectName=compressor
 Vendor=SiliconBlue
 Synthesis=synplify
-ProjectVFiles=compressor_pll.vhd=work,compressor_top.vhdl=work,../spdif/channel_decoder.vhdl=work,../spdif/clock_regenerator.vhdl=work,../spdif/input_decoder.vhdl=work,../spdif/packet_decoder.vhdl=work,../lib/convert_from_sign_magnitude.vhdl=work,../lib/convert_to_sign_magnitude.vhdl=work,../lib/divider.vhdl=work,../lib/led_scan.vhdl=work,../lib/pulse_gen.vhdl=work,../lib/subtractor.vhdl=work,../lib/uart.vhdl=work,../app/compressor.vhdl=work,../app/compressor_main.vhdl=work,../app/matcher.vhdl=work,../app/mode_definitions.vhdl=work,../app/mode_display.vhdl=work,../app/rotary_switch.vhdl=work,../app/vu_meter.vhdl=work,../app/generated/match_rom.vhdl=work,../lib/multiplier.vhdl=work,../app/adc_driver.vhdl=work,../lib/delay.vhdl=work,../lib/delay1.vhdl=work,../spdif/combined_encoder.vhdl=work,../app/generated/version_rom.vhdl=work,debug_textio-body.vhdl=work,debug_textio.vhdl=work
+ProjectVFiles=compressor_pll.vhd=work,compressor_top.vhdl=work,../spdif/channel_decoder.vhdl=work,../spdif/clock_regenerator.vhdl=work,../spdif/input_decoder.vhdl=work,../spdif/packet_decoder.vhdl=work,../lib/convert_from_sign_magnitude.vhdl=work,../lib/convert_to_sign_magnitude.vhdl=work,../lib/divider.vhdl=work,../lib/led_scan.vhdl=work,../lib/pulse_gen.vhdl=work,../lib/subtractor.vhdl=work,../lib/uart.vhdl=work,../app/compressor.vhdl=work,../app/compressor_main.vhdl=work,../app/matcher.vhdl=work,../app/mode_definitions.vhdl=work,../app/mode_display.vhdl=work,../app/rotary_switch.vhdl=work,../app/vu_meter.vhdl=work,../app/generated/match_rom.vhdl=work,../lib/multiplier.vhdl=work,../app/adc_driver.vhdl=work,../lib/delay.vhdl=work,../lib/delay1.vhdl=work,../spdif/combined_encoder.vhdl=work,../app/generated/version_rom.vhdl=work,debug_textio-body.vhdl=work,debug_textio.vhdl=work,../comfilter/subtractor.vhdl=comfilter,../comfilter/banked_shift_register.vhdl=comfilter,../comfilter/com_receiver.vhdl=comfilter,../comfilter/comfilter_main.vhdl=comfilter,../comfilter/crc.vhdl=comfilter,../comfilter/debug_textio-body.vhdl=comfilter,../comfilter/debug_textio.vhdl=comfilter,../comfilter/filter_unit.vhdl=comfilter,../comfilter/filter_unit_control_line_decoder.vhdl=comfilter,../comfilter/filter_unit_microcode_store.vhdl=comfilter,../comfilter/filter_unit_settings.vhdl=comfilter,../comfilter/pulse_gen.vhdl=comfilter,../comfilter/shift_register.vhdl=comfilter
 ProjectCFiles=syn_config.sdc
 CurImplementation=compressor_Implmnt
 Implementations=compressor_Implmnt
@@ -16,13 +16,13 @@ DeviceFamily=iCE40
 Device=HX8K
 DevicePackage=CB132
 DevicePower=
-NetlistFile=compressor_Implmnt/compressor.edf
+NetlistFile=
 AdditionalEDIFFile=
 IPEDIFFile=
-DesignLib=compressor_Implmnt/sbt/netlist/oadb-compressor_top
-DesignView=_rt
-DesignCell=compressor_top
-SynthesisSDCFile=compressor_Implmnt/compressor.scf
+DesignLib=
+DesignView=
+DesignCell=
+SynthesisSDCFile=J:/spdif-bit-exactness-tools/fpga/project/compressor_Implmnt/compressor.scf
 UserPinConstraintFile=
 UserSDCFile=
 PhysicalConstraintFile=ice40.pcf
