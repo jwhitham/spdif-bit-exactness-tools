@@ -77,6 +77,8 @@ architecture structural of compressor_main is
     -- com receiver
     signal com_data                 : std_logic_vector(15 downto 0) := (others => '0');
     signal com_strobe               : std_logic := '0';
+    signal com_adjust_1_set         : std_logic := '0';
+    signal com_adjust_2_set         : std_logic := '0';
 
     -- matcher
     signal matcher_sync             : std_logic_vector (1 downto 0) := "00";
@@ -220,8 +222,6 @@ begin
         end case;
     end process;
 
-    preemph <= not button_c6_in;
-
     ce : entity combined_encoder
         port map (clock_in => clock_in,
                   sync_in => sync (5),
@@ -257,6 +257,9 @@ begin
                 debug_serial_out => com_serial_out,
                 strobe_out => com_strobe,
                 data_out => com_data);
+
+    com_adjust_1_set <= com_strobe when (com_data (15 downto 14) = "10") else '0';
+    com_adjust_2_set <= com_strobe when (com_data (15 downto 14) = "11") else '0';
 
     m : entity matcher
         port map (data_in => raw_data,
@@ -332,9 +335,6 @@ begin
                   lcols_out => lcols_out,
                   lrows_out => lrows_out);
 
-    adc_enable_poll <= not button_c11_in;
-    reset_error <= not button_c6_in;
-
     adc : entity adc_driver
         generic map (clock_frequency => clock_frequency)
         port map (clock_in => clock_in,
@@ -346,22 +346,56 @@ begin
                   error_out => adc_error,
                   adjust_1_out => adjust_1,
                   adjust_2_out => adjust_2,
+                  com_adjust_value_in => com_data (9 downto 0),
+                  com_adjust_1_set_in => com_adjust_1_set,
+                  com_adjust_2_set_in => com_adjust_2_set,
                   adjust_1a_p52 => adjust_1a_out,
                   adjust_1b_p50 => adjust_1b_out,
                   adjust_2a_p47 => adjust_2a_out,
                   adjust_2b_p45 => adjust_2b_out);
 
-    rot : entity rotary_switch
-        port map (clock_in => clock_in,
-                  reset_in => reset,
-                  pulse_100hz_in => pulse_100hz,
-                  rotary_024 => rotary_024_in,
-                  rotary_01 => rotary_01_in,
-                  rotary_23 => rotary_23_in,
-                  left_button => button_a11_in,
-                  right_button => button_a5_in,
-                  strobe_out => mode_strobe,
-                  value_out => mode_select);
+    com_rot : block
+        signal com_button_command       : std_logic := '0';
+        signal com_preemph_set          : std_logic := '0';
+        signal com_mode_set             : std_logic := '0';
+        signal com_mode_clear           : std_logic := '0';
+        signal com_reset_error_button   : std_logic := '0';
+    begin
+        com_button_command <= com_strobe when (com_data (15 downto 14) = "01") else '0';
+        com_preemph_set <= com_button_command and com_data (7);
+        com_mode_set <= com_button_command and com_data (2);
+        com_mode_clear <= com_button_command and com_data (1);
+        com_reset_error_button <= com_button_command and com_data (0);
+
+        adc_enable_poll <= (not button_c11_in) or com_mode_clear;
+        reset_error <= (not button_c6_in) or com_reset_error_button;
+
+        process (clock_in)
+        begin
+            if clock_in'event and clock_in = '1' then
+                if reset = '1' then
+                    preemph <= '0';
+                elsif com_preemph_set = '1' then
+                    preemph <= com_data (6);
+                end if;
+            end if;
+        end process;
+
+        rot : entity rotary_switch
+            port map (clock_in => clock_in,
+                      reset_in => reset,
+                      pulse_100hz_in => pulse_100hz,
+                      rotary_024 => rotary_024_in,
+                      rotary_01 => rotary_01_in,
+                      rotary_23 => rotary_23_in,
+                      left_button => button_a11_in,
+                      right_button => button_a5_in,
+                      strobe_out => mode_strobe,
+                      value_out => mode_select,
+                      com_mode_value_in => com_data (6 downto 3),
+                      com_mode_set_in => com_mode_set,
+                      com_mode_clear_in => com_mode_clear);
+    end block com_rot;
 
     -- 100 Hz pulse generator drives various UI tasks and timers
     pulse_100hz_gen : entity pulse_gen

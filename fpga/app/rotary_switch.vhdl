@@ -21,7 +21,10 @@ entity rotary_switch is
         left_button         : in std_logic;
         right_button        : in std_logic;
         strobe_out          : out std_logic := '0';
-        value_out           : out mode_definitions.t_mode := mode_definitions.min_value);
+        value_out           : out mode_definitions.t_mode := mode_definitions.min_value;
+        com_mode_value_in   : in mode_definitions.t_mode;
+        com_mode_set_in     : in std_logic;
+        com_mode_clear_in   : in std_logic);
 end rotary_switch;
 
 architecture structural of rotary_switch is
@@ -117,11 +120,15 @@ begin
                         end if;
                     end if;
                     updated_buttons <= '0';
-                elsif updated_rotary = '1' then
-                    -- go direct to new setting
+                elsif updated_rotary = '1' or com_mode_clear_in = '1' then
+                    -- go direct to current setting on the rotary switch
                     strobe_out <= '1';
                     output_value <= new_rotary_value;
                     updated_rotary <= '0';
+                elsif com_mode_set_in = '1' then
+                    -- Remote control set
+                    strobe_out <= '1';
+                    output_value <= com_mode_value_in;
                 end if;
             end if;
         end if;

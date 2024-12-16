@@ -18,6 +18,9 @@ entity adc_driver is
         error_out           : out std_logic := '0';
         adjust_1_out        : out std_logic_vector (9 downto 0) := (others => '0');
         adjust_2_out        : out std_logic_vector (9 downto 0) := (others => '0');
+        com_adjust_value_in : in std_logic_vector (9 downto 0) := (others => '0');
+        com_adjust_1_set_in : in std_logic;
+        com_adjust_2_set_in : in std_logic;
         adjust_1a_p52       : out std_logic := '0';
         adjust_1b_p50       : out std_logic := '0';
         adjust_2a_p47       : out std_logic := '0';
@@ -153,6 +156,12 @@ begin
             if state = FINISH then
                 adjust_1_out <= adjust_1_tmp;
                 adjust_2_out <= adjust_2_tmp;
+            end if;
+            if com_adjust_1_set_in = '1' then
+                adjust_1_out <= com_adjust_value_in;
+            end if;
+            if com_adjust_2_set_in = '1' then
+                adjust_2_out <= com_adjust_value_in;
             end if;
         end if;
     end process;
