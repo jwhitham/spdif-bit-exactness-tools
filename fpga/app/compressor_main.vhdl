@@ -360,26 +360,41 @@ begin
         signal com_mode_set             : std_logic := '0';
         signal com_mode_clear           : std_logic := '0';
         signal com_reset_error_button   : std_logic := '0';
+        signal com_auto_reset_counter   : unsigned (7 downto 0) := (others => '0');
     begin
         com_button_command <= com_strobe when (com_data (15 downto 14) = "01") else '0';
         com_preemph_set <= com_button_command and com_data (7);
         com_mode_set <= com_button_command and com_data (2);
-        com_mode_clear <= com_button_command and com_data (1);
         com_reset_error_button <= com_button_command and com_data (0);
 
         adc_enable_poll <= (not button_c11_in) or com_mode_clear;
         reset_error <= (not button_c6_in) or com_reset_error_button;
 
-        process (clock_in)
+        -- The pre-emphasis register can be set via com
+        preemph_register : process (clock_in)
         begin
             if clock_in'event and clock_in = '1' then
-                if reset = '1' then
+                if com_mode_clear = '1' then
                     preemph <= '0';
                 elsif com_preemph_set = '1' then
                     preemph <= com_data (6);
                 end if;
             end if;
-        end process;
+        end process preemph_register;
+
+        -- The special settings provided via com are lost if desynced for more than 1270 ms,
+        -- or if bit 1 is asserted, or on system reset
+        com_reset : process (clock_in)
+        begin
+            if clock_in'event and clock_in = '1' then
+                if reset = '1' or sync (6) = '1' then
+                    com_auto_reset_counter <= (others => '0');
+                elsif pulse_100hz = '1' then
+                    com_auto_reset_counter <= com_auto_reset_counter + 1;
+                end if;
+                com_mode_clear <= (com_button_command and com_data (1)) or com_auto_reset_counter (7) or reset;
+            end if;
+        end process com_reset;
 
         rot : entity rotary_switch
             port map (clock_in => clock_in,

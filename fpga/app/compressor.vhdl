@@ -363,22 +363,23 @@ begin
         peak_divider_result <= divider_result (peak_bits - 1 downto 0);
 
         -- peak_divisor_done indicates that divider_result is valid
-        process (reset, divider_start, divider_finish, divider_ready)
+        process (clock_in)
             variable l : line;
         begin
-            if reset = '1' then
-                peak_divider_done <= '0';
-            elsif divider_start = '1' then
-                peak_divider_done <= '0';
-                if divider_ready = '0' then
-                    write (l, String'("Deadline miss! Peak divider is not ready for new data."));
-                    writeline (output, l);
-                    assert divider_ready = '1';
-                else
+            if clock_in'event and clock_in = '1' then
+                if reset = '1' then
                     peak_divider_done <= '0';
+                elsif divider_start = '1' then
+                    if divider_ready = '0' then
+                        write (l, String'("Deadline miss! Peak divider is not ready for new data."));
+                        writeline (output, l);
+                        assert divider_ready = '1';
+                    else
+                        peak_divider_done <= '0';
+                    end if;
+                elsif divider_finish = '1' then
+                    peak_divider_done <= '1';
                 end if;
-            elsif divider_finish = '1' then
-                peak_divider_done <= '1';
             end if;
         end process;
 
