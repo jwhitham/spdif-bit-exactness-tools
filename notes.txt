@@ -1,0 +1,29 @@
+
+@A:<a href="@A:CL282:@XP_HELP">CL282</a> : <a href="J:\spdif-bit-exactness-tools\fpga\app\vu_meter.vhdl:19:8:19:10:@A:CL282:@XP_MSG">vu_meter.vhdl(19)</a><!@TM:1734374849> | Feedback mux created for signal data[8:0]. It is possible a set/reset assignment for this is signal missing. To improve timing and area, specify a set/reset value.
+@A:<a href="@A:CL282:@XP_HELP">CL282</a> : <a href="J:\spdif-bit-exactness-tools\fpga\app\vu_meter.vhdl:19:8:19:10:@A:CL282:@XP_MSG">vu_meter.vhdl(19)</a><!@TM:1734374849> | Feedback mux created for signal meter_out[7:0]. It is possible a set/reset assignment for this is signal missing. To improve timing and area, specify a set/reset value.
+<font color=#A52A2A>@W:<a href="@W:MT531:@XP_HELP">MT531</a> : <a href="j:\spdif-bit-exactness-tools\fpga\app\compressor.vhdl:369:12:369:14:@W:MT531:@XP_MSG">compressor.vhdl(369)</a><!@TM:1734374851> | Found signal identified as System clock which controls 1 sequential elements including fp.cmp.peak_divider_done.  Using this clock, which has no specified timing constraint, can prevent conversion of gated or generated clocks and can adversely impact design performance. </font>
+
+
+
+./fpga/project/compressor_Implmnt/sbt/outputs/placer/placer.log
+
+* File Generated:     Dec 16 2024 18:48:04
+
+Number of clocks: 3
+Clock: compressor_top|clk12MHz | Frequency: N/A | Target: 12.81 MHz
+Clock: pll.compressor_pll_inst/PLLOUTCORE | Frequency: N/A | Target: 102.46 MHz
+Clock: pll.compressor_pll_inst/PLLOUTGLOBAL | Frequency: 92.39 MHz | Target: 102.46 MHz
+
+
+./compressor_Implmnt/sbt/outputs/timer/compressor_top_timing.rpt
+
+# File Generated:     Dec 16 2024 18:51:40
+
+Number of clocks: 3
+Clock: compressor_top|clk12MHz               | N/A                    | Target: 12.81 MHz   | 
+Clock: pll.compressor_pll_inst/PLLOUTCORE    | N/A                    | Target: 102.46 MHz  | 
+Clock: pll.compressor_pll_inst/PLLOUTGLOBAL  | Frequency: 102.06 MHz  | Target: 102.46 MHz  | 
+
+Timing appears adequate as the maximum frequency is greater than 96 MHz.
+
+
