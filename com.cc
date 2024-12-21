@@ -1,6 +1,7 @@
 #include <objbase.h>
 #include <mmdeviceapi.h>
 #include <audioclient.h>
+#include <stdio.h>
 
 
 //-----------------------------------------------------------
@@ -46,6 +47,14 @@ HRESULT PlayAudioStream() // MyAudioSource *pMySource)
            CLSID_MMDeviceEnumerator, NULL,
            CLSCTX_ALL, IID_IMMDeviceEnumerator,
            (void**)&pEnumerator);
+    switch (hr) {
+        case S_OK: printf("S_OK\n"); break;
+        case REGDB_E_CLASSNOTREG: printf("REGDB_E_CLASSNOTREG\n"); break;
+        case CLASS_E_NOAGGREGATION: printf("CLASS_E_NOAGGREGATION\n"); break;
+        case E_NOINTERFACE: printf("E_NOINTERFACE\n"); break;
+        case E_POINTER: printf("E_POINTER\n"); break;
+        default: printf("other\n"); break;
+    }
     EXIT_ON_ERROR(hr)
 
     hr = pEnumerator->GetDefaultAudioEndpoint(
@@ -120,6 +129,7 @@ HRESULT PlayAudioStream() // MyAudioSource *pMySource)
         // Get next 1/2-second of data from the audio source.
         //hr = pMySource->LoadData(numFramesAvailable, pData, &flags);
         //EXIT_ON_ERROR(hr)
+        flags = AUDCLNT_BUFFERFLAGS_SILENT;
 
         hr = pRenderClient->ReleaseBuffer(numFramesAvailable, flags);
         EXIT_ON_ERROR(hr)
@@ -140,3 +150,18 @@ Exit:
 
     return hr;
 }
+
+int main(void)
+{
+    HRESULT hr;
+    hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+    printf("%08x\n", (unsigned) hr);
+    if (hr == S_OK)
+    {
+        hr = PlayAudioStream();
+        printf("%08x\n", (unsigned) hr);
+    }
+    CoUninitialize();
+    return 0;
+}
+
