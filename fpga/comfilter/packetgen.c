@@ -48,9 +48,9 @@ uint64_t packetgen_build_bits(uint64_t data)
     return data;
 }
 
-bool packetgen_build_samples(const size_t num_packets, const uint64_t* packet_data,
-                             uint32_t sample_rate,
-                             int16_t** sample_data, size_t* sample_count)
+bool packetgen_build_samples(const uint32_t num_packets, const uint64_t* packet_data,
+                             const uint32_t sample_rate, const uint32_t num_channels,
+                             int16_t** sample_data, uint32_t* sample_count)
 {
     const uint32_t  bits_per_packet = data_bits + crc_bits + 2; // 2 = stop and start bits
     const uint32_t  num_bits = num_packets * bits_per_packet;
@@ -62,22 +62,25 @@ bool packetgen_build_samples(const size_t num_packets, const uint64_t* packet_da
 
     // sampling theorem
     if ((UPPER_FREQUENCY + (FILTER_WIDTH / 2.0)) > (sample_rate / 2.0)) {
-        // Nyquist is displeased
+        // Nyquist is displeased with your sample rate
         return false;
     }
 
     // allocate space for samples
-    int16_t* output = (int16_t*) malloc(sizeof(int16_t) * num_samples);
+    int16_t* output = (int16_t*) calloc(sizeof(int16_t) * num_channels, num_samples);
     if (!output) {
         // allocation failed
         return false;
     }
 
+    // output sample iteration
+    int16_t*        output_iter = output;
+
     // Oscillator settings
-    const double    pi = M_PI;
-    const double    upper_delta = ((pi * 2.0) / (double) sample_rate) * UPPER_FREQUENCY;
-    const double    lower_delta = ((pi * 2.0) / (double) sample_rate) * LOWER_FREQUENCY;
-    double          angle = 0.0;
+    const float     pi = (float) M_PI;
+    const float     upper_delta = ((pi * 2.0F) / (float) sample_rate) * UPPER_FREQUENCY;
+    const float     lower_delta = ((pi * 2.0F) / (float) sample_rate) * LOWER_FREQUENCY;
+    float           angle = 0.0F;
 
     // Iteration through the packets
     uint32_t        packet_index = 0;
@@ -88,7 +91,7 @@ bool packetgen_build_samples(const size_t num_packets, const uint64_t* packet_da
     uint64_t        packet = 1;
     uint32_t        bit_lifetime = leadin_samples;
 
-    for (size_t i = 0; i < num_samples; i++) {
+    for (uint32_t i = 0; i < num_samples; i++) {
         if (bit_lifetime == 0) {
             bit_lifetime = samples_per_bit;
             if (packet_lifetime == 0) {
@@ -119,7 +122,13 @@ bool packetgen_build_samples(const size_t num_packets, const uint64_t* packet_da
         if (angle > (pi * 2.0)) {
             angle -= pi * 2.0;
         }
-        output[i] = (int16_t) floor((sin(angle) * (double) (INT16_MAX - 1)) + 0.5);
+        // generate oscillator output
+        const int16_t value = (int16_t) floorf((sinf(angle) * (float) (INT16_MAX - 1)) + 0.5);
+        // copy to all channels
+        for (uint32_t j = 0; j < num_channels; j++) {
+            *output_iter = value;
+            output_iter++;
+        }
     }
 
     if (!reached_leadout) {
@@ -129,7 +138,7 @@ bool packetgen_build_samples(const size_t num_packets, const uint64_t* packet_da
     }
 
     // valid output
-    *sample_count = (size_t) num_samples;
+    *sample_count = (uint32_t) num_samples;
     *sample_data = output;
     return true;
 }
