@@ -33,22 +33,12 @@ const IID IID_IAudioRenderClient = __uuidof(IAudioRenderClient);
 uint32_t copySamples(BYTE* pData, const int16_t* sampleData, const uint32_t sampleIndex,
                 const uint32_t sampleCount, UINT32 bufferFrameCount, WORD nChannels)
 {
-    const int16_t* in = sampleData;
-    int16_t* out = (int16_t*) pData;
     uint32_t samplesToCopy = sampleCount - sampleIndex;
     if (samplesToCopy > bufferFrameCount)
     {
         samplesToCopy = bufferFrameCount;
     }
-    for (uint32_t i = 0; i < samplesToCopy; i++) 
-    {
-        for (WORD j = 0; j < nChannels; j++)
-        {
-            *out = *in;
-            out++;
-        }
-        in++;
-    }
+    memcpy(pData, &sampleData[sampleIndex * (uint32_t) nChannels], sampleCount * (uint32_t) nChannels * sizeof(int16_t));
     return samplesToCopy + sampleIndex;
 }
 
@@ -70,13 +60,7 @@ HRESULT com_send(const uint32_t numPackets, const uint64_t* packetData)
     int16_t* sampleData = NULL;
     uint32_t sampleCount = 0;
     uint32_t sampleIndex = 0;
-    const uint32_t sampleRate = 48000;
 
-    if (!packetgen_build_samples(numPackets, packetData,
-                                 sampleRate, 1,
-                                 &sampleData, &sampleCount)) {
-        return E_FAIL;
-    }
 
     hr = CoCreateInstance(
            CLSID_MMDeviceEnumerator, NULL,
@@ -98,11 +82,18 @@ HRESULT com_send(const uint32_t numPackets, const uint64_t* packetData)
     memset(&wfx, 0, sizeof(wfx));
     wfx.wFormatTag = WAVE_FORMAT_PCM;
     wfx.nChannels = 2;
-    wfx.nSamplesPerSec = sampleRate;
+    wfx.nSamplesPerSec = 48000;
     wfx.wBitsPerSample = 16;
     wfx.nBlockAlign = (wfx.wBitsPerSample * wfx.nChannels) / 8;
     wfx.nAvgBytesPerSec = wfx.nSamplesPerSec * wfx.nBlockAlign;
     wfx.cbSize = 0;
+
+    if (!packetgen_build_samples(numPackets, packetData,
+                                 wfx.nSamplesPerSec, wfx.nChannels,
+                                 &sampleData, &sampleCount)) {
+        hr = E_FAIL;
+    }
+    EXIT_ON_ERROR(hr)
 
     hr = pAudioClient->Initialize(
                          AUDCLNT_SHAREMODE_SHARED,
