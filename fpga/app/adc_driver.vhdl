@@ -32,7 +32,7 @@ architecture structural of adc_driver is
     type t_state is (START, WAIT_FIRST_REQUEST,
                      SEND_REQUEST_1, WAIT_REPLY_1, WAIT_REPLY_2,
                      SEND_REQUEST_2, WAIT_REPLY_3, WAIT_REPLY_4,
-                     TIMEOUT_ERROR, FINISH);
+                     TIMEOUT_ERROR, STORE, FINISH);
 
     -- Countdown implements a delay of ~20ms
     -- This is the timeout for receiving data from the PIC and also
@@ -125,11 +125,15 @@ begin
                 when WAIT_REPLY_4 =>
                     -- Wait for part 2 of the reply from ADC 2
                     if strobe_from_pic = '1' then
-                        state <= FINISH;
+                        state <= STORE;
                         adjust_2_tmp (9 downto 8) <= data_from_pic (1 downto 0);
                     elsif countdown = 0 then
                         state <= TIMEOUT_ERROR;
                     end if;
+
+                when STORE =>
+                    -- Store value in the registers
+                    state <= FINISH;
 
                 when TIMEOUT_ERROR | FINISH =>
                     -- We have captured data at least once. Now wait for a new request.
@@ -153,7 +157,7 @@ begin
     process (clock_in)
     begin
         if clock_in'event and clock_in = '1' then
-            if state = FINISH then
+            if state = STORE then
                 adjust_1_out <= adjust_1_tmp;
                 adjust_2_out <= adjust_2_tmp;
             end if;
