@@ -87,7 +87,7 @@ HRESULT com_send(const uint32_t numPackets, const uint64_t* packetData)
     pwfx->cbSize = 0;
 
     if (!packetgen_build_samples(numPackets, packetData,
-                                 pwfx->nSamplesPerSec, pwfx->nChannels,
+                                 pwfx->nChannels,
                                  &sampleData, &sampleCount)) {
         hr = E_FAIL;
     }

@@ -49,9 +49,12 @@ uint64_t packetgen_build_bits(uint64_t data)
 }
 
 bool packetgen_build_samples(const uint32_t num_packets, const uint64_t* packet_data,
-                             const uint32_t sample_rate, const uint32_t num_channels,
+                             const uint32_t num_channels,
                              int16_t** sample_data, uint32_t* sample_count)
 {
+    // Regardless of the actual sample rate, we generate the signal as if the sample rate is 48kHz,
+    // knowing that the same assumption is made by the receiver.
+    const uint32_t  sample_rate = SAMPLE_RATE;
     const uint32_t  bits_per_packet = data_bits + crc_bits + 2; // 2 = stop and start bits
     const uint32_t  num_bits = num_packets * bits_per_packet;
     const uint32_t  samples_per_bit = sample_rate / BAUD_RATE;
@@ -59,12 +62,6 @@ bool packetgen_build_samples(const uint32_t num_packets, const uint64_t* packet_
     const uint32_t  leadout_samples = sample_rate / 10;
     const uint32_t  packet_samples = num_bits * samples_per_bit;
     const uint32_t  num_samples = leadin_samples + leadout_samples + packet_samples;
-
-    // sampling theorem
-    if ((UPPER_FREQUENCY + (FILTER_WIDTH / 2.0)) > (sample_rate / 2.0)) {
-        // Nyquist is displeased with your sample rate
-        return false;
-    }
 
     // allocate space for samples
     int16_t* output = (int16_t*) calloc(sizeof(int16_t) * num_channels, num_samples);
@@ -77,9 +74,9 @@ bool packetgen_build_samples(const uint32_t num_packets, const uint64_t* packet_
     int16_t*        output_iter = output;
 
     // Oscillator settings
-    const float     pi = (float) M_PI;
-    const float     upper_delta = ((pi * 2.0F) / (float) sample_rate) * UPPER_FREQUENCY;
-    const float     lower_delta = ((pi * 2.0F) / (float) sample_rate) * LOWER_FREQUENCY;
+    const float     pi2 = (float) (M_PI * 2.0);
+    const float     upper_delta = (pi2 / (float) sample_rate) * UPPER_FREQUENCY;
+    const float     lower_delta = (pi2 / (float) sample_rate) * LOWER_FREQUENCY;
     float           angle = 0.0F;
 
     // Iteration through the packets
@@ -119,8 +116,8 @@ bool packetgen_build_samples(const uint32_t num_packets, const uint64_t* packet_
             return false;
         }
         angle += (packet & 1) ? upper_delta : lower_delta;
-        if (angle > (pi * 2.0)) {
-            angle -= pi * 2.0;
+        if (angle > (pi2)) {
+            angle -= pi2;
         }
         // generate oscillator output
         const int16_t value = (int16_t) floorf((sinf(angle) * (float) (INT16_MAX - 1)) + 0.5);
