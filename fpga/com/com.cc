@@ -51,7 +51,7 @@ HRESULT com_send(const uint32_t numPackets, const uint64_t* packetData)
     IMMDevice *pDevice = NULL;
     IAudioClient *pAudioClient = NULL;
     IAudioRenderClient *pRenderClient = NULL;
-    WAVEFORMATEX wfx;
+    WAVEFORMATEX* pwfx = NULL;
     UINT32 bufferFrameCount;
     UINT32 numFramesAvailable;
     UINT32 numFramesPadding;
@@ -77,19 +77,17 @@ HRESULT com_send(const uint32_t numPackets, const uint64_t* packetData)
                     NULL, (void**)&pAudioClient);
     EXIT_ON_ERROR(hr)
 
-    //hr = pAudioClient->GetMixFormat(&pwfx);
-    //EXIT_ON_ERROR(hr)
-    memset(&wfx, 0, sizeof(wfx));
-    wfx.wFormatTag = WAVE_FORMAT_PCM;
-    wfx.nChannels = 2;
-    wfx.nSamplesPerSec = 48000;
-    wfx.wBitsPerSample = 16;
-    wfx.nBlockAlign = (wfx.wBitsPerSample * wfx.nChannels) / 8;
-    wfx.nAvgBytesPerSec = wfx.nSamplesPerSec * wfx.nBlockAlign;
-    wfx.cbSize = 0;
+    hr = pAudioClient->GetMixFormat(&pwfx);
+    EXIT_ON_ERROR(hr)
+    // Output must be 16-bit PCM, so adjust the mix format here
+    pwfx->wFormatTag = WAVE_FORMAT_PCM;
+    pwfx->wBitsPerSample = 16;
+    pwfx->nBlockAlign = (pwfx->wBitsPerSample * pwfx->nChannels) / 8;
+    pwfx->nAvgBytesPerSec = pwfx->nSamplesPerSec * pwfx->nBlockAlign;
+    pwfx->cbSize = 0;
 
     if (!packetgen_build_samples(numPackets, packetData,
-                                 wfx.nSamplesPerSec, wfx.nChannels,
+                                 pwfx->nSamplesPerSec, pwfx->nChannels,
                                  &sampleData, &sampleCount)) {
         hr = E_FAIL;
     }
@@ -100,33 +98,8 @@ HRESULT com_send(const uint32_t numPackets, const uint64_t* packetData)
                          0,
                          hnsRequestedDuration,
                          0,
-                         &wfx,
+                         pwfx,
                          NULL);
-    switch (hr) {
-        case S_OK: printf("S_OK\n"); break;
-
-        case AUDCLNT_E_ALREADY_INITIALIZED: printf("AUDCLNT_E_ALREADY_INITIALIZED\n"); break;
-        case AUDCLNT_E_WRONG_ENDPOINT_TYPE: printf("AUDCLNT_E_WRONG_ENDPOINT_TYPE\n"); break;
-        case AUDCLNT_E_BUFFER_SIZE_NOT_ALIGNED: printf("AUDCLNT_E_BUFFER_SIZE_NOT_ALIGNED\n"); break;
-        case AUDCLNT_E_BUFFER_SIZE_ERROR: printf("AUDCLNT_E_BUFFER_SIZE_ERROR\n"); break;
-        case AUDCLNT_E_CPUUSAGE_EXCEEDED: printf("AUDCLNT_E_CPUUSAGE_EXCEEDED\n"); break;
-        case AUDCLNT_E_DEVICE_INVALIDATED: printf("AUDCLNT_E_DEVICE_INVALIDATED\n"); break;
-        case AUDCLNT_E_DEVICE_IN_USE: printf("AUDCLNT_E_DEVICE_IN_USE\n"); break;
-        case AUDCLNT_E_ENDPOINT_CREATE_FAILED: printf("AUDCLNT_E_ENDPOINT_CREATE_FAILED\n"); break;
-        case AUDCLNT_E_INVALID_DEVICE_PERIOD: printf("AUDCLNT_E_INVALID_DEVICE_PERIOD\n"); break;
-        case AUDCLNT_E_UNSUPPORTED_FORMAT: printf("AUDCLNT_E_UNSUPPORTED_FORMAT\n"); break;
-        case AUDCLNT_E_EXCLUSIVE_MODE_NOT_ALLOWED: printf("AUDCLNT_E_EXCLUSIVE_MODE_NOT_ALLOWED\n"); break;
-        case AUDCLNT_E_BUFDURATION_PERIOD_NOT_EQUAL: printf("AUDCLNT_E_BUFDURATION_PERIOD_NOT_EQUAL\n"); break;
-        case AUDCLNT_E_SERVICE_NOT_RUNNING: printf("AUDCLNT_E_SERVICE_NOT_RUNNING\n"); break;
-        case E_POINTER: printf("E_POINTER\n"); break;
-        case E_INVALIDARG: printf("E_INVALIDARG\n"); break;
-        case E_OUTOFMEMORY: printf("E_OUTOFMEMORY\n"); break;
-
-        case REGDB_E_CLASSNOTREG: printf("REGDB_E_CLASSNOTREG\n"); break;
-        case CLASS_E_NOAGGREGATION: printf("CLASS_E_NOAGGREGATION\n"); break;
-        case E_NOINTERFACE: printf("E_NOINTERFACE\n"); break;
-        default: printf("other\n"); break;
-    }
     EXIT_ON_ERROR(hr)
 
     // Get the actual size of the allocated buffer.
@@ -143,14 +116,14 @@ HRESULT com_send(const uint32_t numPackets, const uint64_t* packetData)
     EXIT_ON_ERROR(hr)
 
     // Load the initial data into the shared buffer.
-    sampleIndex = copySamples(pData, sampleData, sampleIndex, sampleCount, bufferFrameCount, wfx.nChannels);
+    sampleIndex = copySamples(pData, sampleData, sampleIndex, sampleCount, bufferFrameCount, pwfx->nChannels);
 
     hr = pRenderClient->ReleaseBuffer(bufferFrameCount, flags);
     EXIT_ON_ERROR(hr)
 
     // Calculate the actual duration of the allocated buffer.
     hnsActualDuration = (double)REFTIMES_PER_SEC *
-                        bufferFrameCount / wfx.nSamplesPerSec;
+                        bufferFrameCount / pwfx->nSamplesPerSec;
 
     hr = pAudioClient->Start();  // Start playing.
     EXIT_ON_ERROR(hr)
@@ -172,7 +145,7 @@ HRESULT com_send(const uint32_t numPackets, const uint64_t* packetData)
         EXIT_ON_ERROR(hr)
 
         // Get next 1/2-second of data from the audio source.
-        sampleIndex = copySamples(pData, sampleData, sampleIndex, sampleCount, bufferFrameCount, wfx.nChannels);
+        sampleIndex = copySamples(pData, sampleData, sampleIndex, sampleCount, bufferFrameCount, pwfx->nChannels);
 
         hr = pRenderClient->ReleaseBuffer(numFramesAvailable, flags);
         EXIT_ON_ERROR(hr)
@@ -185,6 +158,10 @@ HRESULT com_send(const uint32_t numPackets, const uint64_t* packetData)
     EXIT_ON_ERROR(hr)
 
 Exit:
+    if (pwfx)
+    {
+        CoTaskMemFree(pwfx);
+    }
     free(sampleData);
     SAFE_RELEASE(pEnumerator)
     SAFE_RELEASE(pDevice)
