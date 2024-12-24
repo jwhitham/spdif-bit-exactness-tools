@@ -49,19 +49,25 @@ uint64_t packetgen_build_bits(uint64_t data)
 }
 
 bool packetgen_build_samples(const size_t num_packets, const uint64_t* packet_data,
+                             uint32_t sample_rate,
                              int16_t** sample_data, size_t* sample_count)
 {
     const uint32_t  bits_per_packet = data_bits + crc_bits + 2; // 2 = stop and start bits
     const uint32_t  num_bits = num_packets * bits_per_packet;
-    const uint32_t  sample_rate = SAMPLE_RATE;
     const uint32_t  samples_per_bit = sample_rate / BAUD_RATE;
     const uint32_t  leadin_samples = sample_rate / 10;
     const uint32_t  leadout_samples = sample_rate / 10;
     const uint32_t  packet_samples = num_bits * samples_per_bit;
     const uint32_t  num_samples = leadin_samples + leadout_samples + packet_samples;
 
+    // sampling theorem
+    if ((UPPER_FREQUENCY + (FILTER_WIDTH / 2.0)) > (sample_rate / 2.0)) {
+        // Nyquist is displeased
+        return false;
+    }
+
     // allocate space for samples
-    int16_t* output = malloc(sizeof(int16_t) * num_samples);
+    int16_t* output = (int16_t*) malloc(sizeof(int16_t) * num_samples);
     if (!output) {
         // allocation failed
         return false;
