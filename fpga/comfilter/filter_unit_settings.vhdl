@@ -7,5 +7,6 @@ constant A_BITS : Natural := 30;
 constant VERBOSE_DEBUG : Boolean := False;
 constant DATA_BITS : Natural := 16;
 constant BAUD_RATE : Real := 300.0;
+constant SAMPLE_RATE : Real := 48000.0;
 
 end package filter_unit_settings;

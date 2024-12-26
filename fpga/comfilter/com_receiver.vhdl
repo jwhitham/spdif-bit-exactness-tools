@@ -8,15 +8,16 @@ use ieee.numeric_std.all;
 
 entity com_receiver is
     generic (
-        clock_frequency : Real;
-        baud_rate       : Real;
-        num_data_bits   : Natural);
+        clock_enable_frequency  : Real;
+        baud_rate               : Real;
+        num_data_bits           : Natural);
     port (
-        serial_in     : in std_logic := '0';
-        reset_in      : in std_logic := '0';
-        clock_in      : in std_logic := '0';
-        data_out      : out std_logic_vector (num_data_bits - 1 downto 0) := (others => '0');
-        strobe_out    : out std_logic := '0');
+        serial_in       : in std_logic := '0';
+        reset_in        : in std_logic := '0';
+        clock_in        : in std_logic := '0';
+        clock_enable_in : in std_logic := '0';
+        data_out        : out std_logic_vector (num_data_bits - 1 downto 0) := (others => '0');
+        strobe_out      : out std_logic := '0');
 end com_receiver;
 
 architecture structural of com_receiver is
@@ -64,10 +65,11 @@ architecture structural of com_receiver is
 begin
     generate_clock_enable : entity pulse_gen
         generic map (
-            clock_frequency => clock_frequency,
-            pulse_frequency => baud_rate * 16.0)
+            in_frequency => clock_enable_frequency,
+            out_frequency => baud_rate * 16.0)
         port map (
             pulse_out => baud_div_16,
+            clock_enable_in => clock_enable_in,
             clock_in => clock_in);
 
     crc16 : entity crc

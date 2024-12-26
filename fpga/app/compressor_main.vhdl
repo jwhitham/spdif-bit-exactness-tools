@@ -249,7 +249,6 @@ begin
 
     -- COM filter
     ifu : entity comfilter.comfilter_main
-        generic map (clock_frequency => clock_frequency)
         port map (clock_in => clock_in,
                 reset_in => reset,
                 audio_strobe_in => raw_left_strobe,

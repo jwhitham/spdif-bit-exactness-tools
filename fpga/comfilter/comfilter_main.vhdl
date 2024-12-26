@@ -8,7 +8,6 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity comfilter_main is
-    generic (clock_frequency : Real);
     port (
         clock_in            : in std_logic;
         reset_in            : in std_logic;
@@ -53,12 +52,13 @@ begin
     tcr : entity com_receiver
         generic map (
                 baud_rate => BAUD_RATE,
-                clock_frequency => clock_frequency,
+                clock_enable_frequency => SAMPLE_RATE,
                 num_data_bits => DATA_BITS)
         port map (
                 serial_in => serial_copy,
                 reset_in => reset_in,
                 clock_in => clock_in,
+                clock_enable_in => audio_strobe_in,
                 data_out => data_out,
                 strobe_out => strobe_out);
 
