@@ -38,7 +38,7 @@ uint32_t copySamples(BYTE* pData, const int16_t* sampleData, const uint32_t samp
     {
         samplesToCopy = bufferFrameCount;
     }
-    memcpy(pData, &sampleData[sampleIndex * (uint32_t) nChannels], sampleCount * (uint32_t) nChannels * sizeof(int16_t));
+    memcpy(pData, &sampleData[sampleIndex * (uint32_t) nChannels], samplesToCopy * (uint32_t) nChannels * sizeof(int16_t));
     return samplesToCopy + sampleIndex;
 }
 
@@ -145,14 +145,18 @@ HRESULT com_send(const uint32_t numPackets, const uint64_t* packetData)
         EXIT_ON_ERROR(hr)
 
         // Get next 1/2-second of data from the audio source.
-        sampleIndex = copySamples(pData, sampleData, sampleIndex, sampleCount, bufferFrameCount, pwfx->nChannels);
+        sampleIndex = copySamples(pData, sampleData, sampleIndex, sampleCount, numFramesAvailable, pwfx->nChannels);
 
         hr = pRenderClient->ReleaseBuffer(numFramesAvailable, flags);
         EXIT_ON_ERROR(hr)
     }
 
     // Wait for last data in buffer to play before stopping.
-    Sleep((DWORD)(hnsActualDuration/REFTIMES_PER_MILLISEC/2));
+    do {
+        Sleep((DWORD)(hnsActualDuration/REFTIMES_PER_MILLISEC/2));
+        hr = pAudioClient->GetCurrentPadding(&numFramesPadding);
+        EXIT_ON_ERROR(hr)
+    } while (numFramesPadding > 0);
 
     hr = pAudioClient->Stop();  // Stop playing.
     EXIT_ON_ERROR(hr)
