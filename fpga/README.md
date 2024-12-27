@@ -508,6 +508,19 @@ component dedicated to a particular task, we need only a single measurement to
 determine both the best and the worst case. [One of the tests](test/test_measure.vhdl)
 carries out such a measurement to check that a 96kHz sample rate is supported.
 
+Compressor remote
+-----------------
+
+I returned to the project in 2024 to add a remote control feature. Messages are
+encoded as sound using frequency-shift keying, like a 300 baud modem, though the
+frequencies used are non-standard and greater than 20kHz. This addition stretches the
+"no CPU" concept somewhat, as the digital filters used to decode the signals are implemented in a
+microprogram that is loaded into ROM and then executed by a simple processor. However,
+this is not technically a CPU, as it has no capability to branch, access memory or load different programs.
+Source code for this component can be found in the [comfilter](https://github.com/jwhitham/comfilter)
+repo. The remote control allows the mode to be set and the ADC registers can also be updated remotely.
+A Windows program converts UDP control commands to appropriately-encoded sound.
+
 Artefacts
 ---------
 
@@ -516,7 +529,7 @@ Artefacts
 - [Circuit board layout](../img/diagram2.jpg) - each square = 0.1 inches, matching
   the pitch of the prototyping board and iceFUN pinout
 - [Photo from above](../img/above.jpg) and [from the front](../img/box.jpg)
-- [FPGA bit file](hardware_12.bin) matching tag 'hardware\_12'
+- [FPGA bit file](hardware_15.bin) matching tag 'hardware\_15'
 
 For more information about the iceFUN module see the manufacturer's
 [webpage](https://www.robot-electronics.co.uk/products/icefun.html) and
