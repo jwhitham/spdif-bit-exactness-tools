@@ -1,0 +1,44 @@
+-- com_data bits
+
+ 15 downto 14 set the command
+   00 = do nothing
+   01 = set mode
+     7 pre-emphasis bit
+       0 = do nothing
+       1 = set
+         6 -> pre-emphasis bit value (0 or 1)
+     2 mode set (enable remote control)
+       0 = do nothing
+       1 = set
+         6 downto 3 -> mode setting value
+         0000  CX  compress max -> maximum volume
+         0001  C2  compress 2 -> volume set by adjust 2
+         0010  C1  compress 1 -> volume set by adjust 1
+         0011  A2  no compression, volume set by adjust 2
+         0100  CV  compress for video -> volume set by adjust 2
+         0101  P   passthrough
+         (others are for debug - see mode_definitions.vhdl)
+     1 mode clear (return to manual control)
+       0 = do nothing
+       1 = clear
+     0 error clear
+       0 = do nothing
+       1 = reset error (same as button C6)
+   10 = set adjust 1
+     9 downto 0 -> value
+     This value is used as the volume in the C1 mode
+     Typical value 61 (-12.2 dB)
+     Note this is a linear scale
+   11 = set adjust 2
+     9 downto 0 -> value
+     Typical value 490 (-3.20 dB)
+     This value is used as the volume in the A2, CV and C2 modes
+     Note this is a linear scale
+
+
+The comfilter module receives the commands using frequency shift
+keying at 300 baud. The commands are encoded as sound by
+compressor_remote.exe. The commands are sent via UDP by
+compressor_remote.py.
+
+

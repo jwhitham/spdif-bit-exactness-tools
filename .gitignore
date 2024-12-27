@@ -2,5 +2,6 @@
 *.wav
 .vs
 *.exe
+!compressor_remote.exe
 /fpga/com/Debug
 /fpga/com/Release
