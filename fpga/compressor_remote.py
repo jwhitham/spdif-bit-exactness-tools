@@ -29,14 +29,22 @@ def set_mode(codes: CodeList, number: int, flag: bool) -> None:
     if flag:
         codes.append(SET_MODE | (number << 3))
 
+def send_codes(codes: CodeList) -> None:
+    data = b"COM\n" + struct.pack(">" + str(len(codes)) + "H", *codes)
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    s.sendto(data, UDP_TARGET)
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--adjust-1", type=float,
         help="set volume for C1 mode (decibels, "
-            "must be <= 0.0, typical value -12)")
+            "must be <= 0.0, typical value -12)",
+        metavar="LEVEL")
     parser.add_argument("--adjust-2", type=float,
         help="set volume for C2, A2, CV modes (decibels, "
-            "must be <= 0.0, typical value -3.2)")
+            "must be <= 0.0, typical value -3.2)",
+        metavar="LEVEL")
     parser.add_argument("--compress-max", "-cx", action="store_true",
         help="compress max -> maximum volume")
     parser.add_argument("--compress-2", "-c2", action="store_true",
@@ -49,15 +57,23 @@ def main() -> None:
         help="compress for video -> volume set by adjust 2")
     parser.add_argument("--passthrough", "-p", action="store_true",
         help="passthrough")
-    parser.add_argument("--dbg-spdif", action="store_true")
-    parser.add_argument("--dbg-subcodes", action="store_true")
-    parser.add_argument("--dbg-compress", action="store_true")
-    parser.add_argument("--dbg-adcs", action="store_true")
-    parser.add_argument("--dbg-version", action="store_true")
-    parser.add_argument("--reset-error", action="store_true")
+    parser.add_argument("--dbg-spdif", action="store_true",
+        help="show debug page for SPDIF input")
+    parser.add_argument("--dbg-subcodes", action="store_true",
+        help="show debug page for subcode input")
+    parser.add_argument("--dbg-compress", action="store_true",
+        help="show debug page for compressor")
+    parser.add_argument("--dbg-adcs", action="store_true",
+        help="show debug page for ADC inputs")
+    parser.add_argument("--dbg-version", action="store_true",
+        help="show debug page for version number")
+    parser.add_argument("--reset-error", action="store_true",
+        help="reset error flags")
     parser.add_argument("--reset-mode", "-R", action="store_true",
-        help="reset to default (set on the rotary control)")
-    parser.add_argument("--pre-emphasis", type=bool)
+        help="reset mode and ADCs to default (as set on the rotary control)")
+    parser.add_argument("--pre-emphasis", type=bool,
+        help="enable/disable pre-emphasis bit in output stream",
+        metavar="True/False")
 
     args = parser.parse_args()
     codes: CodeList = []
@@ -65,7 +81,7 @@ def main() -> None:
     set_adjust(codes, SET_ADJUST_1, args.adjust_1)
     set_adjust(codes, SET_ADJUST_2, args.adjust_2)
 
-    # These should match mode_definitiions.vhdl
+    # These should match mode_definitions.vhdl
     set_mode(codes, 0, args.compress_max)
     set_mode(codes, 1, args.compress_2)
     set_mode(codes, 2, args.compress_1)
@@ -94,10 +110,7 @@ def main() -> None:
         print("Use --help for instructions")
         return
 
-    data = b"COM\n" + struct.pack(">" + str(len(codes)) + "H", *codes)
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    s.sendto(data, UDP_TARGET)
+    send_codes(codes)
 
 if __name__ == "__main__":
     main()
