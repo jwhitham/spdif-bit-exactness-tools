@@ -60,6 +60,7 @@ bool packetgen_build_samples(const uint32_t num_packets, const uint64_t* packet_
     const uint32_t  samples_per_bit = sample_rate / BAUD_RATE;
     const uint32_t  leadin_samples = sample_rate / 10;
     const uint32_t  leadout_samples = sample_rate / 10;
+    const uint32_t  fade_samples = leadout_samples / 10;
     const uint32_t  packet_samples = num_bits * samples_per_bit;
     const uint32_t  num_samples = leadin_samples + leadout_samples + packet_samples;
 
@@ -115,12 +116,13 @@ bool packetgen_build_samples(const uint32_t num_packets, const uint64_t* packet_
             free(output);
             return false;
         }
+        // generate oscillator output
+        const int16_t value = (int16_t) floorf((sinf(angle) * (float) (INT16_MAX - 1)) + 0.5);
+        // move onwards to next signal
         angle += (packet & 1) ? upper_delta : lower_delta;
         if (angle > (pi2)) {
             angle -= pi2;
         }
-        // generate oscillator output
-        const int16_t value = (int16_t) floorf((sinf(angle) * (float) (INT16_MAX - 1)) + 0.5);
         // copy to all channels
         for (uint32_t j = 0; j < num_channels; j++) {
             *output_iter = value;
@@ -132,6 +134,20 @@ bool packetgen_build_samples(const uint32_t num_packets, const uint64_t* packet_
         // Internal error: should have generated all packets (computed sizes are wrong)
         free(output);
         return false;
+    }
+
+    // apply a fade in the leadout
+    output_iter--;
+    for (uint32_t i = 0; i < fade_samples; i++) {
+        // read one value and fade it (linear scale towards 0)
+        const int16_t orig_value = *output_iter;
+        const float faded_value_float = ((float) orig_value * (float) i) / (float) fade_samples;
+        const int16_t faded_value = (int16_t) floorf(faded_value_float + 0.5);
+        // copy to all channels
+        for (uint32_t j = 0; j < num_channels; j++) {
+            *output_iter = faded_value;
+            output_iter--;
+        }
     }
 
     // valid output
