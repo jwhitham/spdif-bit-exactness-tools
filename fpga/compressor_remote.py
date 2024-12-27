@@ -1,5 +1,5 @@
 
-import socket, argparse, typing, struct
+import socket, argparse, typing, struct, math, sys
 from pathlib import Path
 
 # These should match the bit positions in the "com_rot" block
@@ -15,10 +15,15 @@ UDP_TARGET = ("255.255.255.255", UDP_PORT)
 
 CodeList = typing.List[int]
 
-def set_adjust(codes: CodeList, command: int, value: typing.Optional[float]) -> None :
-    if value is not None:
-        top_of_range = (1 << 10) - 1
-        codes.append(command | min(max(0, int(value * top_of_range)), top_of_range))
+def set_adjust(codes: CodeList, command: int, decibels: typing.Optional[float]) -> None :
+    if decibels is not None:
+        if decibels > 0.0:
+            raise ValueError("Volume is in decibels, the maximum is 0")
+        integer_top_of_range = (1 << 10) - 1
+        linear_value = math.pow(10.0, decibels / 10.0)
+        integer_value = int(math.ceil(linear_value * integer_top_of_range))
+        integer_value = min(max(0, integer_value), integer_top_of_range)
+        codes.append(command | integer_value)
 
 def set_mode(codes: CodeList, number: int, flag: bool) -> None:
     if flag:
@@ -27,9 +32,11 @@ def set_mode(codes: CodeList, number: int, flag: bool) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--adjust-1", type=float,
-        help="set volume for C1 mode (0.0 .. 1.0)")
+        help="set volume for C1 mode (decibels, "
+            "must be <= 0.0, typical value -12)")
     parser.add_argument("--adjust-2", type=float,
-        help="set volume for C2, A2, CV modes (0.0 .. 1.0)")
+        help="set volume for C2, A2, CV modes (decibels, "
+            "must be <= 0.0, typical value -3.2)")
     parser.add_argument("--compress-max", "-cx", action="store_true",
         help="compress max -> maximum volume")
     parser.add_argument("--compress-2", "-c2", action="store_true",
