@@ -1,10 +1,13 @@
-#include "packetgen.h"
 
+extern "C" {
+#include "../comfilter/packetgen.h"
+}
+#include "send.h"
 
 #include <objbase.h>
 #include <mmdeviceapi.h>
 #include <audioclient.h>
-#include <stdio.h>
+#include <stdint.h>
 
 
 //-----------------------------------------------------------
@@ -30,7 +33,7 @@ const IID IID_IMMDeviceEnumerator = __uuidof(IMMDeviceEnumerator);
 const IID IID_IAudioClient = __uuidof(IAudioClient);
 const IID IID_IAudioRenderClient = __uuidof(IAudioRenderClient);
 
-uint32_t copySamples(BYTE* pData, const int16_t* sampleData, const uint32_t sampleIndex,
+static uint32_t copySamples(BYTE* pData, const int16_t* sampleData, const uint32_t sampleIndex,
                 const uint32_t sampleCount, UINT32 bufferFrameCount, WORD nChannels)
 {
     uint32_t samplesToCopy = sampleCount - sampleIndex;
@@ -42,7 +45,7 @@ uint32_t copySamples(BYTE* pData, const int16_t* sampleData, const uint32_t samp
     return samplesToCopy + sampleIndex;
 }
 
-HRESULT com_send(const uint32_t numPackets, const uint64_t* packetData)
+HRESULT comSend(const uint32_t numPackets, const uint64_t* packetData)
 {
     HRESULT hr;
     REFERENCE_TIME hnsRequestedDuration = REFTIMES_PER_SEC;
@@ -122,8 +125,8 @@ HRESULT com_send(const uint32_t numPackets, const uint64_t* packetData)
     EXIT_ON_ERROR(hr)
 
     // Calculate the actual duration of the allocated buffer.
-    hnsActualDuration = (double)REFTIMES_PER_SEC *
-                        bufferFrameCount / pwfx->nSamplesPerSec;
+    hnsActualDuration = ((REFERENCE_TIME)REFTIMES_PER_SEC *
+                        (REFERENCE_TIME)bufferFrameCount) / (REFERENCE_TIME)pwfx->nSamplesPerSec;
 
     hr = pAudioClient->Start();  // Start playing.
     EXIT_ON_ERROR(hr)
@@ -173,35 +176,5 @@ Exit:
     SAFE_RELEASE(pRenderClient)
 
     return hr;
-}
-
-int main(int argc, char** argv)
-{
-    HRESULT hr;
-    hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
-    printf("%08x\n", (unsigned) hr);
-    if (hr == S_OK)
-    {
-        // convert packet parameters to numbers
-        const int num_packets = argc - 1;
-        if (num_packets > 0)
-        {
-            uint64_t* packet_data = (uint64_t*) calloc(sizeof(uint64_t), num_packets);
-            if (!packet_data)
-            {
-                fprintf(stderr, "Error: allocate failed\n");
-                exit(1);
-            }
-            for (int i = 0; i < num_packets; i++) {
-                packet_data[i] = (uint64_t) strtoll(argv[i + 1], NULL, 0);
-                
-            }
-            hr = com_send(num_packets, packet_data);
-            printf("%08x\n", (unsigned) hr);
-            free(packet_data);
-        }
-    }
-    CoUninitialize();
-    return 0;
 }
 

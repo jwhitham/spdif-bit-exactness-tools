@@ -2,3 +2,5 @@
 *.wav
 .vs
 *.exe
+/fpga/com/Debug
+/fpga/com/Release

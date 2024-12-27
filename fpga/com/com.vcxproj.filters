@@ -27,9 +27,18 @@
     <ClInclude Include="com.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\comfilter\packetgen.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="com.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="send.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comfilter\packetgen.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

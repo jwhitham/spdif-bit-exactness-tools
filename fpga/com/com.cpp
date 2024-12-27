@@ -3,19 +3,38 @@
 
 #include "framework.h"
 #include "com.h"
+#include "send.h"
+
+#include <objbase.h>
+#include <mmdeviceapi.h>
+#include <audioclient.h>
+#include <WinSock2.h>
+
+typedef enum {
+    WM_USER_SOCK_ERROR = WM_USER,
+    WM_USER_SOUND_ERROR,
+} WM_USER_Messages;
 
 #define MAX_LOADSTRING 100
+#define SERVER_PORT     1967
+#define HEADER_SIZE     4
+#define PACKET_SIZE     2
+#define MAX_PACKETS     100
+#define EXPECTED_HEADER "COM\n"
 
 // Global Variables:
-HINSTANCE hInst;                                // current instance
-WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
-WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
+static HINSTANCE hInst;                                // current instance
+static WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
+static WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
+static HANDLE hNetworkThread;							// thread handle
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+DWORD WINAPI		networkThread(LPVOID lpParameter);
+
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -25,7 +44,20 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
-    // TODO: Place code here.
+    // winsock required
+    WSAData data;
+    if (WSAStartup(MAKEWORD(2, 2), &data) != 0)
+    {
+        return FALSE;
+    }
+
+    // COM required
+    HRESULT hr;
+    hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+    if (hr != S_OK)
+    {
+        return FALSE;
+    }
 
     // Initialize global strings
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -51,6 +83,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             DispatchMessage(&msg);
         }
     }
+
+    CoUninitialize();
 
     return (int) msg.wParam;
 }
@@ -105,8 +139,10 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
       return FALSE;
    }
 
-   ShowWindow(hWnd, nCmdShow);
+   // ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
+
+   hNetworkThread = CreateThread(NULL, 0, networkThread, hWnd, 0, NULL);
 
    return TRUE;
 }
@@ -126,33 +162,47 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message)
     {
     case WM_COMMAND:
+    {
+        int wmId = LOWORD(wParam);
+        // Parse the menu selections:
+        switch (wmId)
         {
-            int wmId = LOWORD(wParam);
-            // Parse the menu selections:
-            switch (wmId)
-            {
-            case IDM_ABOUT:
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                break;
-            case IDM_EXIT:
-                DestroyWindow(hWnd);
-                break;
-            default:
-                return DefWindowProc(hWnd, message, wParam, lParam);
-            }
+        case IDM_ABOUT:
+            DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+            break;
+        case IDM_EXIT:
+            DestroyWindow(hWnd);
+            break;
+        default:
+            return DefWindowProc(hWnd, message, wParam, lParam);
         }
-        break;
+    }
+    break;
     case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hWnd, &ps);
-            // TODO: Add any drawing code that uses hdc here...
-            EndPaint(hWnd, &ps);
-        }
-        break;
+    {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hWnd, &ps);
+        // TODO: Add any drawing code that uses hdc here...
+        EndPaint(hWnd, &ps);
+    }
+    break;
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
+    case WM_USER_SOCK_ERROR:
+    {
+        WCHAR message[128];
+        wsprintf(message, L"Socket error code %u", (unsigned)lParam);
+        (void)MessageBox(hWnd, message, szTitle, MB_OK | MB_ICONWARNING | MB_DEFBUTTON2 | MB_TOPMOST | MB_SYSTEMMODAL);
+    }
+    break;
+    case WM_USER_SOUND_ERROR:
+    {
+        WCHAR message[128];
+        wsprintf(message, L"Sound error code 0x%x", (unsigned)lParam);
+        (void)MessageBox(hWnd, message, szTitle, MB_OK | MB_ICONWARNING | MB_DEFBUTTON2 | MB_TOPMOST | MB_SYSTEMMODAL);
+    }
+    break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
@@ -177,4 +227,63 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     }
     return (INT_PTR)FALSE;
+}
+// Thread procedure - listen on UDP port and take appropriate actions
+DWORD WINAPI networkThread(LPVOID lpParameter)
+{
+    HWND hWnd = (HWND)lpParameter;
+
+    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock < 0) {
+        PostMessage(hWnd, WM_USER_SOCK_ERROR, 0, 1);
+        return 0;
+    }
+
+    struct sockaddr_in server;
+    memset(&server, 0, sizeof(server));
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = INADDR_ANY;
+    server.sin_port = htons(SERVER_PORT);
+
+    if (bind(sock, (struct sockaddr*)&server, sizeof(server)) < 0) {
+        PostMessage(hWnd, WM_USER_SOCK_ERROR, 0, 2);
+        goto cleanup;
+    }
+
+    while (1)
+    {
+        struct sockaddr_in from;
+        uint8_t buf[HEADER_SIZE + (MAX_PACKETS * PACKET_SIZE) + 1];
+        int fromlen = sizeof(from);
+        int bytes = recvfrom(sock, (char*) buf, sizeof(buf) - 1, 0, (struct sockaddr*)&from, &fromlen);
+        if (bytes < 0) {
+            PostMessage(hWnd, WM_USER_SOCK_ERROR, 0, 3);
+            goto cleanup;
+        }
+        if ((bytes > HEADER_SIZE)
+            && ((bytes % PACKET_SIZE) == 0)
+            && (memcmp(buf, EXPECTED_HEADER, HEADER_SIZE) == 0))
+        {
+            // message appears valid - read packet data
+            uint64_t packets[MAX_PACKETS];
+            int packet_count = 0;
+            int byte_index = HEADER_SIZE;
+            while (((byte_index + PACKET_SIZE) <= bytes) && (packet_count < MAX_PACKETS))
+            {
+                // Each packet is encoded as 16-bit big-endian
+                packets[packet_count] = ((uint64_t)buf[byte_index + 0] << 8)
+                    | ((uint64_t)buf[byte_index + 1]);
+                packet_count++;
+                byte_index += PACKET_SIZE;
+            }
+            HRESULT hr = comSend(packet_count, packets);
+            if (hr != S_OK)
+            {
+                PostMessage(hWnd, WM_USER_SOUND_ERROR, 0, (DWORD)hr);
+            }
+        }
+    }
+cleanup:
+    closesocket(sock);
+    return 0;
 }
