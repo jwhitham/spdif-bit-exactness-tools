@@ -1,6 +1,6 @@
+#!/usr/bin/env python3
 
 import socket, argparse, typing, struct, math, sys
-from pathlib import Path
 
 # These should match the bit positions in the "com_rot" block
 # in app/compressor_main.vhdl
