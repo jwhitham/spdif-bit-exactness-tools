@@ -1,0 +1,76 @@
+.program spdif
+spdif:
+// With a state machine running at 125 MHz each instruction is 8 nanoseconds
+// We take action every 5 instructions i.e. 40 nanoseconds
+// 
+// We are right at the limit of the number of instructions
+// (only 32.. if only there was "jmp !pin")
+
+.define public T0 4     // Cycles for pulse length 3 .. 5
+.define public T1 3     // Cycles for pulse length 7 .. 9
+.define public T2 8     // Cycles for pulse length 11 .. 19
+
+                                // Cycle (1 - 5)
+went_high:
+    in      Y, 2                // 2
+PUBLIC t0_set_1:
+    set     X, T0               // 3
+    set     Y, 0 [1]            // 4 5
+
+is_high_t0:
+    jmp pin still_high_t0 [1]   // 1
+
+went_low:
+    in      Y, 2                // 3
+PUBLIC t0_set_2:
+    set     X, T0               // 4
+    set     Y, 0                // 5
+is_low_t0:
+    jmp pin went_high           // 1
+    jmp     X--, is_low_t0 [3]  // 2 3 4 5
+
+PUBLIC t1_set_1:
+    set     X, T1               // 1
+    set     Y, 1 [3]            // 2 3 4 5
+
+is_low_t1:
+    jmp pin went_high           // 1
+    jmp     X--, is_low_t1 [3]  // 2 3 4 5
+
+PUBLIC t2_set_1:
+    set     X, T2               // 1
+    set     Y, 2 [3]            // 2 3 4 5
+
+is_low_t2:
+    jmp pin went_high           // 1
+    jmp     X--, is_low_t2 [3]  // 2 3 4 5
+
+    // Pulse is too long, wait then report
+    set     Y, 3                // loop onwards
+    jmp     is_low_t2
+
+
+still_high_t0:
+    jmp     X--, is_high_t0 [2] // 3 4 5
+PUBLIC t1_set_2:
+    set     X, T1               // 1
+    set     Y, 1 [3]            // 2 3 4 5
+
+is_high_t1:
+    jmp pin still_high_t1       // 1
+    jmp     went_low            // 2
+still_high_t1:
+    jmp     X--, is_high_t1 [3] // 2 3 4 5
+PUBLIC t2_set_2:
+    set     X, T2               // 1
+    set     Y, 2 [3]            // 2 3 4 5
+
+is_high_t2:
+    jmp pin still_high_t2       // 1
+    jmp     went_low            // 2
+still_high_t2:
+    jmp     X--, is_high_t2 [3] // 2 3 4 5
+
+    // Pulse is too long, wait then report
+    set     Y, 3                // loop onwards
+    jmp     is_high_t2

@@ -36,6 +36,10 @@ of this design is a subsystem which compares input to the expected test pattern
 and displays the results on some LEDs, indicating whether it is 
 bit-exact and whether it is 16-bit or 24-bit.
 
+The [pico](pico) subdirectory contains a program for the Raspberry Pi Pico board
+which will decode S/PDIF data and compare with the expected test
+pattern. This prints a report via the serial console, indicating whether the
+input is bit-exact and whether it is 16-bit or 24-bit.
 
 Instructions
 ------------
@@ -83,6 +87,18 @@ Connect the input to pin L12. If you have
 another FPGA then you can probably use the same VHDL files with a little porting work.
 
 See the [fpga](fpga) subdirectory for more information.
+
+Pico method
+-----------
+
+I also created a program for [Raspberry Pi
+Pico](https://www.raspberrypi.com/documentation/microcontrollers/pico-series.html#pico-1-family)
+which can receive S/PDIF inputs and check them for test patterns.
+If you have a Pico, then you only need
+to add an S/PDIF optical receiver module in order to use the prebuilt firmware.
+Connect the input to physical pin 1.
+
+See the [pico](pico) subdirectory for more information.
 
 
 Oscilloscope method
