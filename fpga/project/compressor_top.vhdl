@@ -22,8 +22,9 @@ entity compressor_top is
         adjust_2a_p47       : out std_logic := '0';
         adjust_2b_p45       : out std_logic := '0';
 
-        spdif_tx_p55        : out std_logic := '0';
         spdif_rx_p42        : in std_logic;
+        spdif_tx1_p58       : out std_logic := '0';
+        spdif_tx2_p55       : out std_logic := '0';
 
         button_a11          : in std_logic;
         button_c11          : in std_logic;
@@ -86,7 +87,8 @@ begin
             adjust_2a_out => adjust_2a_p47,
             adjust_2b_out => adjust_2b_p45,
 
-            spdif_tx_out => spdif_tx_p55,
+            spdif_tx1_out => spdif_tx1_p58,
+            spdif_tx2_out => spdif_tx2_p55,
             spdif_rx_in => spdif_rx_p42,
 
             button_a11_in => button_a11,

@@ -3,6 +3,14 @@
  15 downto 14 set the command
    00 = do nothing
    01 = set mode
+     10 -> output override
+       0 = do nothing
+       1 = set
+         9 downto 8 -> output setting value
+         00        default for rotary control position (see below)
+         01        output tx1 only
+         10        output tx2 only
+         11        both outputs
      7 pre-emphasis bit
        0 = do nothing
        1 = set
@@ -11,12 +19,12 @@
        0 = do nothing
        1 = set
          6 downto 3 -> mode setting value
-         0000  CX  compress max -> maximum volume
-         0001  C2  compress 2 -> volume set by adjust 2
-         0010  C1  compress 1 -> volume set by adjust 1
-         0011  A2  no compression, volume set by adjust 2
-         0100  CV  compress for video -> volume set by adjust 2
-         0101  P   passthrough
+         0000  CX  compress max -> maximum volume               output tx2
+         0001  C2  compress 2 -> volume set by adjust 2         output tx1
+         0010  C1  compress 1 -> volume set by adjust 1         output tx1
+         0011  A2  no compression, volume set by adjust 2       output tx1
+         0100  CV  compress for video -> volume set by adjust 2 output tx1
+         0101  P   passthrough                                  both outputs
          (others are for debug - see mode_definitions.vhdl)
      1 mode clear (return to manual control)
        0 = do nothing

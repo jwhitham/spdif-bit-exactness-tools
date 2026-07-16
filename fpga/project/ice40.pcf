@@ -28,8 +28,9 @@ set_io adjust_1b_p50 F14
 set_io adjust_2a_p47 H12
 set_io adjust_2b_p45 K12
 
-set_io spdif_tx_p55 D12
 set_io spdif_rx_p42 L12
+set_io spdif_tx1_p58 B14
+set_io spdif_tx2_p55 D12
 
 set_io button_a11 A11
 set_io button_c11 C11

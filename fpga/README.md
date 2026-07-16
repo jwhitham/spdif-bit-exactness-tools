@@ -56,6 +56,9 @@ bottom left and bottom right buttons. The modes are:
 - CV: compressor for video - compress to level 2, but minimise latency (only 2 ms delay)
 - P: passthrough
 
+Additionally the mode selects from two outputs. CX goes to output tx2. All others
+go to output tx1, except P, which goes to both tx1 and tx2.
+
 Level 1 and level 2 are set using the analogue presets connected to
 the iceFUN module. To avoid introducing noise to the digital signal,
 the presets are only sampled on startup and when the top left button is held down.

@@ -29,7 +29,8 @@ entity compressor_main is
         adjust_2a_out       : out std_logic := '0';
         adjust_2b_out       : out std_logic := '0';
 
-        spdif_tx_out        : out std_logic := '0';
+        spdif_tx1_out       : out std_logic := '0';
+        spdif_tx2_out       : out std_logic := '0';
         spdif_rx_in         : in std_logic;
 
         button_a11_in       : in std_logic;
@@ -115,6 +116,10 @@ architecture structural of compressor_main is
     -- user mode
     signal mode_strobe              : std_logic := '0';
     signal mode_select              : mode_definitions.t_mode := mode_definitions.min_value;
+
+    -- output enables
+    signal enable_tx1               : std_logic := '0';
+    signal enable_tx2               : std_logic := '0';
 
     -- reset signal
     signal reset                    : std_logic := '1';
@@ -239,10 +244,12 @@ begin
         if clock_in'event and clock_in = '1' then
             if mode_select = mode_definitions.PASSTHROUGH then
                 -- passthrough mode
-                spdif_tx_out <= not spdif_rx_in;
+                spdif_tx1_out <= (not spdif_rx_in) and enable_tx1;
+                spdif_tx2_out <= (not spdif_rx_in) and enable_tx2;
             else
                 -- via encoder
-                spdif_tx_out <= encoded_spdif;
+                spdif_tx1_out <= encoded_spdif and enable_tx1;
+                spdif_tx2_out <= encoded_spdif and enable_tx2;
             end if;
         end if;
     end process;
@@ -358,17 +365,21 @@ begin
         signal com_preemph_set          : std_logic := '0';
         signal com_mode_set             : std_logic := '0';
         signal com_mode_clear           : std_logic := '0';
+        signal com_output_set           : std_logic := '0';
         signal com_reset_error_button   : std_logic := '0';
 
         subtype t_com_auto_reset_counter is unsigned (6 downto 0);
         signal com_auto_reset_counter   : t_com_auto_reset_counter := (others => '1');
         constant com_auto_reset_end     : t_com_auto_reset_counter := (others => '0');
         constant com_auto_reset_trigger : t_com_auto_reset_counter := (0 => '1', others => '0');
+
+        signal output_enable            : std_logic_vector (1 downto 0) := "00";
     begin
         com_button_command <= com_strobe when (com_data (15 downto 14) = "01") else '0';
         com_preemph_set <= com_button_command and com_data (7);
         com_mode_set <= com_button_command and com_data (2);
         com_reset_error_button <= com_button_command and com_data (0);
+        com_output_set <= com_button_command and com_data (10);
 
         adc_enable_poll <= (not button_c11_in) or com_mode_clear;
         reset_error <= (not button_c6_in) or com_reset_error_button;
@@ -418,7 +429,50 @@ begin
                       com_mode_value_in => com_data (6 downto 3),
                       com_mode_set_in => com_mode_set,
                       com_mode_clear_in => com_mode_clear);
+
+        -- output enables
+        output : process (clock_in) is
+            use mode_definitions.all;
+        begin
+            -- The output_enable register allows control of which of the two outputs is active.
+            -- By default the rotary control operates this, with COMPRESS_MAX enabling tx2 only,
+            -- PASSTHROUGH enabling both, and anything else enabling tx1 only.
+            -- But a remote control command can apply a specific setting if desired.
+            if clock_in'event and clock_in = '1' then
+                if com_output_set = '1' then
+                    -- set by remote control
+                    output_enable <= com_data (9 downto 8);
+                elsif mode_strobe = '1' or com_mode_clear = '1' then
+                    -- remote control reset, or rotary control changed, or button pressed
+                    output_enable <= "00";
+                end if;
+
+                enable_tx1 <= '0';
+                enable_tx2 <= '0';
+                case output_enable is
+                    when "00" =>
+                        case mode_select is
+                            when COMPRESS_MAX =>
+                                enable_tx2 <= '1';
+                            when PASSTHROUGH =>
+                                enable_tx1 <= '1';
+                                enable_tx2 <= '1';
+                            when others =>
+                                enable_tx1 <= '1';
+                        end case;
+                    when "01" =>
+                        enable_tx1 <= '1';
+                    when "10" =>
+                        enable_tx2 <= '1';
+                    when others =>
+                        enable_tx1 <= '1';
+                        enable_tx2 <= '1';
+                end case;
+            end if;
+        end process output;
+
     end block com_rot;
+
 
     -- 100 Hz pulse generator drives various UI tasks and timers
     pulse_100hz_gen : entity pulse_gen
